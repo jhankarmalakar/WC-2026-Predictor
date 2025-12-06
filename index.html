@@ -1910,16 +1910,18 @@ function renderKnockouts(){
   finalCol.innerHTML = "";
   championBox.innerHTML = "";
 
-  // R32 cards
+// R32 cards (with date + stadium meta)
   r32Fixtures.forEach(m => {
+    const meta = R32_META[m.matchId] || {};
     round32Col.appendChild(makeMatchCard({
       matchId: m.matchId,
-      date: "",
-      venue: "",
+      date: meta.date || "",
+      venue: meta.stadium || meta.venue || "",
       home: m.home,
       away: m.away
     }));
   });
+
 
   // R16
   KO_DRAW.r16.forEach(spec => {
