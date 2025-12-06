@@ -158,11 +158,6 @@
     .third-section{
       margin-top: 16px;
     }
-    .third-grid{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap: 14px;
-    }
 
     .team-item{
       display:flex;
@@ -205,6 +200,18 @@
       flex: 0 0 22px;
     }
 
+    .group-chip{
+      font-size: 10px;
+      font-weight: 750;
+      letter-spacing: 0.4px;
+      padding: 3px 6px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      flex: 0 0 auto;
+    }
+
     .team-name{
       font-size: 12.8px;
       font-weight: 650;
@@ -238,7 +245,7 @@
 
     textarea{
       width: 100%;
-      min-height: 160px;
+      min-height: 170px;
       resize: vertical;
       background: rgba(255,255,255,0.04);
       border: 1px solid var(--border);
@@ -263,7 +270,7 @@
       <div class="badge" aria-hidden="true"></div>
       <div>
         <h1>World Cup 2026 Group Ranker</h1>
-        <div class="subtitle">Single-file mini tool — drag teams to set 1st → 4th and rank all 3rd-place teams.</div>
+        <div class="subtitle">Drag teams to set 1st → 4th and rank all 3rd-place groups.</div>
       </div>
     </div>
     <div class="controls">
@@ -277,31 +284,29 @@
 
   <main>
     <div class="hint">
-      Drag within each group to set rankings. Below, your <b>current third-place teams</b> are pulled from each group
-      and you can drag to rank them 1→12 across groups. For undecided teams, a black/white flag is shown.
+      Drag within each group to set rankings. Below, the <b>Third-Place Ranking</b> retains each team’s
+      <b>group identity</b> (A3, B3, ...). You are ranking the <b>third-place finishers by group</b>,
+      not just free-floating teams.
     </div>
 
     <div id="groupsGrid" class="grid"></div>
 
     <!-- Third-place ranking -->
     <div class="third-section">
-      <div class="third-grid">
-        <div class="group-card">
-          <div class="group-header">
-            <div>
-              <div class="group-name">THIRD-PLACE RANKING (ALL GROUPS)</div>
-              <div class="group-meta">Auto-pulls each group’s current 3rd-place team — drag to reorder across groups</div>
-            </div>
+      <div class="group-card">
+        <div class="group-header">
+          <div>
+            <div class="group-name">THIRD-PLACE RANKING (BY GROUP)</div>
+            <div class="group-meta">One slot per group (A3–L3) — drag to reorder priority</div>
           </div>
-          <ul id="thirdPlaceList" class="team-list" data-list-type="third"></ul>
         </div>
+        <ul id="thirdPlaceList" class="team-list" data-list-type="third"></ul>
       </div>
     </div>
 
     <div class="footer">
       <div class="small">Your current rankings (auto-updates):</div>
       <textarea id="output" readonly></textarea>
-      <div class="small">Tip: I can extend this file later with your simplified Round of 32 logic.</div>
     </div>
   </main>
 
@@ -322,14 +327,17 @@
       { name: "L", teams: ["England", "Croatia", "Ghana", "Panama"] },
     ];
 
-    const STORAGE_KEY = "wc2026_group_ranker_v2";
+    const STORAGE_KEY = "wc2026_group_ranker_v3";
 
     // Working state
     let groups = structuredClone(DEFAULT_GROUPS);
-    let thirdRankings = []; // array of team names (current 3rd-place pool order)
+
+    // IMPORTANT CHANGE:
+    // We now store third-place ranking as an ORDER OF GROUPS, not teams.
+    // This guarantees the "retains original group" behavior.
+    let thirdOrder = DEFAULT_GROUPS.map(g => g.name); // ["A","B",...,"L"]
 
     // ====== Flag mapping ======
-    // For undecided slots, we'll show a black/white flag emoji.
     const TBD_FLAG = "🏁";
 
     const FLAG_MAP = {
@@ -371,18 +379,13 @@
       "Portugal": "🇵🇹",
       "Uzbekistan": "🇺🇿",
       "Colombia": "🇨🇴",
-      "England": "🏴", // many platforms render England flag; if not, it may show as a black flag
+      "England": "🏴",
       "Croatia": "🇭🇷",
       "Ghana": "🇬🇭",
-      "Panama": "🇵🇦",
-      "Denmark": "🇩🇰",
-      "Italy": "🇮🇹",
-      "Sweden": "🇸🇪",
-      "Iran": "🇮🇷"
+      "Panama": "🇵🇦"
     };
 
     function getFlag(teamName){
-      // Any playoff or TBD placeholder uses black/white flag
       if (!teamName) return TBD_FLAG;
       const lowered = teamName.toLowerCase();
       if (lowered.includes("play-off") || lowered.includes("playoff") || lowered.includes("winner")) {
@@ -391,14 +394,15 @@
       return FLAG_MAP[teamName] || TBD_FLAG;
     }
 
-    // ====== Rendering ======
+    // ====== DOM ======
     const gridEl = document.getElementById("groupsGrid");
     const thirdListEl = document.getElementById("thirdPlaceList");
     const outputEl = document.getElementById("output");
 
+    // ====== Rendering ======
     function renderAll() {
       renderGroups();
-      syncThirdPlaceState();
+      syncThirdOrder();
       renderThirdList();
       updateOutput();
     }
@@ -430,7 +434,7 @@
         list.dataset.listType = "group";
 
         group.teams.forEach((teamName, index) => {
-          list.appendChild(createTeamItem(group.name, teamName, index));
+          list.appendChild(createGroupTeamItem(group.name, teamName, index));
         });
 
         card.appendChild(header);
@@ -447,23 +451,22 @@
       thirdListEl.innerHTML = "";
       thirdListEl.dataset.listType = "third";
 
-      thirdRankings.forEach((teamName, index) => {
-        // We store dataset.group as the originating group when possible
-        const originGroup = findOriginGroupForThird(teamName);
-        thirdListEl.appendChild(createTeamItem(originGroup ?? "3RD", teamName, index, true));
+      thirdOrder.forEach((groupName, index) => {
+        const teamName = getThirdTeamForGroup(groupName) || "TBD";
+        thirdListEl.appendChild(createThirdItem(groupName, teamName, index));
       });
 
       wireThirdListDnD(thirdListEl);
       updateRanksUI();
     }
 
-    function createTeamItem(groupName, teamName, index, isThirdList=false) {
+    function createGroupTeamItem(groupName, teamName, index) {
       const li = document.createElement("li");
       li.className = "team-item";
       li.draggable = true;
       li.dataset.group = groupName;
       li.dataset.team = teamName;
-      li.dataset.isThird = isThirdList ? "1" : "0";
+      li.dataset.isThird = "0";
 
       const pill = document.createElement("div");
       pill.className = "rank-pill";
@@ -489,6 +492,43 @@
       return li;
     }
 
+    function createThirdItem(groupName, teamName, index){
+      const li = document.createElement("li");
+      li.className = "team-item";
+      li.draggable = true;
+      li.dataset.groupKey = groupName; // key for ordering
+      li.dataset.team = teamName;
+      li.dataset.isThird = "1";
+
+      const pill = document.createElement("div");
+      pill.className = "rank-pill";
+      pill.textContent = String(index + 1);
+
+      const flag = document.createElement("div");
+      flag.className = "flag";
+      flag.textContent = getFlag(teamName);
+
+      const chip = document.createElement("div");
+      chip.className = "group-chip";
+      chip.textContent = `${groupName}3`;
+
+      const label = document.createElement("div");
+      label.className = "team-name";
+      label.textContent = teamName;
+
+      const handle = document.createElement("div");
+      handle.className = "drag-handle";
+      handle.textContent = "⋮⋮";
+
+      li.appendChild(pill);
+      li.appendChild(flag);
+      li.appendChild(chip);
+      li.appendChild(label);
+      li.appendChild(handle);
+
+      return li;
+    }
+
     function updateRanksUI() {
       document.querySelectorAll(".team-list").forEach(list => {
         [...list.children].forEach((li, idx) => {
@@ -498,31 +538,21 @@
       });
     }
 
-    // ====== Third-place state sync ======
-    function getCurrentThirdPlacePool(){
-      return groups.map(g => g.teams[2]).filter(Boolean);
+    // ====== Third-order helpers ======
+    function getThirdTeamForGroup(groupName){
+      const g = groups.find(x => x.name === groupName);
+      return g ? g.teams[2] : null;
     }
 
-    function syncThirdPlaceState(){
-      const pool = getCurrentThirdPlacePool();
-
-      if (!thirdRankings.length){
-        thirdRankings = [...pool];
-        return;
-      }
-
-      // Keep user order where possible, then append any new pool entries
-      const kept = thirdRankings.filter(t => pool.includes(t));
-      const missing = pool.filter(t => !kept.includes(t));
-      thirdRankings = [...kept, ...missing];
+    function syncThirdOrder(){
+      // Ensure thirdOrder contains exactly all group names once, in the saved/picked order
+      const all = groups.map(g => g.name);
+      const kept = thirdOrder.filter(g => all.includes(g));
+      const missing = all.filter(g => !kept.includes(g));
+      thirdOrder = [...kept, ...missing];
     }
 
-    function findOriginGroupForThird(teamName){
-      const g = groups.find(gr => gr.teams[2] === teamName);
-      return g ? g.name : null;
-    }
-
-    // ====== Drag & Drop (HTML5) ======
+    // ====== Drag & Drop ======
     let dragItem = null;
 
     function wireGroupListDnD(list) {
@@ -544,29 +574,23 @@
 
       list.addEventListener("dragover", (e) => {
         e.preventDefault();
-        e.dataTransfer.dropEffect = "move";
         const afterElement = getDragAfterElement(list, e.clientY);
         if (!dragItem) return;
 
         // Only allow within same group list
         if (dragItem.parentElement !== list) return;
 
-        if (afterElement == null) {
-          list.appendChild(dragItem);
-        } else {
-          list.insertBefore(dragItem, afterElement);
-        }
+        if (afterElement == null) list.appendChild(dragItem);
+        else list.insertBefore(dragItem, afterElement);
 
         markDropTarget(list);
       });
 
       list.addEventListener("drop", (e) => {
         e.preventDefault();
-        if (!dragItem) return;
-        if (dragItem.parentElement !== list) return;
+        if (!dragItem || dragItem.parentElement !== list) return;
         commitGroupListToState(list);
-        // third-place pool may have changed
-        syncThirdPlaceState();
+        // Third list displays whatever is currently 3rd in each group
         renderThirdList();
         clearDropTargets();
       });
@@ -579,7 +603,7 @@
         dragItem = li;
         li.classList.add("dragging");
         e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData("text/plain", li.dataset.team);
+        e.dataTransfer.setData("text/plain", li.dataset.groupKey || "");
       });
 
       list.addEventListener("dragend", (e) => {
@@ -591,26 +615,20 @@
 
       list.addEventListener("dragover", (e) => {
         e.preventDefault();
-        e.dataTransfer.dropEffect = "move";
         const afterElement = getDragAfterElement(list, e.clientY);
         if (!dragItem) return;
 
-        // Allow only dragging items that belong to this third list
         if (dragItem.dataset.isThird !== "1") return;
 
-        if (afterElement == null) {
-          list.appendChild(dragItem);
-        } else {
-          list.insertBefore(dragItem, afterElement);
-        }
+        if (afterElement == null) list.appendChild(dragItem);
+        else list.insertBefore(dragItem, afterElement);
 
         markDropTarget(list);
       });
 
       list.addEventListener("drop", (e) => {
         e.preventDefault();
-        if (!dragItem) return;
-        if (dragItem.dataset.isThird !== "1") return;
+        if (!dragItem || dragItem.dataset.isThird !== "1") return;
         commitThirdListToState(list);
         clearDropTargets();
       });
@@ -618,22 +636,19 @@
 
     function getDragAfterElement(container, y) {
       const draggableElements = [...container.querySelectorAll(".team-item:not(.dragging)")];
-
       return draggableElements.reduce((closest, child) => {
         const box = child.getBoundingClientRect();
         const offset = y - box.top - box.height / 2;
         if (offset < 0 && offset > closest.offset) {
           return { offset, element: child };
-        } else {
-          return closest;
         }
+        return closest;
       }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
     }
 
     function commitGroupListToState(list) {
       const groupName = list.dataset.group;
       const newOrder = [...list.querySelectorAll(".team-item")].map(li => li.dataset.team);
-
       const g = groups.find(x => x.name === groupName);
       if (g) g.teams = newOrder;
 
@@ -642,8 +657,9 @@
     }
 
     function commitThirdListToState(list){
-      const newOrder = [...list.querySelectorAll(".team-item")].map(li => li.dataset.team);
-      thirdRankings = newOrder;
+      const newOrder = [...list.querySelectorAll(".team-item")].map(li => li.dataset.groupKey);
+      thirdOrder = newOrder.filter(Boolean);
+      syncThirdOrder();
       updateRanksUI();
       updateOutput();
     }
@@ -670,36 +686,39 @@
         };
       });
 
+      const thirdPlaceByOrder = thirdOrder.map(groupName => ({
+        group: groupName,
+        slot: `${groupName}3`,
+        team: getThirdTeamForGroup(groupName) ?? null
+      }));
+
       return {
         groups: groupsObj,
-        thirdPlacePoolCurrent: getCurrentThirdPlacePool(),
-        thirdPlaceRanking: [...thirdRankings]
+        thirdPlaceRankingByGroup: thirdPlaceByOrder,
+        thirdOrder: [...thirdOrder]
       };
     }
 
     function updateOutput() {
-      const obj = getRankingsObject();
-      outputEl.value = JSON.stringify(obj, null, 2);
+      outputEl.value = JSON.stringify(getRankingsObject(), null, 2);
     }
 
     // ====== Buttons ======
     document.getElementById("btnSave").addEventListener("click", () => {
-      const payload = { groups, thirdRankings };
+      const payload = { groups, thirdOrder };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
       flashButton("btnSave", "Saved ✓");
     });
 
     document.getElementById("btnLoad").addEventListener("click", () => {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        flashButton("btnLoad", "No save yet");
-        return;
-      }
+      if (!raw) return flashButton("btnLoad", "No save yet");
       try {
         const parsed = JSON.parse(raw);
         if (parsed && Array.isArray(parsed.groups)) {
           groups = parsed.groups;
-          thirdRankings = Array.isArray(parsed.thirdRankings) ? parsed.thirdRankings : [];
+          thirdOrder = Array.isArray(parsed.thirdOrder) ? parsed.thirdOrder : groups.map(g => g.name);
+          syncThirdOrder();
           renderAll();
           flashButton("btnLoad", "Loaded ✓");
         } else {
@@ -712,7 +731,7 @@
 
     document.getElementById("btnReset").addEventListener("click", () => {
       groups = structuredClone(DEFAULT_GROUPS);
-      thirdRankings = [];
+      thirdOrder = DEFAULT_GROUPS.map(g => g.name);
       renderAll();
       flashButton("btnReset", "Reset ✓");
     });
@@ -750,10 +769,11 @@
           const parsed = JSON.parse(raw);
           if (parsed && Array.isArray(parsed.groups)) {
             groups = parsed.groups;
-            thirdRankings = Array.isArray(parsed.thirdRankings) ? parsed.thirdRankings : [];
+            thirdOrder = Array.isArray(parsed.thirdOrder) ? parsed.thirdOrder : groups.map(g => g.name);
           }
         } catch {}
       }
+      syncThirdOrder();
       renderAll();
     })();
   </script>
