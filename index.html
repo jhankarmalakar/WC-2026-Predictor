@@ -283,23 +283,58 @@
     .note strong{ color: var(--text); }
 
     /* KNOCKOUTS */
-    .ko-wrap{
-      display:grid;
-      grid-template-columns: repeat(3, minmax(260px, 1fr));
-      gap: 14px;
-    }
-    @media (max-width: 1100px){
-      .ko-wrap{ grid-template-columns: repeat(2, minmax(260px, 1fr)); }
-    }
-    @media (max-width: 720px){
-      .ko-wrap{ grid-template-columns: 1fr; }
-    }
-    .round-col{
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px;
-      background: rgba(255,255,255,0.03);
-    }
+    /* ===== KNOCKOUTS - STACKED ROUNDS (NO ADJACENT ROUND COLUMNS) ===== */
+
+.ko-stack{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+/* Each round becomes a full-width row */
+.round-row{
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(255,255,255,0.03);
+}
+
+/* Matches inside a round can be in a responsive grid */
+.matches-grid{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 900px){
+  .matches-grid{
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Prevent match internals from forcing horizontal overflow */
+.match-card{
+  min-width: 0;
+}
+
+.match-body{
+  display:grid;
+  grid-template-columns: minmax(0,1fr) 120px minmax(0,1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+@media (max-width: 420px){
+  .match-body{
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Winner box shouldn't be too wide on smaller screens */
+.winner-zone{
+  min-width: 0;
+}
+
     .round-title{
       display:flex;
       align-items:center;
@@ -576,56 +611,55 @@
     <div id="championBox"></div>
     <div style="height:10px"></div>
 
-    <div class="ko-wrap">
-      <div class="round-col">
-        <div class="round-title">
-          <h3>Round of 32</h3>
-          <span class="meta">Matches 73–88</span>
-        </div>
-        <div id="round32Col"></div>
-      </div>
+    <div class="ko-stack">
 
-      <div class="round-col">
-        <div class="round-title">
-          <h3>Round of 16</h3>
-          <span class="meta">July 4–7, 2026 • Matches 89–96</span>
-        </div>
-        <div id="round16Col"></div>
-      </div>
-
-      <div class="round-col">
-        <div class="round-title">
-          <h3>Quarterfinals</h3>
-          <span class="meta">July 9–11, 2026 • Matches 97–100</span>
-        </div>
-        <div id="round8Col"></div>
-      </div>
-
-      <div class="round-col">
-        <div class="round-title">
-          <h3>Semifinals</h3>
-          <span class="meta">July 14–15, 2026 • Matches 101–102</span>
-        </div>
-        <div id="semiCol"></div>
-      </div>
-
-      <div class="round-col">
-        <div class="round-title">
-          <h3>Third place</h3>
-          <span class="meta">July 18, 2026 • Match 103</span>
-        </div>
-        <div id="thirdPlaceCol"></div>
-      </div>
-
-      <div class="round-col">
-        <div class="round-title">
-          <h3>Final</h3>
-          <span class="meta">July 19, 2026 • Match 104</span>
-        </div>
-        <div id="finalCol"></div>
-      </div>
+  <div class="round-row">
+    <div class="round-title">
+      <h3>Round of 32</h3>
+      <span class="meta">Matches 73–88</span>
     </div>
-  </section>
+    <div id="round32Col" class="matches-grid"></div>
+  </div>
+
+  <div class="round-row">
+    <div class="round-title">
+      <h3>Round of 16</h3>
+      <span class="meta">July 4–7, 2026 • Matches 89–96</span>
+    </div>
+    <div id="round16Col" class="matches-grid"></div>
+  </div>
+
+  <div class="round-row">
+    <div class="round-title">
+      <h3>Quarterfinals</h3>
+      <span class="meta">July 9–11, 2026 • Matches 97–100</span>
+    </div>
+    <div id="round8Col" class="matches-grid"></div>
+  </div>
+
+  <div class="round-row">
+    <div class="round-title">
+      <h3>Semifinals</h3>
+      <span class="meta">July 14–15, 2026 • Matches 101–102</span>
+    </div>
+    <div id="semiCol" class="matches-grid"></div>
+  </div>
+
+  <div class="round-row">
+    <div class="round-title">
+      <h3>Third place</h3>
+      <span class="meta">July 18, 2026 • Match 103</span>
+    </div>
+    <div id="thirdPlaceCol" class="matches-grid"></div>
+  </div>
+
+  <div class="round-row">
+    <div class="round-title">
+      <h3>Final</h3>
+      <span class="meta">July 19, 2026 • Match 104</span>
+    </div>
+    <div id="finalCol" class="matches-grid"></div>
+  </div>
 
 </div>
 
