@@ -1923,14 +1923,12 @@ function makeTeamItem(groupLetter, teamName, idx){
   const handle = document.createElement("span");
   handle.className = "handle";
 
-  let flag = createFlagElement(teamName);
-  flag.className = "flag";
-  flag.textContent = flagForName(teamName);
+  // ✅ keep the element returned by createFlagElement
+  const flag = createFlagElement(teamName);
 
   const nameWrap = document.createElement("span");
   nameWrap.className = "team-name";
 
-  // Plain text (no edit)
   const nameText = document.createElement("span");
   nameText.className = "team-text";
   nameText.textContent = teamName || "TBD";
@@ -1948,6 +1946,7 @@ function makeTeamItem(groupLetter, teamName, idx){
 
   return li;
 }
+
 
 
 function refreshGroupPositionTags(){
@@ -2296,12 +2295,9 @@ function buildR32Fixtures(){
     return { ok:false, reason:"mapping-not-found" };
   }
 
-  mappingStatus.textContent = (() => {
-  const key = getCurrentTop8ThirdKey();
-  return (key && EMBEDDED_THIRD_MAPPING?.[key])
-    ? `Embedded mapping used for ${key}`
-    : `Embedded mapping: none`;
-})();
+  mappingStatus.textContent = `Embedded mapping used for ${key}`;
+  mappingStatus.className = "badge good";
+
   mappingStatus.className = "badge good";
 
   const fixtures = R32_TEMPLATE.map(m => {
@@ -2893,6 +2889,62 @@ function makeTeamChip(team, matchId, side){
   return chip;
 }
 
+/* =========================================================
+   UTILITIES
+   ========================================================= */
+function deepClone(obj){
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function escapeHtml(str){
+  return String(str ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function isLongName(name){
+  const nm = String(name || "").trim();
+  if(!nm) return false;
+  const hasVeryLongWord = nm.split(/\s+/).some(w => w.length >= 12);
+  return nm.length > 22 || hasVeryLongWord;
+}
+
+function markLongGroupTeamNames(){
+  document.querySelectorAll(".team-text").forEach(el => {
+    const t = el.textContent || "";
+    el.classList.toggle("is-long", isLongName(t));
+  });
+}
+
+/* =========================================================
+   WINNER ZONE RENDER
+   ========================================================= */
+function renderWinnerZoneContent(zone, winner){
+  zone.classList.remove("filled", "active");
+
+  if(winner && winner.name && winner.name !== "TBD"){
+    zone.classList.add("filled");
+
+    const longCls = isLongName(winner.name) ? "long" : "";
+
+    zone.innerHTML = `
+      <span class="winner-pill">
+        <span class="flag">${escapeHtml(flagForName(winner.name))}</span>
+        <span class="winner-name ${longCls}">${escapeHtml(winner.name)}</span>
+        ${winner.code ? `<span class="code">${escapeHtml(winner.code)}</span>` : ""}
+      </span>
+    `;
+  } else {
+    zone.innerHTML = `Drop winner here`;
+  }
+}
+
+/* =========================================================
+   WINNER ZONE (DROP TARGET)
+   ========================================================= */
 function makeWinnerZone(matchId, home, away){
   const zone = document.createElement("div");
   zone.className = "winner-zone";
@@ -2905,43 +2957,111 @@ function makeWinnerZone(matchId, home, away){
     e.preventDefault();
     zone.classList.add("active");
   });
+
   zone.addEventListener("dragleave", () => {
     zone.classList.remove("active");
   });
+
   zone.addEventListener("drop", e => {
     e.preventDefault();
     zone.classList.remove("active");
 
-    const data = e.dataTransfer.getData("application/json");
-    if(!data) return;
+    let payloadStr = "";
+    try{
+      payloadStr = e.dataTransfer.getData("application/json");
+    }catch(_){}
 
-    let parsed;
-    try { parsed = JSON.parse(data); } catch { return; }
+    if(!payloadStr) return;
 
-    const t = parsed.team;
-    if(!t || !t.name || t.name === "TBD") return;
-
-    // Ensure dropped team belongs to THIS match (strict)
-    if(String(parsed.matchId) !== String(matchId)) return;
-
-    // Only allow if it is one of the two current teams
-    const validNames = [home?.name, away?.name].filter(Boolean);
-    if(validNames.length && !validNames.includes(t.name)){
-      // names may collide rarely; allow fallback check by code too
-      const validCodes = [home?.code, away?.code].filter(Boolean);
-      if(!validCodes.includes(t.code)) return;
+    let payload;
+    try{
+      payload = JSON.parse(payloadStr);
+    }catch(_){
+      return;
     }
 
-    setWinner(matchId, t);
+    const team = payload?.team;
+    if(!team || !team.name || team.name === "TBD") return;
+
+    // ✅ Only allow picking winner from the same match
+    if(String(payload?.matchId) !== String(matchId)) return;
+
+    koWinners[matchId] = team;
+
+    // Re-render downstream rounds
+    renderKnockouts();
   });
 
-  // Click-to-clear convenience
+  // Optional: click to clear winner
   zone.addEventListener("dblclick", () => {
-    clearWinner(matchId);
+    if(koWinners[matchId]){
+      delete koWinners[matchId];
+      renderKnockouts();
+    }
   });
 
   return zone;
 }
+
+/* =========================================================
+   RESET KNOCKOUTS
+   ========================================================= */
+function resetKnockouts(soft=false){
+  // soft reset used when group/third order changes
+  koWinners = {};
+  if(!soft){
+    r32Fixtures = [];
+  }
+  renderKnockouts();
+}
+
+/* =========================================================
+   BUTTON WIRING (if not already present below)
+   ========================================================= */
+resetGroupsBtn?.addEventListener("click", () => {
+  groupsState = deepClone(DEFAULT_GROUPS);
+  renderGroups();
+  rebuildThirdFromGroups(true);
+  renderQualificationSnapshot();
+  resetKnockouts(false);
+});
+
+rebuildThirdBtn?.addEventListener("click", () => {
+  rebuildThirdFromGroups(true);
+  renderQualificationSnapshot();
+  resetKnockouts(true);
+});
+
+autoFillThirdOrderBtn?.addEventListener("click", () => {
+  autoFillThirdOrder();
+});
+
+generateR32Btn?.addEventListener("click", () => {
+  const res = buildR32Fixtures();
+  if(!res.ok){
+    renderKnockouts();
+    return;
+  }
+  r32Fixtures = res.fixtures;
+  koWinners = {};
+  renderKnockouts();
+});
+
+resetKnockoutBtn?.addEventListener("click", () => {
+  resetKnockouts(false);
+});
+
+/* =========================================================
+   INIT
+   ========================================================= */
+(async function init(){
+  await loadThirdMapping();
+  renderGroups();
+  rebuildThirdFromGroups(true);
+  renderQualificationSnapshot();
+  renderKnockouts();
+})();
+
 
 function renderWinnerZoneContent(zone, winner){
   if(winner && winner.name && winner.name !== "TBD"){
