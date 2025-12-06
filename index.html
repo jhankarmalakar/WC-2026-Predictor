@@ -957,6 +957,11 @@ function canonicalName(name){
 
 const PRIORITY_LIST = PRIORITY_RAW.map(canonicalName);
 const PRIORITY_INDEX = new Map(PRIORITY_LIST.map((n, i) => [n, i]));
+function priorityRank(name){
+  const key = canonicalName(name);
+  if(!key) return 9999;
+  return PRIORITY_INDEX.has(key) ? PRIORITY_INDEX.get(key) : 9999;
+}
 
 
 function isoToFlag(iso){
