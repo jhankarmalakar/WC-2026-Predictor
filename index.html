@@ -324,7 +324,7 @@
   <h1>2026 World Cup Mini Predictor</h1>
   <div class="sub">
     Drag to set group rankings, rank all 3rd-place teams, then generate a Round of 32 table.
-    Third-place allocation is loaded once from <strong>third-mapping.json</strong>.
+    Third-place allocation is built from an <strong>embedded official mapping table</strong>.
   </div>
 </header>
 
@@ -390,7 +390,7 @@
         <div class="divider"></div>
         <div class="note">
           Once you rank the third-place list, the app selects the top 8 and uses the
-          fixed mapping file to assign them into the Round of 32.
+          embedded official mapping to assign them into the Round of 32.
         </div>
       </div>
     </div>
@@ -424,8 +424,8 @@
 
     <div class="divider"></div>
     <div class="note">
-      If a combination key is missing from <strong>third-mapping.json</strong>,
-      the app will use a safe fallback assignment (for testing only).
+      This version does <strong>not</strong> use fallback logic. If your top-8 third-place
+      combination is not found in the embedded mapping, the R32 will not generate.
     </div>
   </section>
 
@@ -494,7 +494,7 @@ function flagForName(name){
    ========================================================= */
 let groupsState = deepClone(DEFAULT_GROUPS);
 let thirdOrderState = []; // [{group, name}]
-let THIRD_MAPPING = {};   // loaded from third-mapping.json
+let THIRD_MAPPING = {};   // built from embedded raw table
 
 /* =========================================================
    DOM
@@ -512,18 +512,74 @@ const thirdStatus = document.getElementById("thirdStatus");
 const r32Body = document.getElementById("r32Body");
 
 /* =========================================================
-   LOAD FIXED MAPPING ONCE
+   EMBEDDED OFFICIAL 3rd-PLACE MAPPING TABLE
+   Paste your full table text here.
+   The parser looks for lines containing 8 tokens like:
+   3E 3J 3I 3F 3H 3G 3L 3K
    ========================================================= */
+
+const THIRD_WINNER_ORDER = ["A","B","D","E","G","I","K","L"];
+const WINNER_TO_MATCHID = {
+  A: 79,
+  B: 85,
+  D: 81,
+  E: 74,
+  G: 82,
+  I: 77,
+  K: 87,
+  L: 80
+};
+
+const THIRD_MAPPING_RAW = `
+PASTE YOUR FULL TABLE TEXT HERE.
+
+Tip:
+- You can paste the exact big block you sent me.
+- The parser will ignore headers and only capture lines
+  that contain 8 valid "3X" tokens.
+`;
+
+function buildThirdMappingFromRaw(raw){
+  const mapping = {};
+  const lines = String(raw || "").split(/\r?\n/);
+
+  for(const line of lines){
+    const thirds = [...line.matchAll(/\b3([A-L])\b/g)].map(m => m[1]);
+    if(thirds.length !== 8) continue;
+
+    const unique = [...new Set(thirds)];
+    if(unique.length !== 8) continue;
+
+    const key = unique.slice().sort().join("");
+
+    const entry = {};
+    for(let i = 0; i < 8; i++){
+      const winnerGroup = THIRD_WINNER_ORDER[i];
+      const matchId = WINNER_TO_MATCHID[winnerGroup];
+      entry[String(matchId)] = thirds[i];
+    }
+
+    mapping[key] = entry;
+  }
+
+  return mapping;
+}
+
 async function loadThirdMapping(){
   try{
-    const res = await fetch("./third-mapping.json", { cache: "force-cache" });
-    if(!res.ok) throw new Error("Mapping fetch failed");
-    THIRD_MAPPING = await res.json();
-    mappingStatus.textContent = "Official 3rd-place mapping loaded";
-    mappingStatus.className = "badge good";
+    THIRD_MAPPING = buildThirdMappingFromRaw(THIRD_MAPPING_RAW);
+    const count = Object.keys(THIRD_MAPPING).length;
+
+    if(count > 0){
+      mappingStatus.textContent = `Embedded 3rd-place mapping loaded (${count} combos)`;
+      mappingStatus.className = "badge good";
+    } else {
+      mappingStatus.textContent = "Embedded mapping empty — paste your table into THIRD_MAPPING_RAW";
+      mappingStatus.className = "badge warn";
+    }
   }catch(err){
     THIRD_MAPPING = {};
-    mappingStatus.textContent = "Mapping not found — fallback will be used";
+    mappingStatus.textContent = "Embedded mapping parse error";
     mappingStatus.className = "badge warn";
     console.warn(err);
   }
@@ -826,105 +882,58 @@ const R32_TEMPLATE = [
 ];
 
 /* =========================================================
-   THIRD-PLACE ALLOCATION USING FIXED JSON
-   Expected JSON shape:
+   THIRD-PLACE ALLOCATION (STRICT, NO FALLBACK)
+   Expected built mapping shape:
    {
      "EFGHIJKL": { "74":"E", "77":"J", "79":"I", "80":"F", "81":"H", "82":"G", "85":"L", "87":"K" },
-     "ABDEGIKL": { ... }
+     ...
    }
    ========================================================= */
-function normalizeGroupCode(x){
-  if(!x) return "";
-  const s = String(x).trim().toUpperCase();
-  if(s.startsWith("3")) return s.slice(1);
-  return s; // assume it's already like "E"
-}
-
 function getThirdAllocation(mappingObj){
   const top8 = getTop8Thirds();
   const key = top8.map(t => t.group).sort().join("");
   const entry = mappingObj[key];
 
-  if(top8.length !== 8){
-    return { allocation: null, key, error: "Top 8 third-place teams not ready." };
-  }
-
-  if(!entry){
-    return { allocation: null, key, error: `No mapping found for key ${key}.` };
+  if(!entry || typeof entry !== "object"){
+    return { allocation: null, key };
   }
 
   const allocation = {};
+  THIRD_MATCHES.forEach(tm => {
+    const id = String(tm.matchId);
+    const chosen = entry[id];
+    if(chosen) allocation[tm.matchId] = String(chosen).toUpperCase();
+  });
 
-  // ✅ Support Shape B: array in the same order as THIRD_MATCHES
-  if(Array.isArray(entry)){
-    if(entry.length !== THIRD_MATCHES.length){
-      return {
-        allocation: null,
-        key,
-        error: `Mapping for ${key} has wrong length (expected ${THIRD_MATCHES.length}).`
-      };
-    }
-
-    THIRD_MATCHES.forEach((tm, i) => {
-      allocation[tm.matchId] = normalizeGroupCode(entry[i]);
-    });
-  }
-
-  // ✅ Support Shape A: object keyed by matchId
-  else if(typeof entry === "object"){
-    THIRD_MATCHES.forEach(tm => {
-      const chosen = entry[String(tm.matchId)];
-      if(chosen) allocation[tm.matchId] = normalizeGroupCode(chosen);
-    });
-  }
-
-  else {
-    return { allocation: null, key, error: `Invalid mapping format for ${key}.` };
-  }
-
-  // Validate all required matchIds are present
-  const missing = THIRD_MATCHES
-    .filter(tm => !allocation[tm.matchId])
-    .map(tm => tm.matchId);
-
-  if(missing.length){
-    return {
-      allocation: null,
-      key,
-      error: `Mapping for ${key} is missing match(s): ${missing.join(", ")}.`
-    };
-  }
-
-  // Validate mapping doesn't reference non-qualified thirds
-  const topSet = new Set(top8.map(t => t.group));
-  const badGroups = [...new Set(Object.values(allocation).filter(g => !topSet.has(g)))];
-
-  if(badGroups.length){
-    return {
-      allocation: null,
-      key,
-      error: `Mapping for ${key} references non-qualified third group(s): ${badGroups.join(", ")}.`
-    };
-  }
-
-  return { allocation, key, error: null };
+  return { allocation, key };
 }
-
 
 /* =========================================================
    R32 RENDER
    ========================================================= */
 function resolveSlot(slot, thirdAlloc){
   if(slot.type === "winner"){
-    return { label: `Winner Group ${slot.group}`, team: groupsState[slot.group]?.[0] || "TBD", code: `1${slot.group}` };
+    return {
+      label: `Winner Group ${slot.group}`,
+      team: groupsState[slot.group]?.[0] || "TBD",
+      code: `1${slot.group}`
+    };
   }
   if(slot.type === "runner"){
-    return { label: `Runner-up Group ${slot.group}`, team: groupsState[slot.group]?.[1] || "TBD", code: `2${slot.group}` };
+    return {
+      label: `Runner-up Group ${slot.group}`,
+      team: groupsState[slot.group]?.[1] || "TBD",
+      code: `2${slot.group}`
+    };
   }
   if(slot.type === "third"){
-    const g = thirdAlloc[slot.matchId];
+    const g = thirdAlloc?.[slot.matchId];
     const teamName = g ? (groupsState[g]?.[2] || "TBD") : "TBD";
-    return { label: g ? `3rd Group ${g}` : "3rd-place qualifier", team: teamName, code: g ? `3${g}` : "3?" };
+    return {
+      label: g ? `3rd Group ${g}` : "3rd-place qualifier",
+      team: teamName,
+      code: g ? `3${g}` : "3?"
+    };
   }
   return { label:"", team:"TBD", code:"" };
 }
@@ -935,20 +944,23 @@ function renderR32(){
 
   const top8 = getTop8Thirds();
   if(top8.length !== 8){
-    mappingStatus.textContent = "Rank 3rd-place teams to enable official mapping";
+    mappingStatus.textContent = "Rank 3rd-place teams to enable mapping";
     mappingStatus.className = "badge warn";
+    r32Body.innerHTML = "";
     return;
   }
 
-  const { allocation, usedFallback, key } = getThirdAllocation(THIRD_MAPPING);
+  const { allocation, key } = getThirdAllocation(THIRD_MAPPING);
 
-  if(THIRD_MAPPING[key]){
-    mappingStatus.textContent = usedFallback ? `Mapping partial for ${key} (fallback used)` : `Mapping used for ${key}`;
-    mappingStatus.className = usedFallback ? "badge warn" : "badge good";
-  } else {
-    mappingStatus.textContent = `No mapping for ${key} (fallback used)`;
+  if(!allocation){
+    mappingStatus.textContent = `No embedded mapping for ${key}`;
     mappingStatus.className = "badge warn";
+    r32Body.innerHTML = "";
+    return;
   }
+
+  mappingStatus.textContent = `Embedded mapping used for ${key}`;
+  mappingStatus.className = "badge good";
 
   r32Body.innerHTML = "";
 
@@ -978,16 +990,6 @@ function renderR32(){
 
     r32Body.appendChild(tr);
   });
-
-  if(usedFallback){
-    const tr = document.createElement("tr");
-    const td = document.createElement("td");
-    td.colSpan = 4;
-    td.className = "note";
-    td.innerHTML = `⚠️ Fallback allocation used for some third-place slots.`;
-    tr.appendChild(td);
-    r32Body.appendChild(tr);
-  }
 }
 
 function renderTeamSlot(slot){
