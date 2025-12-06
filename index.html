@@ -281,6 +281,7 @@
       color: var(--muted);
       padding-left: 6px;
     }
+/* ✅ This makes 3 COLUMNS */
 .qual-grid{
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -288,24 +289,26 @@
   align-items: start;
 }
 
+/* each column */
 .qual-col{
-  min-width: 0; /* prevents one column from expanding */
+  min-width: 0;
 }
 
-    .qual-col ul{
+/* ✅ This keeps ONE name per ROW inside each column */
+.qual-col ul{
+  list-style: none;
   margin: 0;
   padding: 0;
-  list-style: none;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.qual-col li,
-.team-item{
-  display: flex;     /* or block if you prefer */
+.qual-col li{
+  display: block;
   width: 100%;
 }
+
 
 
     @media (max-width: 900px){
