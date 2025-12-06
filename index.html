@@ -327,21 +327,65 @@
       font-weight: 650;
       letter-spacing: 0.2px;
     }
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap: 6px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.04);
-      padding: 5px 8px;
-      border-radius: 999px;
-      margin: 0 6px 6px 0;
-      font-size: 11.5px;
-      white-space: nowrap;
-    }
+   .pill{
+  display:inline-flex;
+  align-items:center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  padding: 5px 8px;
+  border-radius: 999px;
+  margin: 0 6px 6px 0;
+  font-size: 11.5px;
+
+  /* allow wrapping inside */
+  white-space: normal;
+  min-width: 0;
+}
+
+.pill .flag{
+  font-size: 14px;
+  width: auto;
+}
+
+.pill-text{
+  display:flex;
+  align-items:center;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* code part */
+.pill-code{
+  font-weight: 800;
+  flex: 0 0 auto;
+}
+
+/* normal name */
+.pill-name{
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
+}
+
+/* long name: smaller font + 2 lines */
+.pill-name.long{
+  font-size: 10.3px;
+  line-height: 1.1;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 180px;
+}
+
     .pill.good{ border-color: rgba(94,230,168,0.5); }
     .pill.warn{ border-color: rgba(255,184,107,0.5); }
-    .pill .flag{ font-size: 14px; width: auto; }
+
 /* ===== Step 4 Round headers, progress, collapse ===== */
 
 .round-head{
@@ -1938,14 +1982,36 @@ function renderQualificationSnapshot(){
 function makePill(code, name, cls){
   const span = document.createElement("span");
   span.className = `pill ${cls || ""}`;
+
   const flag = createFlagElement(name);
 
   const txt = document.createElement("span");
-  txt.innerHTML = `<strong>${escapeHtml(code)}</strong> ${escapeHtml(name || "TBD")}`;
+  txt.className = "pill-text";
+
+  const codeEl = document.createElement("span");
+  codeEl.className = "pill-code";
+  codeEl.textContent = code;
+
+  const nameEl = document.createElement("span");
+  nameEl.className = "pill-name";
+  nameEl.textContent = name || "TBD";
+
+  // long-name detection (same spirit as your knockout logic)
+  const nm = (name || "").trim();
+  const hasVeryLongWord = nm.split(/\s+/).some(w => w.length >= 12);
+  if(nm.length > 22 || hasVeryLongWord){
+    nameEl.classList.add("long");
+  }
+
+  txt.appendChild(codeEl);
+  txt.appendChild(nameEl);
+
   span.appendChild(flag);
   span.appendChild(txt);
+
   return span;
 }
+
 
 function updateThirdStatus(){
   const top8 = getTop8Thirds();
