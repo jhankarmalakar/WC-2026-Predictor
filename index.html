@@ -18,6 +18,9 @@
       --border:rgba(255,255,255,0.08);
       --shadow: 0 10px 30px rgba(0,0,0,0.35);
       --radius: 14px;
+       --sky-select: rgba(135, 206, 235, 0.28); /* skyblue shade */
+      --sky-border: rgba(135, 206, 235, 0.75);
+      --sky-glow: rgba(135, 206, 235, 0.35);
     }
     *{box-sizing:border-box}
     body{
@@ -82,6 +85,19 @@
       font-size: 10.5px;
       border-radius: 8px;
     }
+
+    .sky-highlight{
+  background: var(--sky-select) !important;
+  border-color: var(--sky-border) !important;
+  box-shadow: 0 0 0 1px var(--sky-border), 0 6px 16px -8px var(--sky-glow);
+}
+
+/* Optional: if your team tabs use a specific class */
+.team-tab.sky-highlight,
+.team-chip.sky-highlight,
+.match-team.sky-highlight{
+  background: var(--sky-select) !important;
+}
 
     .btn:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,0.18); }
     .btn:active{ transform: translateY(0px); }
@@ -1063,6 +1079,44 @@
 </div>
 
 <script>
+
+  function applySkyHighlights() {
+  // 1) Winners in knockout/wiki brackets
+  // Assumption: your winner selection sets something like:
+  // state.knockoutPicks[matchId] = "FR" (team code)
+  // We'll highlight any element that declares data-team-code + data-match-id.
+
+  document.querySelectorAll("[data-match-id][data-team-code]").forEach(el => {
+    const mid = el.getAttribute("data-match-id");
+    const t = el.getAttribute("data-team-code");
+    const picked = state?.knockoutPicks?.[mid];
+
+    el.classList.toggle("sky-highlight", picked === t);
+  });
+
+  // 2) Third-place pool top 8
+  // Assumption: you already compute a sorted array in state.thirdPlaceRanked
+  // containing team codes in rank order.
+  const top8 = (state?.thirdPlaceRanked || []).slice(0, 8);
+  document.querySelectorAll("[data-third-place-team]").forEach(el => {
+    const t = el.getAttribute("data-third-place-team");
+    el.classList.toggle("sky-highlight", top8.includes(t));
+  });
+
+  // 3) Group top 2 qualifiers
+  // Assumption: you already compute group standings in state.groupStandings[groupId]
+  // as array of objects with { code, ... } sorted by rank.
+  document.querySelectorAll("[data-group-id][data-team-code][data-group-team]").forEach(el => {
+    const gid = el.getAttribute("data-group-id");
+    const t = el.getAttribute("data-team-code");
+
+    const arr = state?.groupStandings?.[gid] || [];
+    const top2 = arr.slice(0, 2).map(x => x.code);
+
+    el.classList.toggle("sky-highlight", top2.includes(t));
+  });
+}
+
 /* =========================================================
    DEFAULT GROUPS
    ========================================================= */
@@ -1918,6 +1972,7 @@ card.appendChild(headRow);
   });
 
   markLongGroupTeamNames();
+  applySkyHighlights();
 }
 
 function makeTeamItem(groupLetter, teamName, idx){
@@ -2516,6 +2571,7 @@ function renderKnockouts(){
   }
 
     renderWikiBracket();
+  applySkyHighlights();
 
 }
 
@@ -2770,7 +2826,7 @@ function renderWikiBracket(){
     });
   }
 
-  
+  applySkyHighlights();
 }
 
 
