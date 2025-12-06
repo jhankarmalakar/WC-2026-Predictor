@@ -76,6 +76,13 @@
       cursor:pointer;
       transition: 0.15s ease;
     }
+
+    .btn.tiny{
+      padding: 5px 8px;
+      font-size: 10.5px;
+      border-radius: 8px;
+    }
+
     .btn:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,0.18); }
     .btn:active{ transform: translateY(0px); }
     .btn.accent{
@@ -773,7 +780,9 @@
     <div class="round-title">
       <h3>Round of 32</h3>
       <span class="meta">Matches 73–88</span>
+      <button class="btn tiny" id="autoFillR32Btn">Auto Fill Round</button>
     </div>
+
     <div id="round32Col" class="matches-grid"></div>
   </div>
 
@@ -781,6 +790,7 @@
     <div class="round-title">
       <h3>Round of 16</h3>
       <span class="meta">July 4–7, 2026 • Matches 89–96</span>
+      <button class="btn tiny" id="autoFillR16Btn">Auto Fill Round</button>
     </div>
     <div id="round16Col" class="matches-grid"></div>
   </div>
@@ -789,6 +799,7 @@
     <div class="round-title">
       <h3>Quarterfinals</h3>
       <span class="meta">July 9–11, 2026 • Matches 97–100</span>
+      <button class="btn tiny" id="autoFillQFBtn">Auto Fill Round</button>
     </div>
     <div id="round8Col" class="matches-grid"></div>
   </div>
@@ -797,6 +808,7 @@
     <div class="round-title">
       <h3>Semifinals</h3>
       <span class="meta">July 14–15, 2026 • Matches 101–102</span>
+      <button class="btn tiny" id="autoFillSFBtn">Auto Fill Round</button>
     </div>
     <div id="semiCol" class="matches-grid"></div>
   </div>
@@ -805,6 +817,7 @@
     <div class="round-title">
       <h3>Third place</h3>
       <span class="meta">July 18, 2026 • Match 103</span>
+      <button class="btn tiny" id="autoFillThirdBtn">Auto Fill Round</button>
     </div>
     <div id="thirdPlaceCol" class="matches-grid"></div>
   </div>
@@ -813,6 +826,7 @@
     <div class="round-title">
       <h3>Final</h3>
       <span class="meta">July 19, 2026 • Match 104</span>
+      <button class="btn tiny" id="autoFillFinalBtn">Auto Fill Round</button>
     </div>
     <div id="finalCol" class="matches-grid"></div>
   </div>
@@ -855,6 +869,93 @@ const NAME_TO_ISO = {
   "Portugal":"PT","Uzbekistan":"UZ","Colombia":"CO",
   "England":"GB","Croatia":"HR","Ghana":"GH","Panama":"PA"
 };
+
+  /* =========================================================
+   AUTO-FILL PRIORITY ORDER (your ranking)
+   ========================================================= */
+
+const PRIORITY_RAW = [
+  "Spain",
+  "Argentina",
+  "France",
+  "England",
+  "Brazil",
+  "Portugal",
+  "Netherlands",
+  "Belgium",
+  "Germany",
+  "Croatia",
+  "Morocco",
+  "Italy",
+  "Colombia",
+  "USA",
+  "Mexico",
+  "Uruguay",
+  "Switzerland",
+  "Japan",
+  "Senegal",
+  "Iran",
+  "Denmark",
+  "South Korea",
+  "Ecuador",
+  "Austria",
+  "Turkey",
+  "Australia",
+  "Canada",
+  "Ukraine",
+  "Norway",
+  "Panama",
+  "Poland",
+  "Wales",
+  "Russia",
+  "Egypt",
+  "Algeria",
+  "Scotland",
+  "Serbia",
+  "Nigeria",
+  "Paraguay",
+  "Tunisia",
+  "Hungary",
+  "Ivory Coast",
+  "Sweden",
+  "Czechia",
+  "Slovakia",
+  "Greece",
+  "Romania",
+  "Venezuela",
+  "Costa Rica",
+  "Uzbekistan",
+
+  // Ranking of World Cup Qualifiers Outside Top 50
+  "Qatar",
+  "Saudi Arabia",
+  "South Africa",
+  "Jordan",
+  "Cabo Verde",
+  "Ghana",
+  "Curaçao",
+  "Haiti",
+  "New Zealand"
+];
+
+// Basic cleanup + canonicalization for comparisons
+function canonicalName(name){
+  const n = String(name || "").trim();
+
+  if(!n) return "";
+
+  // Normalize common synonyms used in your list vs app
+  if(/^usa$/i.test(n) || /^united states$/i.test(n)) return "UNITED STATES";
+  if(/^south korea$/i.test(n) || /^korea republic$/i.test(n)) return "SOUTH KOREA";
+  if(/^ivory coast$/i.test(n) || /^côte d.?ivoire$/i.test(n)) return "IVORY COAST";
+  if(/^cabo verde$/i.test(n)) return "CAPE VERDE";
+
+  return n.toUpperCase();
+}
+
+const PRIORITY_LIST = PRIORITY_RAW.map(canonicalName);
+const PRIORITY_INDEX = new Map(PRIORITY_LIST.map((n, i) => [n, i]));
+
 
 function isoToFlag(iso){
   if(!iso || iso.length !== 2) return "🏳️";
@@ -953,6 +1054,12 @@ const semiCol = document.getElementById("semiCol");
 const thirdPlaceCol = document.getElementById("thirdPlaceCol");
 const finalCol = document.getElementById("finalCol");
 const championBox = document.getElementById("championBox");
+const autoFillR32Btn = document.getElementById("autoFillR32Btn");
+const autoFillR16Btn = document.getElementById("autoFillR16Btn");
+const autoFillQFBtn  = document.getElementById("autoFillQFBtn");
+const autoFillSFBtn  = document.getElementById("autoFillSFBtn");
+const autoFillThirdBtn = document.getElementById("autoFillThirdBtn");
+const autoFillFinalBtn = document.getElementById("autoFillFinalBtn");
 
 /* =========================================================
    EMBEDDED OFFICIAL 3rd-PLACE MAPPING TABLE
@@ -2320,6 +2427,48 @@ function clearWinner(matchId){
   renderKnockouts();
 }
 
+  function pickWinnerByPriority(home, away){
+  if(!home || !away) return null;
+  if(!home.name || !away.name) return null;
+  if(home.name === "TBD" || away.name === "TBD") return null;
+
+  const hKey = canonicalName(home.name);
+  const aKey = canonicalName(away.name);
+
+  const hRank = PRIORITY_INDEX.has(hKey) ? PRIORITY_INDEX.get(hKey) : 9999;
+  const aRank = PRIORITY_INDEX.has(aKey) ? PRIORITY_INDEX.get(aKey) : 9999;
+
+  if(hRank === aRank){
+    // Fallback: if both unknown, pick home
+    return home;
+  }
+  return hRank < aRank ? home : away;
+}
+
+function autoFillMatches(matchIds){
+  let changed = false;
+
+  matchIds.forEach(id => {
+    if(getWinner(id)) return; // don't overwrite existing picks
+
+    const teams = getMatchTeams(id);
+    if(!teams) return;
+
+    const choice = pickWinnerByPriority(teams.home, teams.away);
+    if(!choice) return;
+
+    koWinners[id] = choice;
+    changed = true;
+  });
+
+  if(changed){
+    cleanupInvalidWinners();
+    renderKnockouts();
+  }
+}
+
+  
+
 function cleanupInvalidWinners(){
   const allMatchIds = [
     ...r32Fixtures.map(m => m.matchId),
@@ -2349,7 +2498,49 @@ function cleanupInvalidWinners(){
 /* =========================================================
    BUTTONS
    ========================================================= */
-resetGroupsBtn.addEventListener("click", () => {
+
+if(autoFillR32Btn){
+  autoFillR32Btn.addEventListener("click", () => {
+    if(!r32Fixtures.length){
+      // must generate first so teams exist
+      const res = buildR32Fixtures();
+      if(!res.ok) return;
+      r32Fixtures = res.fixtures;
+    }
+    autoFillMatches(r32Fixtures.map(m => m.matchId));
+  });
+}
+
+if(autoFillR16Btn){
+  autoFillR16Btn.addEventListener("click", () => {
+    autoFillMatches(KO_DRAW.r16.map(m => m.matchId));
+  });
+}
+
+if(autoFillQFBtn){
+  autoFillQFBtn.addEventListener("click", () => {
+    autoFillMatches(KO_DRAW.qf.map(m => m.matchId));
+  });
+}
+
+if(autoFillSFBtn){
+  autoFillSFBtn.addEventListener("click", () => {
+    autoFillMatches(KO_DRAW.sf.map(m => m.matchId));
+  });
+}
+
+  if(autoFillThirdBtn){
+  autoFillThirdBtn.addEventListener("click", () => {
+    autoFillMatches(KO_DRAW.third.map(m => m.matchId));
+  });
+}
+if(autoFillFinalBtn){
+  autoFillFinalBtn.addEventListener("click", () => {
+    autoFillMatches(KO_DRAW.final.map(m => m.matchId));
+  });
+}
+  
+  resetGroupsBtn.addEventListener("click", () => {
   groupsState = deepClone(DEFAULT_GROUPS);
   renderGroups();
   rebuildThirdFromGroups(true);
