@@ -875,6 +875,9 @@
       color: var(--muted);
       margin-top: 2px;
     }
+
+
+
   </style>
 </head>
 <body>
@@ -1048,10 +1051,14 @@
     </div>
     <div id="finalCol" class="matches-grid"></div>
   </div>
-<div id="wikiBracket"></div>
+<div class="round-row">
+  <div id="wikiBracket"></div>
+</div>
           <div class="divider"></div>
 
-    <div id="championBox"></div>
+    <div class="round-row">
+  <div id="championBox"></div>
+</div>
     <div style="height:10px"></div>
 </div>
 
@@ -3062,25 +3069,6 @@ resetKnockoutBtn?.addEventListener("click", () => {
   renderKnockouts();
 })();
 
-
-function renderWinnerZoneContent(zone, winner){
-  if(winner && winner.name && winner.name !== "TBD"){
-    zone.classList.add("filled");
-
-    const isLong = (winner.name || "").length > 22;   // same threshold as chips
-    const nameClass = isLong ? "winner-name long" : "winner-name";
-
-    zone.innerHTML = `
-      <span class="winner-pill">
-        <span class="flag">${flagForName(winner.name)}</span>
-        <span class="${nameClass}">${escapeHtml(winner.name)}</span>
-      </span>
-    `;
-  } else {
-    zone.classList.remove("filled");
-    zone.textContent = "Drop winner";
-  }
-}
 
 
 /* =========================================================
