@@ -833,47 +833,83 @@ const R32_TEMPLATE = [
      "ABDEGIKL": { ... }
    }
    ========================================================= */
+function normalizeGroupCode(x){
+  if(!x) return "";
+  const s = String(x).trim().toUpperCase();
+  if(s.startsWith("3")) return s.slice(1);
+  return s; // assume it's already like "E"
+}
+
 function getThirdAllocation(mappingObj){
   const top8 = getTop8Thirds();
   const key = top8.map(t => t.group).sort().join("");
   const entry = mappingObj[key];
 
-  const allocation = {};
-  let usedFallback = false;
+  if(top8.length !== 8){
+    return { allocation: null, key, error: "Top 8 third-place teams not ready." };
+  }
 
-  if(entry && typeof entry === "object"){
-    THIRD_MATCHES.forEach(tm => {
-      const id = String(tm.matchId);
-      const chosen = entry[id];
-      if(chosen) allocation[tm.matchId] = String(chosen).toUpperCase();
+  if(!entry){
+    return { allocation: null, key, error: `No mapping found for key ${key}.` };
+  }
+
+  const allocation = {};
+
+  // ✅ Support Shape B: array in the same order as THIRD_MATCHES
+  if(Array.isArray(entry)){
+    if(entry.length !== THIRD_MATCHES.length){
+      return {
+        allocation: null,
+        key,
+        error: `Mapping for ${key} has wrong length (expected ${THIRD_MATCHES.length}).`
+      };
+    }
+
+    THIRD_MATCHES.forEach((tm, i) => {
+      allocation[tm.matchId] = normalizeGroupCode(entry[i]);
     });
   }
 
-  const assigned = new Set(Object.values(allocation));
-  const availableThirds = top8.slice(); // preference order = your ranking
+  // ✅ Support Shape A: object keyed by matchId
+  else if(typeof entry === "object"){
+    THIRD_MATCHES.forEach(tm => {
+      const chosen = entry[String(tm.matchId)];
+      if(chosen) allocation[tm.matchId] = normalizeGroupCode(chosen);
+    });
+  }
 
-  THIRD_MATCHES.forEach(tm => {
-    if(allocation[tm.matchId]) return;
-    const pick = availableThirds.find(t => tm.candidates.includes(t.group) && !assigned.has(t.group));
-    if(pick){
-      allocation[tm.matchId] = pick.group;
-      assigned.add(pick.group);
-      usedFallback = true;
-    }
-  });
+  else {
+    return { allocation: null, key, error: `Invalid mapping format for ${key}.` };
+  }
 
-  THIRD_MATCHES.forEach(tm => {
-    if(allocation[tm.matchId]) return;
-    const pick = availableThirds.find(t => !assigned.has(t.group));
-    if(pick){
-      allocation[tm.matchId] = pick.group;
-      assigned.add(pick.group);
-      usedFallback = true;
-    }
-  });
+  // Validate all required matchIds are present
+  const missing = THIRD_MATCHES
+    .filter(tm => !allocation[tm.matchId])
+    .map(tm => tm.matchId);
 
-  return { allocation, usedFallback, key };
+  if(missing.length){
+    return {
+      allocation: null,
+      key,
+      error: `Mapping for ${key} is missing match(s): ${missing.join(", ")}.`
+    };
+  }
+
+  // Validate mapping doesn't reference non-qualified thirds
+  const topSet = new Set(top8.map(t => t.group));
+  const badGroups = [...new Set(Object.values(allocation).filter(g => !topSet.has(g)))];
+
+  if(badGroups.length){
+    return {
+      allocation: null,
+      key,
+      error: `Mapping for ${key} references non-qualified third group(s): ${badGroups.join(", ")}.`
+    };
+  }
+
+  return { allocation, key, error: null };
 }
+
 
 /* =========================================================
    R32 RENDER
