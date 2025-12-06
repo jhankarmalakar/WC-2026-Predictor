@@ -143,6 +143,8 @@
       background: rgba(255,255,255,0.04);
       border: 1px solid var(--border);
       cursor: grab;
+      overflow: hidden;   /* add */
+      min-width: 0;       /* add */
     }
     .team-item.dragging{
       opacity: 0.5;
@@ -165,18 +167,24 @@
       flex: 0 0 auto;
     }
     .team-name{
-      flex:1 1 auto;
+      flex: 1 1 auto;
       min-width: 0;
+      overflow: hidden; /* needed for clamp */
     }
-    .team-text{
-      display:block;
-      font-size: 13.5px;
-      font-weight: 500;
-      padding: 2px 2px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+
+   .team-text{
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;     /* allow 2 lines */
+    overflow: hidden;
+  
+    font-size: 11.5px;         /* smaller font */
+    font-weight: 600;
+    line-height: 1.15;         /* tighter so 2 lines fit */
+    max-height: 2.3em;         /* keeps height stable */
+    white-space: normal;       /* enable wrapping */
+  }
+
 
     .team-name input{
       width: 100%;
