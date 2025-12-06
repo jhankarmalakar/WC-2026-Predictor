@@ -542,6 +542,18 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+
+    /* For long team names in knockout rounds:
+   smaller font, allow up to 2 lines */
+.team-chip .name.long{
+      font-size: 11px;
+      line-height: 1.1;
+      white-space: normal;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;      /* clamp to 2 lines where supported */
+      -webkit-box-orient: vertical;
+    }
+
     .team-chip .code{
       font-size: 9.5px;
       color: var(--muted);
@@ -2163,6 +2175,12 @@ function makeTeamChip(team, matchId, side){
   const name = document.createElement("span");
   name.className = "name";
   name.textContent = team?.name || "TBD";
+
+    // If the team name is long, use smaller font + 2-line wrap
+  if ((team?.name || "").length > 22){
+    name.classList.add("long");
+  }
+
 
   const code = document.createElement("span");
   code.className = "code";
