@@ -2296,7 +2296,12 @@ function buildR32Fixtures(){
     return { ok:false, reason:"mapping-not-found" };
   }
 
-  mappingStatus.textContent = `Embedded mapping used for ${key}`;
+  mappingStatus.textContent = (() => {
+  const key = getCurrentTop8ThirdKey();
+  return (key && EMBEDDED_THIRD_MAPPING?.[key])
+    ? `Embedded mapping used for ${key}`
+    : `Embedded mapping: none`;
+})();
   mappingStatus.className = "badge good";
 
   const fixtures = R32_TEMPLATE.map(m => {
@@ -3151,6 +3156,20 @@ function escapeHtml(str){
     .replaceAll('"',"&quot;")
     .replaceAll("'","&#039;");
 }
+
+  function getCurrentTop8ThirdKey() {
+  // Adjust this line to your real source of truth:
+  // It should be the 8 teams currently shown in "Top 8 third-place"
+  const thirds = top8ThirdPlaceTeams || qualifiedThirdPlace || [];
+
+  const letters = thirds
+    .map(t => t?.group)
+    .filter(Boolean);
+
+  const uniqueSorted = [...new Set(letters)].sort();
+  return uniqueSorted.join("");
+}
+
 
   /* =========================================================
    GROUP AUTO-FILL
