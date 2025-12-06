@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>2026 World Cup Mini Predictor (Groups + 3rd Rank + R32)</title>
+  <title>World Cup 2026 Mini Predictor (Groups + 3rd Rank + R32)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -19,7 +19,6 @@
       --shadow: 0 10px 30px rgba(0,0,0,0.35);
       --radius: 14px;
     }
-
     *{box-sizing:border-box}
     body{
       margin:0;
@@ -51,7 +50,6 @@
       display: grid;
       gap: 18px;
     }
-
     .panel{
       background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
       border: 1px solid var(--border);
@@ -59,7 +57,6 @@
       box-shadow: var(--shadow);
       padding: 16px 16px 12px;
     }
-
     .row{
       display:flex;
       gap: 12px;
@@ -67,7 +64,6 @@
       align-items:center;
       justify-content: space-between;
     }
-
     .btn{
       appearance:none;
       border: 1px solid var(--border);
@@ -82,17 +78,14 @@
     }
     .btn:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,0.18); }
     .btn:active{ transform: translateY(0px); }
-
     .btn.accent{
       background: linear-gradient(90deg, rgba(122,162,255,0.18), rgba(122,162,255,0.05));
       border-color: rgba(122,162,255,0.35);
     }
-
     .btn.good{
       background: linear-gradient(90deg, rgba(94,230,168,0.18), rgba(94,230,168,0.05));
       border-color: rgba(94,230,168,0.35);
     }
-
     .badge{
       display:inline-flex;
       align-items:center;
@@ -108,7 +101,6 @@
     .badge.warn{ color: #ffd3a6; border-color: rgba(255,184,107,0.35); }
     .badge.good{ color: #c9ffe6; border-color: rgba(94,230,168,0.35); }
 
-    /* Groups grid */
     .groups-grid{
       display:grid;
       grid-template-columns: repeat(4, minmax(240px, 1fr));
@@ -123,13 +115,11 @@
     @media (max-width: 520px){
       .groups-grid{ grid-template-columns: 1fr; }
     }
-
     .group-card h3{
       margin: 2px 0 10px;
       font-size: 16px;
       letter-spacing: 0.3px;
     }
-
     .team-list{
       list-style: none;
       padding: 0;
@@ -185,7 +175,6 @@
       border-color: rgba(122,162,255,0.5);
       background: rgba(255,255,255,0.05);
     }
-
     .pos-tag{
       font-size: 10px;
       padding: 2px 6px;
@@ -196,7 +185,6 @@
       flex: 0 0 auto;
     }
 
-    /* Third place panel layout */
     .third-grid{
       display:grid;
       grid-template-columns: 1.2fr 1fr;
@@ -205,7 +193,6 @@
     @media (max-width: 900px){
       .third-grid{ grid-template-columns: 1fr; }
     }
-
     .third-list{
       list-style:none;
       padding:0;
@@ -244,7 +231,6 @@
       padding-left: 6px;
     }
 
-    /* Qualified overview */
     .qual-grid{
       display:grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -282,26 +268,6 @@
     .pill.warn{ border-color: rgba(255,184,107,0.5); }
     .pill .flag{ font-size: 14px; width: auto; }
 
-    /* Mapping textarea */
-    textarea{
-      width: 100%;
-      min-height: 160px;
-      resize: vertical;
-      background: rgba(255,255,255,0.04);
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 10px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 11.5px;
-      line-height: 1.35;
-    }
-    textarea:focus{
-      outline:none;
-      border-color: rgba(122,162,255,0.5);
-    }
-
-    /* R32 table */
     .r32-table{
       width: 100%;
       border-collapse: collapse;
@@ -358,7 +324,7 @@
   <h1>2026 World Cup Mini Predictor</h1>
   <div class="sub">
     Drag to set group rankings, rank all 3rd-place teams, then generate a Round of 32 table.
-    Flags are automatic for known countries; playoff/undecided entries show 🏳️.
+    Third-place allocation is loaded once from <strong>third-mapping.json</strong>.
   </div>
 </header>
 
@@ -389,6 +355,7 @@
       </div>
       <div class="row">
         <span id="thirdStatus" class="badge"></span>
+        <span id="mappingStatus" class="badge"></span>
       </div>
     </div>
     <div class="divider"></div>
@@ -422,8 +389,8 @@
         </div>
         <div class="divider"></div>
         <div class="note">
-          The Round of 32 for the 48-team format uses 12 group winners, 12 runners-up,
-          and the best 8 third-place teams. :contentReference[oaicite:2]{index=2}
+          Once you rank the third-place list, the app selects the top 8 and uses the
+          fixed mapping file to assign them into the Round of 32.
         </div>
       </div>
     </div>
@@ -437,31 +404,9 @@
         <span class="badge">Round of 32 generator</span>
       </div>
       <div class="row">
-        <button class="btn" id="loadExampleMappingBtn">Load tiny example JSON</button>
         <button class="btn good" id="generateR32Btn">Generate R32</button>
       </div>
     </div>
-    <div class="divider"></div>
-
-    <div class="note">
-      The official bracket assigns the 8 qualifying third-place teams to specific matches based on
-      which groups those third-place teams come from. The match placeholders below follow the published bracket
-      (e.g., Winner Group E vs 3rd Group A/B/C/D/F, etc.). :contentReference[oaicite:3]{index=3}
-      <br><br>
-      Paste your full JSON mapping if you have it. If a key is missing, this app uses a <strong>greedy fallback</strong>
-      that may not match the official FIFA allocation.
-    </div>
-
-    <div style="height:10px"></div>
-
-    <label class="note"><strong>Third-place allocation mapping (JSON)</strong></label>
-    <textarea id="mappingInput" spellcheck="false"></textarea>
-
-    <div class="row" style="margin-top:10px">
-      <span id="mappingStatus" class="badge"></span>
-      <span class="note">Key format: the 8 qualifying 3rd-place group letters sorted, e.g. <strong>"BCEFGHJL"</strong>.</span>
-    </div>
-
     <div class="divider"></div>
 
     <h3 style="margin:0 0 8px 0; font-size:16px;">Round of 32</h3>
@@ -476,168 +421,52 @@
       </thead>
       <tbody id="r32Body"></tbody>
     </table>
+
+    <div class="divider"></div>
+    <div class="note">
+      If a combination key is missing from <strong>third-mapping.json</strong>,
+      the app will use a safe fallback assignment (for testing only).
+    </div>
   </section>
 
 </div>
 
 <script>
 /* =========================================================
-   DEFAULT DATA (based on widely reported draw listings)
-   You can edit names freely in the UI.
+   DEFAULT GROUPS
+   (Edit these freely. Drag order sets final standings.)
    ========================================================= */
-
 const DEFAULT_GROUPS = {
-  A: [
-    "Mexico",
-    "South Africa",
-    "South Korea",
-    "European Playoff D"
-  ],
-  B: [
-    "Canada",
-    "European Playoff A",
-    "Qatar",
-    "Switzerland"
-  ],
-  C: [
-    "Brazil",
-    "Morocco",
-    "Haiti",
-    "Scotland"
-  ],
-  D: [
-    "United States",
-    "Paraguay",
-    "Australia",
-    "European Playoff C"
-  ],
-  E: [
-    "Germany",
-    "Curaçao",
-    "Ivory Coast",
-    "Ecuador"
-  ],
-  F: [
-    "Netherlands",
-    "Japan",
-    "European Playoff B",
-    "Tunisia"
-  ],
-  G: [
-    "Belgium",
-    "Egypt",
-    "Iran",
-    "New Zealand"
-  ],
-  H: [
-    "Spain",
-    "Cape Verde",
-    "Saudi Arabia",
-    "Uruguay"
-  ],
-  I: [
-    "France",
-    "Senegal",
-    "FIFA Intercontinental Playoff Tournament 2",
-    "Norway"
-  ],
-  J: [
-    "Argentina",
-    "Algeria",
-    "Austria",
-    "Jordan"
-  ],
-  K: [
-    "Portugal",
-    "FIFA Intercontinental Playoff Tournament 1",
-    "Uzbekistan",
-    "Colombia"
-  ],
-  L: [
-    "England",
-    "Croatia",
-    "Ghana",
-    "Panama"
-  ]
+  A: ["Mexico","South Africa","South Korea","European Playoff D"],
+  B: ["Canada","European Playoff A","Qatar","Switzerland"],
+  C: ["Brazil","Morocco","Haiti","Scotland"],
+  D: ["United States","Paraguay","Australia","European Playoff C"],
+  E: ["Germany","Curaçao","Ivory Coast","Ecuador"],
+  F: ["Netherlands","Japan","European Playoff B","Tunisia"],
+  G: ["Belgium","Egypt","Iran","New Zealand"],
+  H: ["Spain","Cape Verde","Saudi Arabia","Uruguay"],
+  I: ["France","Senegal","FIFA Intercontinental Playoff Tournament 2","Norway"],
+  J: ["Argentina","Algeria","Austria","Jordan"],
+  K: ["Portugal","FIFA Intercontinental Playoff Tournament 1","Uzbekistan","Colombia"],
+  L: ["England","Croatia","Ghana","Panama"]
 };
 
 /* =========================================================
-   FLAG HELPERS
+   FLAGS
    ========================================================= */
-
 const NAME_TO_ISO = {
-  "Mexico":"MX",
-  "South Africa":"ZA",
-  "South Korea":"KR",
-  "Korea Republic":"KR",
-  "Denmark":"DK",
-  "North Macedonia":"MK",
-  "Czechia":"CZ",
-  "Czech Republic":"CZ",
-  "Ireland":"IE",
-  "Canada":"CA",
-  "Italy":"IT",
-  "Northern Ireland":"GB", // neutral-ish; no separate emoji
-  "Wales":"GB",
-  "Bosnia & Herzegovina":"BA",
-  "Bosnia and Herzegovina":"BA",
-  "Qatar":"QA",
-  "Switzerland":"CH",
-  "Brazil":"BR",
-  "Morocco":"MA",
-  "Haiti":"HT",
-  "Scotland":"GB",
-  "United States":"US",
-  "USA":"US",
-  "Paraguay":"PY",
-  "Australia":"AU",
-  "Türkiye":"TR",
-  "Turkey":"TR",
-  "Romania":"RO",
-  "Slovakia":"SK",
-  "Kosovo":"XK",
-  "Germany":"DE",
-  "Curaçao":"CW",
-  "Ivory Coast":"CI",
-  "Côte d’Ivoire":"CI",
-  "Ecuador":"EC",
-  "Netherlands":"NL",
-  "Holland":"NL",
-  "Japan":"JP",
-  "Ukraine":"UA",
-  "Sweden":"SE",
-  "Poland":"PL",
-  "Albania":"AL",
-  "Tunisia":"TN",
-  "Belgium":"BE",
-  "Egypt":"EG",
-  "Iran":"IR",
-  "New Zealand":"NZ",
-  "Spain":"ES",
-  "Cape Verde":"CV",
-  "Saudi Arabia":"SA",
-  "Uruguay":"UY",
-  "France":"FR",
-  "Senegal":"SN",
-  "Norway":"NO",
-  "Argentina":"AR",
-  "Algeria":"DZ",
-  "Austria":"AT",
-  "Jordan":"JO",
-  "Portugal":"PT",
-  "Uzbekistan":"UZ",
-  "Colombia":"CO",
-  "England":"GB",
-  "Croatia":"HR",
-  "Ghana":"GH",
-  "Panama":"PA",
-  "Jamaica":"JM",
-  "New Caledonia":"NC",
-  "DR Congo":"CD",
-  "Democratic Republic of the Congo":"CD",
-  "Bolivia":"BO",
-  "Suriname":"SR",
-  "Iraq":"IQ"
+  "Mexico":"MX","South Africa":"ZA","South Korea":"KR","Korea Republic":"KR",
+  "Canada":"CA","Qatar":"QA","Switzerland":"CH",
+  "Brazil":"BR","Morocco":"MA","Haiti":"HT","Scotland":"GB",
+  "United States":"US","USA":"US","Paraguay":"PY","Australia":"AU",
+  "Germany":"DE","Curaçao":"CW","Ivory Coast":"CI","Côte d’Ivoire":"CI","Ecuador":"EC",
+  "Netherlands":"NL","Holland":"NL","Japan":"JP","Tunisia":"TN",
+  "Belgium":"BE","Egypt":"EG","Iran":"IR","New Zealand":"NZ",
+  "Spain":"ES","Cape Verde":"CV","Saudi Arabia":"SA","Uruguay":"UY",
+  "France":"FR","Senegal":"SN","Norway":"NO",
+  "Argentina":"AR","Algeria":"DZ","Austria":"AT","Jordan":"JO",
+  "Portugal":"PT","Uzbekistan":"UZ","Colombia":"CO",
+  "England":"GB","Croatia":"HR","Ghana":"GH","Panama":"PA"
 };
 
 function isoToFlag(iso){
@@ -649,11 +478,9 @@ function isoToFlag(iso){
   const c2 = code.charCodeAt(1) - base + A;
   return String.fromCodePoint(c1, c2);
 }
-
 function isPlayoffName(name){
   return /playoff|intercontinental|tournament/i.test(name);
 }
-
 function flagForName(name){
   if(!name) return "🏳️";
   if(isPlayoffName(name)) return "🏳️";
@@ -665,35 +492,46 @@ function flagForName(name){
 /* =========================================================
    STATE
    ========================================================= */
-
 let groupsState = deepClone(DEFAULT_GROUPS);
-let thirdOrderState = []; // array of objects {group, name}
+let thirdOrderState = []; // [{group, name}]
+let THIRD_MAPPING = {};   // loaded from third-mapping.json
 
 /* =========================================================
-   DOM HOOKS
+   DOM
    ========================================================= */
-
 const groupsGrid = document.getElementById("groupsGrid");
 const thirdList = document.getElementById("thirdList");
-
 const winnersPills = document.getElementById("winnersPills");
 const runnersPills = document.getElementById("runnersPills");
 const third8Pills = document.getElementById("third8Pills");
-
 const resetGroupsBtn = document.getElementById("resetGroupsBtn");
 const rebuildThirdBtn = document.getElementById("rebuildThirdBtn");
-
-const mappingInput = document.getElementById("mappingInput");
 const generateR32Btn = document.getElementById("generateR32Btn");
-const loadExampleMappingBtn = document.getElementById("loadExampleMappingBtn");
 const mappingStatus = document.getElementById("mappingStatus");
 const thirdStatus = document.getElementById("thirdStatus");
 const r32Body = document.getElementById("r32Body");
 
 /* =========================================================
+   LOAD FIXED MAPPING ONCE
+   ========================================================= */
+async function loadThirdMapping(){
+  try{
+    const res = await fetch("./third-mapping.json", { cache: "force-cache" });
+    if(!res.ok) throw new Error("Mapping fetch failed");
+    THIRD_MAPPING = await res.json();
+    mappingStatus.textContent = "Official 3rd-place mapping loaded";
+    mappingStatus.className = "badge good";
+  }catch(err){
+    THIRD_MAPPING = {};
+    mappingStatus.textContent = "Mapping not found — fallback will be used";
+    mappingStatus.className = "badge warn";
+    console.warn(err);
+  }
+}
+
+/* =========================================================
    RENDER GROUPS
    ========================================================= */
-
 function renderGroups(){
   groupsGrid.innerHTML = "";
   const letters = Object.keys(groupsState);
@@ -712,11 +550,9 @@ function renderGroups(){
     ul.dataset.group = letter;
 
     groupsState[letter].forEach((team, idx) => {
-      const li = makeTeamItem(letter, team, idx);
-      ul.appendChild(li);
+      ul.appendChild(makeTeamItem(letter, team, idx));
     });
 
-    // Enable drag sorting within group list
     enableSortableList(ul, onGroupReorder);
 
     card.appendChild(ul);
@@ -744,7 +580,6 @@ function makeTeamItem(groupLetter, teamName, idx){
   input.type = "text";
   input.value = teamName;
   input.addEventListener("input", () => {
-    // Update state
     const list = groupsState[groupLetter];
     const index = Array.from(li.parentElement.children).indexOf(li);
     list[index] = input.value.trim();
@@ -777,9 +612,8 @@ function refreshGroupPositionTags(){
 }
 
 /* =========================================================
-   SORTABLE LIST (HTML5 DnD)
+   SORTABLE LIST
    ========================================================= */
-
 function enableSortableList(listEl, onUpdate){
   let dragged = null;
 
@@ -830,16 +664,12 @@ function getDragAfterElement(container, y){
 /* =========================================================
    GROUP REORDER HANDLER
    ========================================================= */
-
 function onGroupReorder(ul){
   const groupLetter = ul.dataset.group;
   const newOrder = Array.from(ul.querySelectorAll("input")).map(i => i.value.trim());
   groupsState[groupLetter] = newOrder;
 
-  // Rebuild LI position tags
   refreshGroupPositionTags();
-
-  // Update third list
   rebuildThirdFromGroups(false);
   renderQualificationSnapshot();
 }
@@ -847,7 +677,6 @@ function onGroupReorder(ul){
 /* =========================================================
    THIRD PLACE LIST
    ========================================================= */
-
 function rebuildThirdFromGroups(resetOrder = true){
   const letters = Object.keys(groupsState).sort();
   const thirds = letters.map(letter => {
@@ -858,7 +687,6 @@ function rebuildThirdFromGroups(resetOrder = true){
   if(resetOrder || thirdOrderState.length === 0){
     thirdOrderState = thirds;
   } else {
-    // preserve existing order where possible by group id
     const byGroup = new Map(thirds.map(t => [t.group, t]));
     thirdOrderState = thirdOrderState.map(old => byGroup.get(old.group) || old);
   }
@@ -910,37 +738,22 @@ function renderThirdList(){
 function onThirdReorder(ul){
   thirdOrderState = Array.from(ul.querySelectorAll("li")).map(li => {
     const group = li.dataset.group;
-    // rebuild name from current group third (authoritative)
     const name = (groupsState[group] && groupsState[group][2]) ? groupsState[group][2] : "";
     return { group, name };
   });
-
-  renderThirdList(); // refresh text + flags
-}
-
-function updateThirdStatus(){
-  const top8 = getTop8Thirds();
-  const key = top8.map(t => t.group).sort().join("");
-  thirdStatus.textContent = top8.length === 8
-    ? `Top-8 third groups: ${key}`
-    : `Waiting for 3rd-place list`;
+  renderThirdList();
 }
 
 /* =========================================================
    QUALIFICATION SNAPSHOT
    ========================================================= */
-
 function getWinners(){
   return Object.keys(groupsState).sort().map(g => ({ group:g, name: groupsState[g][0] || "" }));
 }
 function getRunners(){
   return Object.keys(groupsState).sort().map(g => ({ group:g, name: groupsState[g][1] || "" }));
 }
-function getThirds(){
-  return Object.keys(groupsState).sort().map(g => ({ group:g, name: groupsState[g][2] || "" }));
-}
 function getTop8Thirds(){
-  // Use thirdOrderState order
   return thirdOrderState.slice(0, 8).filter(t => t && t.group);
 }
 
@@ -951,10 +764,8 @@ function renderQualificationSnapshot(){
 
   getWinners().forEach(t => winnersPills.appendChild(makePill(`1${t.group}`, t.name, "good")));
   getRunners().forEach(t => runnersPills.appendChild(makePill(`2${t.group}`, t.name, "")));
-
   getTop8Thirds().forEach((t, i) => {
-    const cls = i < 8 ? "warn" : "";
-    third8Pills.appendChild(makePill(`3${t.group}`, t.name, cls));
+    third8Pills.appendChild(makePill(`3${t.group}`, t.name, i < 8 ? "warn" : ""));
   });
 
   updateThirdStatus();
@@ -967,17 +778,23 @@ function makePill(code, name, cls){
   flag.className = "flag";
   flag.textContent = flagForName(name);
   const txt = document.createElement("span");
-  txt.innerHTML = `<strong>${code}</strong> ${escapeHtml(name || "TBD")}`;
+  txt.innerHTML = `<strong>${escapeHtml(code)}</strong> ${escapeHtml(name || "TBD")}`;
   span.appendChild(flag);
   span.appendChild(txt);
   return span;
 }
 
-/* =========================================================
-   R32 STRUCTURE (per bracket placeholders)
-   Matches 73-88
-   ========================================================= */
+function updateThirdStatus(){
+  const top8 = getTop8Thirds();
+  const key = top8.map(t => t.group).sort().join("");
+  thirdStatus.textContent = top8.length === 8
+    ? `Top-8 third groups: ${key}`
+    : `Waiting for 3rd-place ranking`;
+}
 
+/* =========================================================
+   R32 TEMPLATE
+   ========================================================= */
 const THIRD_MATCHES = [
   { matchId: 74, winnerGroup: "E", candidates: ["A","B","C","D","F"] },
   { matchId: 77, winnerGroup: "I", candidates: ["C","D","F","G","H"] },
@@ -1009,70 +826,34 @@ const R32_TEMPLATE = [
 ];
 
 /* =========================================================
-   THIRD-PLACE ALLOCATION LOGIC
-   JSON mapping format (flexible):
+   THIRD-PLACE ALLOCATION USING FIXED JSON
+   Expected JSON shape:
    {
-     "BCEFGHJL": {
-        "74":"J",
-        "77":"F",
-        "79":"I",
-        "80":"E",
-        "81":"H",
-        "82":"G",
-        "85":"L",
-        "87":"K"
-     }
+     "EFGHIJKL": { "74":"E", "77":"J", "79":"I", "80":"F", "81":"H", "82":"G", "85":"L", "87":"K" },
+     "ABDEGIKL": { ... }
    }
-   You may also use keys like "1E","1I"... etc; both supported.
    ========================================================= */
-
-function parseMapping(){
-  const txt = mappingInput.value.trim();
-  if(!txt){
-    mappingStatus.textContent = "No JSON provided (will use fallback)";
-    mappingStatus.className = "badge warn";
-    return {};
-  }
-  try{
-    const obj = JSON.parse(txt);
-    mappingStatus.textContent = "JSON loaded";
-    mappingStatus.className = "badge good";
-    return obj;
-  }catch(e){
-    mappingStatus.textContent = "Invalid JSON (fallback only)";
-    mappingStatus.className = "badge warn";
-    return {};
-  }
-}
-
 function getThirdAllocation(mappingObj){
   const top8 = getTop8Thirds();
   const key = top8.map(t => t.group).sort().join("");
   const entry = mappingObj[key];
 
-  // Build dictionary matchId -> groupLetter
   const allocation = {};
   let usedFallback = false;
 
   if(entry && typeof entry === "object"){
     THIRD_MATCHES.forEach(tm => {
       const id = String(tm.matchId);
-      const byId = entry[id];
-      const bySlot = entry[`1${tm.winnerGroup}`];
-      const byMatch = entry[`M${tm.matchId}`];
-
-      const chosen = byId || bySlot || byMatch;
+      const chosen = entry[id];
       if(chosen) allocation[tm.matchId] = String(chosen).toUpperCase();
     });
   }
 
-  // If allocation incomplete, fill via greedy fallback
   const assigned = new Set(Object.values(allocation));
-  const availableThirds = top8.slice(); // order preference = your ranking
+  const availableThirds = top8.slice(); // preference order = your ranking
 
   THIRD_MATCHES.forEach(tm => {
     if(allocation[tm.matchId]) return;
-
     const pick = availableThirds.find(t => tm.candidates.includes(t.group) && !assigned.has(t.group));
     if(pick){
       allocation[tm.matchId] = pick.group;
@@ -1081,7 +862,6 @@ function getThirdAllocation(mappingObj){
     }
   });
 
-  // If still incomplete (edge cases), fill with any remaining
   THIRD_MATCHES.forEach(tm => {
     if(allocation[tm.matchId]) return;
     const pick = availableThirds.find(t => !assigned.has(t.group));
@@ -1098,43 +878,35 @@ function getThirdAllocation(mappingObj){
 /* =========================================================
    R32 RENDER
    ========================================================= */
-
 function resolveSlot(slot, thirdAlloc){
   if(slot.type === "winner"){
-    return {
-      label: `Winner Group ${slot.group}`,
-      team: groupsState[slot.group]?.[0] || "TBD",
-      code: `1${slot.group}`
-    };
+    return { label: `Winner Group ${slot.group}`, team: groupsState[slot.group]?.[0] || "TBD", code: `1${slot.group}` };
   }
   if(slot.type === "runner"){
-    return {
-      label: `Runner-up Group ${slot.group}`,
-      team: groupsState[slot.group]?.[1] || "TBD",
-      code: `2${slot.group}`
-    };
+    return { label: `Runner-up Group ${slot.group}`, team: groupsState[slot.group]?.[1] || "TBD", code: `2${slot.group}` };
   }
   if(slot.type === "third"){
     const g = thirdAlloc[slot.matchId];
     const teamName = g ? (groupsState[g]?.[2] || "TBD") : "TBD";
-    return {
-      label: g ? `3rd Group ${g}` : "3rd-place qualifier",
-      team: teamName,
-      code: g ? `3${g}` : "3?"
-    };
+    return { label: g ? `3rd Group ${g}` : "3rd-place qualifier", team: teamName, code: g ? `3${g}` : "3?" };
   }
   return { label:"", team:"TBD", code:"" };
 }
 
 function renderR32(){
-  const mappingObj = parseMapping();
-  const { allocation, usedFallback, key } = getThirdAllocation(mappingObj);
+  rebuildThirdFromGroups(false);
+  renderQualificationSnapshot();
 
-  // status badge
-  if(getTop8Thirds().length !== 8){
-    mappingStatus.textContent = "Rank 3rd-place teams first";
+  const top8 = getTop8Thirds();
+  if(top8.length !== 8){
+    mappingStatus.textContent = "Rank 3rd-place teams to enable official mapping";
     mappingStatus.className = "badge warn";
-  } else if(mappingObj[key]){
+    return;
+  }
+
+  const { allocation, usedFallback, key } = getThirdAllocation(THIRD_MAPPING);
+
+  if(THIRD_MAPPING[key]){
     mappingStatus.textContent = usedFallback ? `Mapping partial for ${key} (fallback used)` : `Mapping used for ${key}`;
     mappingStatus.className = usedFallback ? "badge warn" : "badge good";
   } else {
@@ -1171,14 +943,12 @@ function renderR32(){
     r32Body.appendChild(tr);
   });
 
-  // Add a small note row if fallback was used
   if(usedFallback){
     const tr = document.createElement("tr");
     const td = document.createElement("td");
     td.colSpan = 4;
     td.className = "note";
-    td.innerHTML = `⚠️ Fallback allocation used for some third-place slots.
-      This may differ from the official 48-team combination table.`;
+    td.innerHTML = `⚠️ Fallback allocation used for some third-place slots.`;
     tr.appendChild(td);
     r32Body.appendChild(tr);
   }
@@ -1202,24 +972,8 @@ function renderTeamSlot(slot){
 }
 
 /* =========================================================
-   UTIL
-   ========================================================= */
-
-function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
-
-function escapeHtml(str){
-  return String(str ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-
-/* =========================================================
    BUTTONS
    ========================================================= */
-
 resetGroupsBtn.addEventListener("click", () => {
   groupsState = deepClone(DEFAULT_GROUPS);
   renderGroups();
@@ -1233,47 +987,31 @@ rebuildThirdBtn.addEventListener("click", () => {
   renderQualificationSnapshot();
 });
 
-loadExampleMappingBtn.addEventListener("click", () => {
-  // Tiny illustrative example only (NOT official).
-  const example = {
-    "EFGHIJKL": {
-      "74":"F",
-      "77":"H",
-      "79":"I",
-      "80":"E",
-      "81":"J",
-      "82":"G",
-      "85":"L",
-      "87":"K"
-    }
-  };
-  mappingInput.value = JSON.stringify(example, null, 2);
-  parseMapping();
-});
+generateR32Btn.addEventListener("click", renderR32);
 
-generateR32Btn.addEventListener("click", () => {
-  // Ensure thirds are aligned with current group orders
-  rebuildThirdFromGroups(false);
-  renderQualificationSnapshot();
-  renderR32();
-});
+/* =========================================================
+   HELPERS
+   ========================================================= */
+function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
+function escapeHtml(str){
+  return String(str ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
 
 /* =========================================================
    INIT
    ========================================================= */
-
-function init(){
-  mappingInput.value = ""; // start empty
-  mappingStatus.textContent = "No JSON provided (will use fallback)";
-  mappingStatus.className = "badge warn";
-
+async function init(){
+  await loadThirdMapping();
   renderGroups();
   rebuildThirdFromGroups(true);
   renderQualificationSnapshot();
-  updateThirdStatus();
 }
 init();
-
 </script>
 </body>
 </html>
