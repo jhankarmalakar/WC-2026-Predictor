@@ -1451,6 +1451,7 @@ function makeTeamItem(groupLetter, teamName, idx){
   li.className = "team-item";
   li.draggable = true;
   li.dataset.group = groupLetter;
+  li.dataset.teamName = teamName || "";
 
   const handle = document.createElement("span");
   handle.className = "handle";
@@ -1462,21 +1463,12 @@ function makeTeamItem(groupLetter, teamName, idx){
   const nameWrap = document.createElement("span");
   nameWrap.className = "team-name";
 
-  const input = document.createElement("input");
-  input.type = "text";
-  input.value = teamName;
-  input.addEventListener("input", () => {
-    const list = groupsState[groupLetter];
-    const index = Array.from(li.parentElement.children).indexOf(li);
-    list[index] = input.value.trim();
-    flag.textContent = flagForName(input.value.trim());
-    rebuildThirdFromGroups(false);
-    renderQualificationSnapshot();
-    // Changing group teams invalidates knockouts
-    resetKnockouts(true);
-  });
+  // Plain text (no edit)
+  const nameText = document.createElement("span");
+  nameText.className = "team-text";
+  nameText.textContent = teamName || "TBD";
 
-  nameWrap.appendChild(input);
+  nameWrap.appendChild(nameText);
 
   const pos = document.createElement("span");
   pos.className = "pos-tag";
@@ -1489,6 +1481,7 @@ function makeTeamItem(groupLetter, teamName, idx){
 
   return li;
 }
+
 
 function refreshGroupPositionTags(){
   document.querySelectorAll(".team-list").forEach(ul => {
@@ -1554,14 +1547,25 @@ function getDragAfterElement(container, y){
    ========================================================= */
 function onGroupReorder(ul){
   const groupLetter = ul.dataset.group;
-  const newOrder = Array.from(ul.querySelectorAll("input")).map(i => i.value.trim());
+
+  const newOrder = Array.from(ul.children).map(li => {
+    const txt = li.dataset.teamName || li.querySelector(".team-text")?.textContent || "";
+    return txt.trim();
+  });
+
   groupsState[groupLetter] = newOrder;
+
+  // Update stored names on each li (keeps future reads consistent)
+  Array.from(ul.children).forEach((li, i) => {
+    li.dataset.teamName = newOrder[i] || "";
+  });
 
   refreshGroupPositionTags();
   rebuildThirdFromGroups(false);
   renderQualificationSnapshot();
   resetKnockouts(true);
 }
+
 
 /* =========================================================
    THIRD PLACE LIST
