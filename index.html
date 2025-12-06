@@ -538,35 +538,6 @@
   margin-top: 18px;
 }
 
-    /* === WIKI ALIGNMENT (non-destructive) === */
-/* We assume your wiki bracket already renders columns. 
-   This patch only enables row-based positioning when JS sets --row. */
-
-#wikiBracket .wiki-rounds{
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(140px, 1fr);
-  column-gap: 18px;
-  width: 100%;
-}
-
-#wikiBracket .wiki-round-col{
-  display: grid;
-  justify-items: center;
-  align-items: start;
-  /* JS will set how many rows we have */
-  grid-template-rows: repeat(var(--wiki-rows, 60), 22px);
-}
-
-#wikiBracket [data-wiki-node]{
-  /* JS will set this per item */
-  grid-row: var(--row, auto);
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-
 /* Make bracket an overlay container for SVG lines */
 .wiki-bracket{
   position: relative;
@@ -1092,67 +1063,6 @@
 </div>
 
 <script>
-
-  function applyWikiMidpointLayout(columns){
-  const host = document.getElementById("wikiBracket");
-  if(!host || !columns?.length || !columns[0]?.length) return;
-
-  // Try to find your existing column DOM
-  const colEls = Array.from(
-    host.querySelectorAll(".wiki-round-col")
-  );
-
-  // If your columns don't have this class yet,
-  // we can try a fallback selector:
-  const safeColEls = colEls.length
-    ? colEls
-    : Array.from(host.querySelectorAll(".round-col"));
-
-  if(!safeColEls.length) return;
-
-  const baseStep = 4; // spacing unit in "rows"
-  const positions = [];
-
-  // Column 0 positions
-  positions[0] = columns[0].map((_, i) => 2 + i * baseStep);
-
-  // Midpoint positions for later columns
-  for(let r = 1; r < columns.length; r++){
-    const prev = positions[r - 1];
-    positions[r] = columns[r].map((_, i) => {
-      const a = prev[i * 2];
-      const b = prev[i * 2 + 1];
-      if(a == null || b == null){
-        return prev[Math.min(i * 2, prev.length - 1)] ?? 2;
-      }
-      return Math.round((a + b) / 2);
-    });
-  }
-
-  const totalRows = (positions[0].at(-1) || 2) + 4;
-
-  safeColEls.forEach((colEl, r) => {
-    colEl.style.setProperty("--wiki-rows", totalRows);
-
-    // Nodes inside this column
-    // We prefer nodes marked with data-wiki-node
-    let nodes = Array.from(colEl.querySelectorAll("[data-wiki-node]"));
-
-    // Fallback: try common chip/card classes if not marked yet
-    if(!nodes.length){
-      nodes = Array.from(
-        colEl.querySelectorAll(".team-chip, .team-card, .match-team, .chip")
-      );
-    }
-
-    nodes.forEach((nodeEl, i) => {
-      const row = positions[r]?.[i] ?? 2;
-      nodeEl.style.setProperty("--row", row);
-      nodeEl.setAttribute("data-wiki-node", "");
-    });
-  });
-}
-
 /* =========================================================
    DEFAULT GROUPS
    ========================================================= */
@@ -2814,11 +2724,6 @@ function renderWikiBracket(){
 
   const sides = splitBracketSides();
 
-  const columns = buildWikiColumns(); 
-
-  col.classList.add("wiki-round-col");
-  wrapper.classList.add("wiki-rounds");
-
   const outer = document.createElement("div");
   outer.className = "wiki-bracket";
 
@@ -2865,7 +2770,7 @@ function renderWikiBracket(){
     });
   }
 
-  applyWikiMidpointLayout(columns);
+  
 }
 
 
