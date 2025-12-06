@@ -160,12 +160,25 @@
       opacity: 0.6;
       flex: 0 0 auto;
     }
-    .flag{
-      font-size: 18px;
-      width: 22px;
-      text-align:center;
-      flex: 0 0 auto;
-    }
+    /* Existing */
+.flag{
+    font-size: 18px;
+    width: 22px;
+    text-align:center;
+    flex: 0 0 auto;
+  }
+
+/* NEW: image flag style */
+.flag-img{
+    width: 18px;
+    height: 12px;
+    object-fit: cover;
+    border-radius: 2px;
+    flex: 0 0 auto;
+    display: inline-block;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.12);
+  }
+
     .team-name{
       flex: 1 1 auto;
       min-width: 0;
@@ -832,6 +845,49 @@ function flagForName(name){
   return isoToFlag(iso);
 }
 
+  function flagImgUrlFromISO(iso){
+  if(!iso || iso.length !== 2) return "";
+  return `https://flagcdn.com/w20/${iso.toLowerCase()}.png`;
+}
+
+// Create a flag node: try image first, fall back to emoji on error
+function createFlagElement(name){
+  // Playoff names: keep white flag emoji style
+  if(isPlayoffName(name)){
+    const span = document.createElement("span");
+    span.className = "flag";
+    span.textContent = flagForName(name);
+    return span;
+  }
+
+  const iso = NAME_TO_ISO[name?.trim?.()] || "";
+
+  if(!iso){
+    // Unknown team → just use emoji / white flag fallback
+    const span = document.createElement("span");
+    span.className = "flag";
+    span.textContent = flagForName(name);
+    return span;
+  }
+
+  const img = document.createElement("img");
+  img.className = "flag-img";
+  img.src = flagImgUrlFromISO(iso);
+  img.alt = `${iso} flag`;
+  img.loading = "lazy";
+
+  // If CDN fails, swap to emoji so area is never blank
+  img.onerror = () => {
+    const span = document.createElement("span");
+    span.className = "flag";
+    span.textContent = flagForName(name);
+    img.replaceWith(span);
+  };
+
+  return img;
+}
+
+
 /* =========================================================
    STATE
    ========================================================= */
@@ -1481,7 +1537,7 @@ function makeTeamItem(groupLetter, teamName, idx){
   const handle = document.createElement("span");
   handle.className = "handle";
 
-  const flag = document.createElement("span");
+  let flag = createFlagElement(teamName);
   flag.className = "flag";
   flag.textContent = flagForName(teamName);
 
