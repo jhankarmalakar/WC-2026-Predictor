@@ -530,6 +530,133 @@
     grid-template-columns: 1fr;
   }
 }
+/* ================================
+   WIKI-STYLE BRACKET (two-sided)
+   ================================ */
+
+#wikiBracket{
+  margin-top: 14px;
+}
+
+.wiki-bracket{
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(255,255,255,0.03);
+}
+
+.wiki-winner-banner{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(94,230,168,0.45);
+  background: rgba(94,230,168,0.08);
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+
+.wiki-winner-flag{
+  font-size: 34px; /* bigger emoji flag */
+  line-height: 1;
+}
+
+.wiki-winner-text{
+  font-size: 18px;
+}
+
+/* Layout: 4 left cols + center + 4 right cols */
+.wiki-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 0.9fr 1fr 1fr 1fr 1fr;
+  gap: 10px;
+  align-items: stretch;
+}
+
+@media (max-width: 1100px){
+  .wiki-grid{
+    grid-template-columns: 1fr 1fr 1fr 0.9fr 1fr 1fr 1fr;
+  }
+}
+
+@media (max-width: 820px){
+  /* Stack nicely on mobile */
+  .wiki-grid{
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Each round column */
+.wiki-round-col{
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 8px 2px;
+  background: rgba(255,255,255,0.02);
+  min-width: 0;
+}
+
+.wiki-round-title{
+  font-size: 11.5px;
+  color: var(--muted);
+  font-weight: 700;
+  margin: 0 0 6px 0;
+  letter-spacing: .2px;
+}
+
+/* Match box */
+.wiki-match{
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 7px;
+  margin: 0 0 8px 0;
+  background: rgba(255,255,255,0.035);
+}
+
+.wiki-team-row{
+  display:flex;
+  align-items:center;
+  gap: 6px;
+  padding: 3px 4px;
+  border-radius: 6px;
+  min-width: 0;
+}
+
+.wiki-team-flag{
+  font-size: 14px;
+  flex: 0 0 auto;
+}
+
+.wiki-team-name{
+  font-size: 11.5px;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wiki-team-name.long{
+  font-size: 10.4px;
+  line-height: 1.1;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.wiki-team-row.winner{
+  border: 1px solid rgba(94,230,168,0.45);
+  background: rgba(94,230,168,0.08);
+}
+
+/* Center final column highlight */
+.wiki-final-col{
+  border-color: rgba(122,162,255,0.35);
+  background: linear-gradient(180deg, rgba(122,162,255,0.08), rgba(255,255,255,0.02));
+}
 
 /* Winner box shouldn't be too wide on smaller screens */
 .winner-zone{
@@ -845,6 +972,8 @@
     <div id="championBox"></div>
     <div style="height:10px"></div>
 
+    <div id="wikiBracket"></div>
+
     <div class="ko-stack">
 
   <div class="round-row">
@@ -1137,6 +1266,8 @@ const autoFillSFBtn  = document.getElementById("autoFillSFBtn");
 const autoFillThirdBtn = document.getElementById("autoFillThirdBtn");
 const autoFillFinalBtn = document.getElementById("autoFillFinalBtn");
 const autoFillThirdOrderBtn = document.getElementById("autoFillThirdOrderBtn");
+const wikiBracket = document.getElementById("wikiBracket");
+
 
 /* =========================================================
    EMBEDDED OFFICIAL 3rd-PLACE MAPPING TABLE
@@ -2353,7 +2484,200 @@ function renderKnockouts(){
       </div>
     `;
   }
+
+    renderWikiBracket();
+
 }
+
+
+  /* =========================================================
+   WIKI-STYLE BRACKET (RENDER WHEN COMPLETE)
+   ========================================================= */
+
+function getAllTournamentMatchIds(){
+  const r32Ids = r32Fixtures.map(m => m.matchId);
+  const r16Ids = KO_DRAW.r16.map(m => m.matchId);
+  const qfIds  = KO_DRAW.qf.map(m => m.matchId);
+  const sfIds  = KO_DRAW.sf.map(m => m.matchId);
+  const thirdIds = KO_DRAW.third.map(m => m.matchId);
+  const finalIds = KO_DRAW.final.map(m => m.matchId);
+
+  return { r32Ids, r16Ids, qfIds, sfIds, thirdIds, finalIds };
+}
+
+function allTeamsResolvedForMatch(id){
+  const teams = getMatchTeams(id);
+  if(!teams) return false;
+  const hn = teams.home?.name || "TBD";
+  const an = teams.away?.name || "TBD";
+  return hn !== "TBD" && an !== "TBD";
+}
+
+function isTournamentComplete(){
+  if(!r32Fixtures.length) return false;
+
+  const { r32Ids, r16Ids, qfIds, sfIds, thirdIds, finalIds } = getAllTournamentMatchIds();
+  const allIds = [...r32Ids, ...r16Ids, ...qfIds, ...sfIds, ...thirdIds, ...finalIds];
+
+  // Ensure teams exist (no TBD) for all matches
+  for(const id of allIds){
+    if(!allTeamsResolvedForMatch(id)) return false;
+  }
+
+  // Ensure winners are picked for all matches
+  for(const id of allIds){
+    if(!getWinner(id)) return false;
+  }
+
+  return true;
+}
+
+function splitBracketSides(){
+  // Definition based on your KO_DRAW structure
+  const LEFT_R16  = [89, 90, 93, 94];
+  const RIGHT_R16 = [91, 92, 95, 96];
+
+  const LEFT_QF  = [97, 98];
+  const RIGHT_QF = [99, 100];
+
+  const LEFT_SF  = [101];
+  const RIGHT_SF = [102];
+
+  const FINAL = [104];
+
+  // Derive R32 feeding these R16 matches from KO_DRAW refs
+  function r32FromR16(ids){
+    const set = new Set();
+    ids.forEach(mid => {
+      const spec = KO_DRAW.r16.find(s => s.matchId === mid);
+      if(spec?.homeFrom?.win) set.add(spec.homeFrom.win);
+      if(spec?.awayFrom?.win) set.add(spec.awayFrom.win);
+    });
+    return [...set];
+  }
+
+  const LEFT_R32  = r32FromR16(LEFT_R16);
+  const RIGHT_R32 = r32FromR16(RIGHT_R16);
+
+  return {
+    LEFT_R32, LEFT_R16, LEFT_QF, LEFT_SF,
+    RIGHT_R32, RIGHT_R16, RIGHT_QF, RIGHT_SF,
+    FINAL
+  };
+}
+
+function makeWikiTeamRow(team, winner){
+  const row = document.createElement("div");
+  row.className = "wiki-team-row" + (winner ? " winner" : "");
+
+  const flag = document.createElement("span");
+  flag.className = "wiki-team-flag";
+  flag.textContent = flagForName(team?.name);
+
+  const name = document.createElement("span");
+  name.className = "wiki-team-name";
+  name.textContent = team?.name || "TBD";
+
+  const nm = (team?.name || "").trim();
+  const hasVeryLongWord = nm.split(/\s+/).some(w => w.length >= 12);
+  if(nm.length > 22 || hasVeryLongWord){
+    name.classList.add("long");
+  }
+
+  row.appendChild(flag);
+  row.appendChild(name);
+  return row;
+}
+
+function makeWikiMatchBox(matchId){
+  const box = document.createElement("div");
+  box.className = "wiki-match";
+
+  const teams = getMatchTeams(matchId);
+  const w = getWinner(matchId);
+
+  const homeWinner = w && teams?.home && (teams.home.name === w.name || teams.home.code === w.code);
+  const awayWinner = w && teams?.away && (teams.away.name === w.name || teams.away.code === w.code);
+
+  box.appendChild(makeWikiTeamRow(teams.home, homeWinner));
+  box.appendChild(makeWikiTeamRow(teams.away, awayWinner));
+
+  return box;
+}
+
+function makeWikiRoundCol(title, matchIds, extraClass=""){
+  const col = document.createElement("div");
+  col.className = `wiki-round-col ${extraClass}`.trim();
+
+  const h = document.createElement("div");
+  h.className = "wiki-round-title";
+  h.textContent = title;
+
+  col.appendChild(h);
+
+  matchIds.forEach(id => {
+    col.appendChild(makeWikiMatchBox(id));
+  });
+
+  return col;
+}
+
+function renderWikiBracket(){
+  if(!wikiBracket) return;
+
+  // Only show when fully complete
+  if(!isTournamentComplete()){
+    wikiBracket.innerHTML = "";
+    return;
+  }
+
+  const champ = getWinner(104);
+  if(!champ || !champ.name || champ.name === "TBD"){
+    wikiBracket.innerHTML = "";
+    return;
+  }
+
+  const sides = splitBracketSides();
+
+  const outer = document.createElement("div");
+  outer.className = "wiki-bracket";
+
+  // Winner banner
+  const banner = document.createElement("div");
+  banner.className = "wiki-winner-banner";
+  banner.innerHTML = `
+    <span class="wiki-winner-flag">${flagForName(champ.name)}</span>
+    <span class="wiki-winner-text">WC 2026 winner ${escapeHtml(champ.name)} 🏆</span>
+  `;
+  outer.appendChild(banner);
+
+  const grid = document.createElement("div");
+  grid.className = "wiki-grid";
+
+  // Left side columns
+  grid.appendChild(makeWikiRoundCol("Round of 32", sides.LEFT_R32));
+  grid.appendChild(makeWikiRoundCol("Round of 16", sides.LEFT_R16));
+  grid.appendChild(makeWikiRoundCol("Quarterfinals", sides.LEFT_QF));
+  grid.appendChild(makeWikiRoundCol("Semifinal", sides.LEFT_SF));
+
+  // Center final column
+  grid.appendChild(makeWikiRoundCol("Final", sides.FINAL, "wiki-final-col"));
+
+  // Right side columns
+  grid.appendChild(makeWikiRoundCol("Semifinal", sides.RIGHT_SF));
+  grid.appendChild(makeWikiRoundCol("Quarterfinals", sides.RIGHT_QF));
+  grid.appendChild(makeWikiRoundCol("Round of 16", sides.RIGHT_R16));
+  grid.appendChild(makeWikiRoundCol("Round of 32", sides.RIGHT_R32));
+
+  outer.appendChild(grid);
+
+  wikiBracket.innerHTML = "";
+  wikiBracket.appendChild(outer);
+}
+
+
+
+  
 
 function makeChampionCard(team){
   const wrap = document.createElement("div");
