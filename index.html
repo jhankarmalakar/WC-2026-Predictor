@@ -876,40 +876,87 @@ const NAME_TO_ISO = {
    AUTO-FILL PRIORITY ORDER (your ranking)
    ========================================================= */
 
-/* =========================================================
-   PRIORITY ORDER (GLOBAL)
-   ========================================================= */
 const PRIORITY_RAW = [
-  "Spain","Argentina","France","England","Brazil","Portugal","Netherlands","Belgium","Germany","Croatia",
-  "Morocco","Italy^","Colombia","USA","Mexico","Uruguay","Switzerland","Japan","Senegal","Iran","Denmark^",
-  "South Korea","Ecuador","Austria","Turkey^","Australia","Canada","Ukraine^","Norway","Panama","Poland^",
-  "Wales^","Russia*","Egypt","Algeria","Scotland","Serbia*","Nigeria*","Paraguay","Tunisia","Hungary",
-  "Ivory Coast","Sweden^","Czechia^","Slovakia^","Greece*","Romania^","Venezuela*","Costa Rica*","Uzbekistan",
-  "Qatar","Saudi Arabia","South Africa","Jordan","Cabo Verde","Ghana","Curaçao","Haiti","New Zealand"
+  "Spain",
+  "Argentina",
+  "France",
+  "England",
+  "Brazil",
+  "Portugal",
+  "Netherlands",
+  "Belgium",
+  "Germany",
+  "Croatia",
+  "Morocco",
+  "Italy",
+  "Colombia",
+  "USA",
+  "Mexico",
+  "Uruguay",
+  "Switzerland",
+  "Japan",
+  "Senegal",
+  "Iran",
+  "Denmark",
+  "South Korea",
+  "Ecuador",
+  "Austria",
+  "Turkey",
+  "Australia",
+  "Canada",
+  "Ukraine",
+  "Norway",
+  "Panama",
+  "Poland",
+  "Wales",
+  "Russia",
+  "Egypt",
+  "Algeria",
+  "Scotland",
+  "Serbia",
+  "Nigeria",
+  "Paraguay",
+  "Tunisia",
+  "Hungary",
+  "Ivory Coast",
+  "Sweden",
+  "Czechia",
+  "Slovakia",
+  "Greece",
+  "Romania",
+  "Venezuela",
+  "Costa Rica",
+  "Uzbekistan",
+
+  // Ranking of World Cup Qualifiers Outside Top 50
+  "Qatar",
+  "Saudi Arabia",
+  "South Africa",
+  "Jordan",
+  "Cabo Verde",
+  "Ghana",
+  "Curaçao",
+  "Haiti",
+  "New Zealand"
 ];
 
+// Basic cleanup + canonicalization for comparisons
 function canonicalName(name){
-  return String(name || "")
-    .replace(/\(.*?\)/g, "")     // remove (51) etc
-    .replace(/[\^\*]+/g, "")    // remove ^ and *
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
+  const n = String(name || "").trim();
+
+  if(!n) return "";
+
+  // Normalize common synonyms used in your list vs app
+  if(/^usa$/i.test(n) || /^united states$/i.test(n)) return "UNITED STATES";
+  if(/^south korea$/i.test(n) || /^korea republic$/i.test(n)) return "SOUTH KOREA";
+  if(/^ivory coast$/i.test(n) || /^côte d.?ivoire$/i.test(n)) return "IVORY COAST";
+  if(/^cabo verde$/i.test(n)) return "CAPE VERDE";
+
+  return n.toUpperCase();
 }
 
-const PRIORITY_LIST = PRIORITY_RAW.map(n =>
-  String(n).replace(/[\^\*]+/g, "").replace(/\(.*?\)/g,"").trim()
-);
-
-const PRIORITY_INDEX = new Map(
-  PRIORITY_LIST.map((n, i) => [canonicalName(n), i])
-);
-
-function priorityRank(name){
-  const key = canonicalName(name);
-  return PRIORITY_INDEX.has(key) ? PRIORITY_INDEX.get(key) : 9999;
-}
-
+const PRIORITY_LIST = PRIORITY_RAW.map(canonicalName);
+const PRIORITY_INDEX = new Map(PRIORITY_LIST.map((n, i) => [n, i]));
 
 
 function isoToFlag(iso){
@@ -1600,27 +1647,26 @@ function renderGroups(){
     card.className = "panel group-card";
     card.style.padding = "12px 12px 10px";
 
-   const headRow = document.createElement("div");
-headRow.className = "row";
-headRow.style.justifyContent = "space-between";
-
-const title = document.createElement("h3");
-title.textContent = `Group ${letter}`;
-title.style.margin = "2px 0 10px";
-
-const autoBtn = document.createElement("button");
-autoBtn.className = "btn auto-fill-group-btn";
-autoBtn.dataset.group = letter;
-autoBtn.textContent = "Auto Fill Group";
-
-headRow.appendChild(title);
-headRow.appendChild(autoBtn);
-
-card.appendChild(headRow);
-
+    const headRow = document.createElement("div");
+    headRow.className = "row";
+    headRow.style.justifyContent = "space-between";
+    
+    const h = document.createElement("h3");
+    h.textContent = `Group ${letter}`;
+    h.style.margin = "2px 0 10px";
+    
+    const autoBtn = document.createElement("button");
+    autoBtn.className = "btn tiny";
+    autoBtn.textContent = "Auto Fill Group";
+    autoBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      autoFillSingleGroup(letter);
     });
 
-
+headRow.appendChild(h);
+headRow.appendChild(autoBtn);
+card.appendChild(headRow);
 
 
     const ul = document.createElement("ul");
@@ -1858,98 +1904,6 @@ function renderQualificationSnapshot(){
 
   updateThirdStatus();
 }
-
-  /* =========================================================
-   AUTO FILL - GROUPS + THIRD ORDER
-   ========================================================= */
-
-function getUsedTeamsSet(){
-  const used = new Set();
-  for(const g of Object.keys(groupsState)){
-    for(const nm of (groupsState[g] || [])){
-      const key = canonicalName(nm);
-      if(key) used.add(key);
-    }
-  }
-  return used;
-}
-
-function isEmptyTeamName(nm){
-  const t = String(nm || "").trim();
-  if(!t) return true;
-  if(/^tbd$/i.test(t)) return true;
-  return false;
-}
-
-function pickNextUnusedTeam(used){
-  for(const nm of PRIORITY_LIST){
-    const key = canonicalName(nm);
-    if(!used.has(key)){
-      used.add(key);
-      return nm;
-    }
-  }
-  return "TBD";
-}
-
-function autoFillSingleGroup(letter){
-  if(!groupsState[letter]) return;
-
-  const used = getUsedTeamsSet();
-  const arr = groupsState[letter].slice();
-
-  for(let i = 0; i < 4; i++){
-    if(isEmptyTeamName(arr[i])){
-      arr[i] = pickNextUnusedTeam(used);
-    }
-  }
-
-  groupsState[letter] = arr;
-
-  // Update UI + dependent state
-  renderGroups();
-  rebuildThirdFromGroups(false);
-  renderQualificationSnapshot();
-  resetKnockouts(true);
-}
-
-function autoFillAllGroups(){
-  const letters = Object.keys(groupsState).sort();
-  const used = getUsedTeamsSet();
-
-  for(const letter of letters){
-    const arr = (groupsState[letter] || []).slice();
-    for(let i = 0; i < 4; i++){
-      if(isEmptyTeamName(arr[i])){
-        arr[i] = pickNextUnusedTeam(used);
-      }
-    }
-    groupsState[letter] = arr;
-  }
-
-  renderGroups();
-  rebuildThirdFromGroups(true);
-  renderQualificationSnapshot();
-  resetKnockouts(true);
-}
-
-function autoFillThirdOrder(){
-  const letters = Object.keys(groupsState).sort();
-
-  const thirds = letters.map(letter => ({
-    group: letter,
-    name: (groupsState[letter] && groupsState[letter][2]) ? groupsState[letter][2] : "TBD"
-  }));
-
-  thirds.sort((a,b) => priorityRank(a.name) - priorityRank(b.name));
-
-  thirdOrderState = thirds;
-
-  renderThirdList();
-  renderQualificationSnapshot();
-  resetKnockouts(true);
-}
-
 
 function makePill(code, name, cls){
   const span = document.createElement("span");
@@ -2585,23 +2539,6 @@ function cleanupInvalidWinners(){
 /* =========================================================
    BUTTONS
    ========================================================= */
-/* =========================================================
-   GROUP AUTO FILL BUTTON HANDLER (delegated)
-   ========================================================= */
-groupsGrid.addEventListener("click", (e) => {
-  const btn = e.target.closest(".auto-fill-group-btn");
-  if(!btn) return;
-  const letter = btn.dataset.group;
-  if(!letter) return;
-  autoFillSingleGroup(letter);
-});
-
-const autoFillAllGroupsBtn = document.getElementById("autoFillAllGroupsBtn");
-if(autoFillAllGroupsBtn){
-  autoFillAllGroupsBtn.addEventListener("click", () => {
-    autoFillAllGroups();
-  });
-}
 
 if(autoFillR32Btn){
   autoFillR32Btn.addEventListener("click", () => {
