@@ -534,35 +534,9 @@
    WIKI-STYLE BRACKET (two-sided)
    ================================ */
 
-/* === WIKI BRACKET GRID ALIGNMENT PATCH === */
 #wikiBracket{
-  width: 100%;
+  margin-top: 18px;
 }
-
-.wiki-grid{
-  --wiki-row: 26px;              /* vertical unit */
-  display: grid;
-  column-gap: 18px;
-  align-items: center;
-  justify-items: center;
-  width: 100%;
-  padding: 8px 2px 14px;
-}
-
-/* each node (team chip container) */
-.wiki-cell{
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-/* let your existing chip style shine */
-.wiki-chip{
-  max-width: 220px;
-  width: 100%;
-  text-align: center;
-}
-
 
 /* Make bracket an overlay container for SVG lines */
 .wiki-bracket{
@@ -599,7 +573,13 @@
   font-size: 20px;
 }
 
-
+/* Layout: 4 left + center + 4 right */
+.wiki-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 0.95fr 1fr 1fr 1fr 1fr;
+  gap: 10px;
+  align-items: stretch;
+}
 
 @media (max-width: 1100px){
   .wiki-grid{
@@ -2728,114 +2708,70 @@ function makeWikiRoundCol(title, matchIds, extraClass=""){
 }
 
 function renderWikiBracket(){
-  const host = document.getElementById("wikiBracket");
-  if(!host) return;
+  if(!wikiBracket) return;
 
-  // IMPORTANT:
-  // Reuse YOUR existing column builder if you already have one.
-  // This function expects an array of columns, left-to-right,
-  // where each next column has about half the items of the previous.
-  //
-  // If your current code already builds something like:
-  //   const columns = buildWikiColumns();
-  // then keep that and remove the fallback below.
-
-  let columns = [];
-  if(typeof buildWikiColumns === "function"){
-    columns = buildWikiColumns();              // <-- use yours
-  }else if(typeof getWikiColumns === "function"){
-    columns = getWikiColumns();                // <-- or yours
-  }else{
-    // Fallback (very basic) - tries to derive from KO state if you named it similarly.
-    // You can delete this fallback if you already have a builder.
-    columns = [];
-    if(window.state && state.ko && Array.isArray(state.ko.rounds)){
-      // Expecting something like state.ko.rounds = [r32, r16, qf, sf, f]
-      columns = state.ko.rounds.map(r => (r || []).map(m => m?.winner || m));
-    }
-  }
-
-  if(!columns.length || !columns[0].length){
-    host.innerHTML = "";
+  // Only show when fully complete
+  if(!isTournamentComplete()){
+    wikiBracket.innerHTML = "";
     return;
   }
 
-  // Clean host and mount grid
-  host.innerHTML = `<div class="wiki-grid" id="wikiGrid"></div>`;
-  const grid = host.querySelector("#wikiGrid");
+  const champ = getWinner(104);
+  if(!champ || !champ.name || champ.name === "TBD"){
+    wikiBracket.innerHTML = "";
+    return;
+  }
 
-  const colCount = columns.length;
+  const sides = splitBracketSides();
 
-  // --- Positioning strategy:
-  // Give column 0 items fixed spaced "row numbers".
-  // For each next column, place item i at the midpoint of
-  // positions of items (2*i) and (2*i+1) from prev column.
-  //
-  // This creates the "winner sits between the two it came from" look.
+  const outer = document.createElement("div");
+  outer.className = "wiki-bracket";
 
-  const baseStep = 4;  // grid rows between items in col0
-  const positions = [];
+  // Winner banner
+  const banner = document.createElement("div");
+  banner.className = "wiki-winner-banner";
+  banner.innerHTML = `
+    <span class="wiki-winner-flag">${flagForName(champ.name)}</span>
+    <span class="wiki-winner-text">WC 2026 winner ${escapeHtml(champ.name)} 🏆</span>
+  `;
+  outer.appendChild(banner);
 
-  positions[0] = columns[0].map((_, i) => 2 + i * baseStep);
+  const grid = document.createElement("div");
+  grid.className = "wiki-grid";
 
-  for(let r = 1; r < colCount; r++){
-    const prev = positions[r - 1];
-    positions[r] = columns[r].map((_, i) => {
-      const a = prev[i * 2];
-      const b = prev[i * 2 + 1];
-      if(a == null || b == null){
-        // In case of imperfect data lengths
-        return prev[Math.min(i * 2, prev.length - 1)];
-      }
-      return Math.round((a + b) / 2);
+  // Left side columns
+  grid.appendChild(makeWikiRoundCol("Round of 32", sides.LEFT_R32));
+  grid.appendChild(makeWikiRoundCol("Round of 16", sides.LEFT_R16));
+  grid.appendChild(makeWikiRoundCol("Quarterfinals", sides.LEFT_QF));
+  grid.appendChild(makeWikiRoundCol("Semifinal", sides.LEFT_SF));
+
+  // Center final column
+  grid.appendChild(makeWikiRoundCol("Final", sides.FINAL, "wiki-final-col"));
+
+  // Right side columns
+  grid.appendChild(makeWikiRoundCol("Semifinal", sides.RIGHT_SF));
+  grid.appendChild(makeWikiRoundCol("Quarterfinals", sides.RIGHT_QF));
+  grid.appendChild(makeWikiRoundCol("Round of 16", sides.RIGHT_R16));
+  grid.appendChild(makeWikiRoundCol("Round of 32", sides.RIGHT_R32));
+
+  outer.appendChild(grid);
+
+  wikiBracket.innerHTML = "";
+  wikiBracket.appendChild(outer);
+    // Draw connector lines
+  scheduleWikiLines(outer);
+
+  // Re-draw on resize (bind once)
+  if(!wikiResizeBound){
+    wikiResizeBound = true;
+    window.addEventListener("resize", () => {
+      const current = wikiBracket.querySelector(".wiki-bracket");
+      if(current) scheduleWikiLines(current);
     });
   }
 
-  const lastBase = positions[0][positions[0].length - 1] || 2;
-  const totalRows = lastBase + 4;
-
-  grid.style.gridTemplateColumns = `repeat(${colCount}, minmax(140px, 1fr))`;
-  grid.style.gridTemplateRows = `repeat(${totalRows}, var(--wiki-row))`;
-
-  // --- Render cells
-  columns.forEach((col, r) => {
-    col.forEach((item, i) => {
-      const cell = document.createElement("div");
-      cell.className = "wiki-cell";
-      cell.style.gridColumn = String(r + 1);
-      cell.style.gridRow = String(positions[r][i] || 2);
-
-      // Use your existing chip renderer if present
-      let chip = null;
-      if(typeof renderTeamChip === "function"){
-        chip = renderTeamChip(item); // your existing function
-      }else{
-        chip = makeWikiChip(item);
-      }
-
-      // Ensure wiki-specific sizing class
-      if(chip && chip.classList){
-        chip.classList.add("wiki-chip");
-      }
-
-      cell.appendChild(chip);
-      grid.appendChild(cell);
-    });
-  });
+  
 }
-
-// Simple fallback chip maker
-function makeWikiChip(item){
-  const name =
-    (typeof item === "string" ? item :
-     item?.name || item?.team || item?.winner?.name || "TBD");
-
-  const div = document.createElement("div");
-  div.className = "chip wiki-chip";
-  div.textContent = name;
-  return div;
-}
-
 
 
 
