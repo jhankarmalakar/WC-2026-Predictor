@@ -169,6 +169,12 @@
       overflow: hidden;   /* add */
       min-width: 0;       /* add */
     }
+    .third-item,
+    .team-chip{
+      touch-action: none;          /* stops scroll hijack while dragging */
+     -webkit-user-select: none;
+     user-select: none;
+   }
     .team-item.dragging{
       opacity: 0.5;
       background: rgba(122,162,255,0.12);
@@ -2024,6 +2030,81 @@ function refreshGroupPositionTags(){
    SORTABLE LIST (for groups & 3rd list)
    ========================================================= */
 function enableSortableList(listEl, onUpdate){
+  const isCoarse =
+    window.matchMedia &&
+    window.matchMedia("(pointer: coarse)").matches;
+
+  // ============================
+  // ✅ MOBILE / TABLET MODE
+  // ============================
+  if(isCoarse){
+    let dragged = null;
+
+    function moveAt(clientY){
+      const after = getDragAfterElement(listEl, clientY);
+      if(!dragged) return;
+
+      if(after == null){
+        listEl.appendChild(dragged);
+      } else {
+        if(after !== dragged) listEl.insertBefore(dragged, after);
+      }
+    }
+
+    function start(li){
+      dragged = li;
+      li.classList.add("dragging");
+    }
+
+    function end(){
+      if(!dragged) return;
+      dragged.classList.remove("dragging");
+      dragged = null;
+      if(typeof onUpdate === "function") onUpdate(listEl);
+    }
+
+    // Pointer events (best modern path)
+    listEl.addEventListener("pointerdown", (e) => {
+      const li = e.target.closest("li");
+      if(!li || !listEl.contains(li)) return;
+
+      // Only left click if mouse (just in case)
+      if(e.pointerType === "mouse" && e.button !== 0) return;
+
+      e.preventDefault();
+      start(li);
+      try { li.setPointerCapture(e.pointerId); } catch(_) {}
+    });
+
+    listEl.addEventListener("pointermove", (e) => {
+      if(!dragged) return;
+      e.preventDefault();
+      moveAt(e.clientY);
+    }, { passive:false });
+
+    listEl.addEventListener("pointerup", (e) => {
+      try { dragged?.releasePointerCapture(e.pointerId); } catch(_) {}
+      end();
+    });
+
+    listEl.addEventListener("pointercancel", end);
+
+    // Extra safety for older iOS behaviors
+    listEl.addEventListener("touchmove", (e) => {
+      if(!dragged) return;
+      e.preventDefault();
+      const t = e.touches[0];
+      if(t) moveAt(t.clientY);
+    }, { passive:false });
+
+    listEl.addEventListener("touchend", end);
+
+    return; // ✅ important: don’t attach desktop DnD listeners
+  }
+
+  // ============================
+  // ✅ DESKTOP MODE (your original)
+  // ============================
   let dragged = null;
 
   listEl.addEventListener("dragstart", e => {
@@ -2057,18 +2138,6 @@ function enableSortableList(listEl, onUpdate){
   });
 }
 
-function getDragAfterElement(container, y){
-  const els = [...container.querySelectorAll("li:not(.dragging)")];
-  return els.reduce((closest, child) => {
-    const box = child.getBoundingClientRect();
-    const offset = y - box.top - box.height / 2;
-    if(offset < 0 && offset > closest.offset){
-      return { offset, element: child };
-    } else {
-      return closest;
-    }
-  }, { offset: Number.NEGATIVE_INFINITY }).element;
-}
 
 /* =========================================================
    GROUP REORDER HANDLER
