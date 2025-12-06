@@ -2003,6 +2003,13 @@ function makeTeamItem(groupLetter, teamName, idx){
   li.draggable = true;
   li.dataset.group = groupLetter;
   li.dataset.teamName = teamName || "";
+  li.dataset.groupId = groupLetter;
+li.dataset.groupRank = String(idx + 1);
+li.dataset.teamCode = teamName; // name-based for now
+li.setAttribute("data-group-id", groupLetter);
+li.setAttribute("data-group-rank", String(idx + 1));
+li.setAttribute("data-team-code", teamName);
+li.setAttribute("data-group-team", "1");
 
   const handle = document.createElement("span");
   handle.className = "handle";
@@ -2147,6 +2154,8 @@ function renderThirdList(){
     li.className = "third-item";
     li.draggable = true;
     li.dataset.group = item.group;
+li.setAttribute("data-third-group", item.group);
+li.setAttribute("data-third-place-team", item.name);
 
     const handle = document.createElement("span");
     handle.className = "handle";
@@ -2220,6 +2229,11 @@ function makePill(code, name, cls){
   span.className = `pill ${cls || ""}`;
 
   const flag = createFlagElement(name);
+
+  span.setAttribute("data-team-code", name);
+if(code.startsWith("3")) {
+  span.setAttribute("data-third-group", code.slice(1));
+}
 
   const txt = document.createElement("span");
   txt.className = "pill-text";
@@ -2902,6 +2916,9 @@ function makeMatchCard({matchId, date, venue, home, away}){
   const id = document.createElement("div");
   id.className = "match-id";
   id.textContent = `Match ${matchId}`;
+
+  chip.setAttribute("data-match-id", matchId);
+chip.setAttribute("data-team-code", team.code);
 
   const v = document.createElement("div");
   v.className = "match-venue";
