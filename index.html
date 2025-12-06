@@ -694,10 +694,12 @@
         <span class="badge good">Step 2</span>
         <span class="badge">Rank 3rd-place teams overall</span>
       </div>
-      <div class="row">
+     <div class="row">
         <span id="thirdStatus" class="badge"></span>
         <span id="mappingStatus" class="badge"></span>
+        <button class="btn tiny" id="autoFillThirdOrderBtn">Auto Fill 3rd order</button>
       </div>
+
     </div>
     <div class="divider"></div>
 
@@ -1060,6 +1062,7 @@ const autoFillQFBtn  = document.getElementById("autoFillQFBtn");
 const autoFillSFBtn  = document.getElementById("autoFillSFBtn");
 const autoFillThirdBtn = document.getElementById("autoFillThirdBtn");
 const autoFillFinalBtn = document.getElementById("autoFillFinalBtn");
+const autoFillThirdOrderBtn = document.getElementById("autoFillThirdOrderBtn");
 
 /* =========================================================
    EMBEDDED OFFICIAL 3rd-PLACE MAPPING TABLE
@@ -1644,9 +1647,27 @@ function renderGroups(){
     card.className = "panel group-card";
     card.style.padding = "12px 12px 10px";
 
+    const headRow = document.createElement("div");
+    headRow.className = "row";
+    headRow.style.justifyContent = "space-between";
+    
     const h = document.createElement("h3");
     h.textContent = `Group ${letter}`;
-    card.appendChild(h);
+    h.style.margin = "2px 0 10px";
+    
+    const autoBtn = document.createElement("button");
+    autoBtn.className = "btn tiny";
+    autoBtn.textContent = "Auto Fill Group";
+    autoBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      autoFillSingleGroup(letter);
+    });
+
+headRow.appendChild(h);
+headRow.appendChild(autoBtn);
+card.appendChild(headRow);
+
 
     const ul = document.createElement("ul");
     ul.className = "team-list";
@@ -1958,6 +1979,26 @@ function getThirdAllocation(mappingObj){
 
   return { allocation, key };
 }
+
+ /* =========================================================
+   THIRD-PLACE AUTO-FILL
+   ========================================================= */
+
+function autoFillThirdOrder(){
+  // Ensure thirdOrderState reflects current group 3rd teams
+  rebuildThirdFromGroups(false);
+
+  thirdOrderState = [...thirdOrderState].sort((a, b) => {
+    const ra = priorityRank(a?.name);
+    const rb = priorityRank(b?.name);
+    if(ra !== rb) return ra - rb;
+    return String(a?.name || "").localeCompare(String(b?.name || ""));
+  });
+
+  renderThirdList();
+  resetKnockouts(true);
+}
+ 
 
 /* =========================================================
    SLOT RESOLUTION -> TEAM OBJECT
@@ -2511,6 +2552,13 @@ if(autoFillR32Btn){
   });
 }
 
+  if(autoFillThirdOrderBtn){
+  autoFillThirdOrderBtn.addEventListener("click", () => {
+    autoFillThirdOrder();
+  });
+}
+
+
 if(autoFillR16Btn){
   autoFillR16Btn.addEventListener("click", () => {
     autoFillMatches(KO_DRAW.r16.map(m => m.matchId));
@@ -2593,6 +2641,33 @@ function escapeHtml(str){
     .replaceAll('"',"&quot;")
     .replaceAll("'","&#039;");
 }
+
+  /* =========================================================
+   GROUP AUTO-FILL
+   ========================================================= */
+
+function sortTeamNamesByPriority(names){
+  return [...names].sort((a, b) => {
+    const ra = priorityRank(a);
+    const rb = priorityRank(b);
+    if(ra !== rb) return ra - rb;
+    // stable fallback for unknowns
+    return String(a || "").localeCompare(String(b || ""));
+  });
+}
+
+function autoFillSingleGroup(groupLetter){
+  const current = groupsState[groupLetter] || [];
+  groupsState[groupLetter] = sortTeamNamesByPriority(current);
+
+  renderGroups();
+  rebuildThirdFromGroups(true);
+  renderQualificationSnapshot();
+  resetKnockouts(true);
+}
+
+
+  
 function markLongGroupTeamNames(){
   const els = document.querySelectorAll(".team-list .team-text");
   els.forEach(el => {
