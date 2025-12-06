@@ -616,36 +616,14 @@
   padding: 8px 8px 2px;
   background: rgba(255,255,255,0.02);
   min-width: 0;
-
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-/* container that holds the match boxes */
-.wiki-round-body{
-  flex: 1;                       /* KEY: let body take remaining height */
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  justify-content: center;       /* KEY: vertical centering */
-  /* keep left alignment visually consistent */
-  align-items: stretch;
 }
 
-/* Optional: if your final col needs same behavior */
-.wiki-final-col .wiki-round-body{
-  justify-content: center;
-}
 .wiki-round-title{
   font-size: 11.5px;
   color: var(--muted);
   font-weight: 700;
   margin: 0 0 6px 0;
   letter-spacing: .2px;
-}
-
-  .wiki-bracket-outer{
-  min-height: 520px; /* adjust to taste */
 }
 
 /* Match box */
@@ -2768,23 +2746,19 @@ function makeWikiMatchBox(matchId){
   return box;
 }
 
-function makeWikiRoundCol(title, items, extraClass = "") {
+function makeWikiRoundCol(title, matchIds, extraClass=""){
   const col = document.createElement("div");
-  col.className = `wiki-round-col ${extraClass || ""}`.trim();
+  col.className = `wiki-round-col ${extraClass}`.trim();
 
-  const head = document.createElement("div");
-  head.className = "wiki-round-head";
-  head.textContent = title;
+  const h = document.createElement("div");
+  h.className = "wiki-round-title";
+  h.textContent = title;
 
-  const body = document.createElement("div");
-  body.className = "wiki-round-body"; // <-- important new/standard class
+  col.appendChild(h);
 
-  // Whatever you currently do to append match/team nodes:
-  // items.forEach(x => body.appendChild(makeWikiMatchBox(x)));
-  items.forEach(node => body.appendChild(node));
-
-  col.appendChild(head);
-  col.appendChild(body);
+  matchIds.forEach(id => {
+    col.appendChild(makeWikiMatchBox(id));
+  });
 
   return col;
 }
@@ -2807,7 +2781,7 @@ function renderWikiBracket(){
   const sides = splitBracketSides();
 
   const outer = document.createElement("div");
-  outer.className = "wiki-bracket-outer";
+  outer.className = "wiki-bracket";
 
   // Winner banner
   const banner = document.createElement("div");
