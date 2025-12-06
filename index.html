@@ -274,6 +274,95 @@
     .pill.good{ border-color: rgba(94,230,168,0.5); }
     .pill.warn{ border-color: rgba(255,184,107,0.5); }
     .pill .flag{ font-size: 14px; width: auto; }
+/* ===== Step 4 Round headers, progress, collapse ===== */
+
+.round-head{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 4px 10px;
+}
+
+.round-head-left{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.round-title-text{
+  font-size: 16px;
+  margin: 0;
+  letter-spacing: .2px;
+}
+
+.round-meta{
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.round-progress-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  color: var(--muted);
+}
+
+.round-progress-pill.good{
+  border-color: rgba(94,230,168,0.45);
+  color: #c9ffe6;
+}
+
+.round-lock-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  border: 1px solid rgba(255,184,107,0.35);
+  background: rgba(255,184,107,0.08);
+  color: #ffd3a6;
+}
+
+.round-body{
+  margin-top: 6px;
+}
+
+.round-body.collapsed{
+  display:none;
+}
+
+/* Visual hint when locked */
+.round-row.locked{
+  opacity: 0.65;
+}
+
+/* Match-level meta for date + venue */
+.match-meta{
+  text-align: right;
+  font-size: 10.5px;
+  color: var(--muted);
+  line-height: 1.25;
+}
+
+/* On small screens, let meta drop under title */
+@media (max-width: 600px){
+  .round-head{
+    align-items:flex-start;
+  }
+  .match-meta{
+    text-align:left;
+  }
+}
 
     .note{
       color: var(--muted);
@@ -1710,6 +1799,24 @@ function buildR32Fixtures(){
 /* =========================================================
    KNOCKOUT DRAW YOU PROVIDED
    ========================================================= */
+  const R32_META = {
+  73: { date: "June 28, 2026", stadium: "SoFi Stadium, Inglewood" },
+  74: { date: "June 29, 2026", stadium: "Gillette Stadium, Foxborough" },
+  75: { date: "June 29, 2026", stadium: "Estadio BBVA, Guadalupe" },
+  76: { date: "June 29, 2026", stadium: "NRG Stadium, Houston" },
+  77: { date: "June 30, 2026", stadium: "MetLife Stadium, East Rutherford" },
+  78: { date: "June 30, 2026", stadium: "AT&T Stadium, Arlington" },
+  79: { date: "June 30, 2026", stadium: "Estadio Azteca, Mexico City" },
+  80: { date: "July 1, 2026", stadium: "Mercedes-Benz Stadium, Atlanta" },
+  81: { date: "July 1, 2026", stadium: "Levi's Stadium, Santa Clara" },
+  82: { date: "July 1, 2026", stadium: "Lumen Field, Seattle" },
+  83: { date: "July 2, 2026", stadium: "BMO Field, Toronto" },
+  84: { date: "July 2, 2026", stadium: "SoFi Stadium, Inglewood" },
+  85: { date: "July 2, 2026", stadium: "BC Place, Vancouver" },
+  86: { date: "July 3, 2026", stadium: "Hard Rock Stadium, Miami Gardens" },
+  87: { date: "July 3, 2026", stadium: "Arrowhead Stadium, Kansas City" },
+  88: { date: "July 3, 2026", stadium: "AT&T Stadium, Arlington" }
+};
 const KO_DRAW = {
   r16: [
     { matchId: 89, date:"July 4, 2026", venue:"Lincoln Financial Field, Philadelphia", homeFrom:{win:74}, awayFrom:{win:77} },
