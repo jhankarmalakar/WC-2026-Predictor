@@ -281,11 +281,33 @@
       color: var(--muted);
       padding-left: 6px;
     }
-    .qual-grid{
-      display:grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 12px;
-    }
+.qual-grid{
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.qual-col{
+  min-width: 0; /* prevents one column from expanding */
+}
+
+    .qual-col ul{
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qual-col li,
+.team-item{
+  display: flex;     /* or block if you prefer */
+  width: 100%;
+}
+
+
     @media (max-width: 900px){
       .qual-grid{ grid-template-columns: 1fr; }
     }
@@ -717,6 +739,10 @@
       <div>
         <h3 style="margin:0 0 8px 0; font-size:16px;">Qualification snapshot</h3>
         <div class="qual-grid">
+            <section class="qual-col" id="col-first">...</section>
+            <section class="qual-col" id="col-second">...</section>
+            <section class="qual-col" id="col-third">...</section>
+            </div>
           <div class="qual-box">
             <h4>Group winners (1st)</h4>
             <div id="winnersPills"></div>
