@@ -1682,9 +1682,7 @@ function renderThirdList(){
     const handle = document.createElement("span");
     handle.className = "handle";
 
-    const flag = document.createElement("span");
-    flag.className = "flag";
-    flag.textContent = flagForName(item.name);
+    const flag = createFlagElement(item.name);
 
     const code = document.createElement("span");
     code.className = "third-code";
@@ -1751,9 +1749,8 @@ function renderQualificationSnapshot(){
 function makePill(code, name, cls){
   const span = document.createElement("span");
   span.className = `pill ${cls || ""}`;
-  const flag = document.createElement("span");
-  flag.className = "flag";
-  flag.textContent = flagForName(name);
+  const flag = createFlagElement(name);
+
   const txt = document.createElement("span");
   txt.innerHTML = `<strong>${escapeHtml(code)}</strong> ${escapeHtml(name || "TBD")}`;
   span.appendChild(flag);
@@ -2160,9 +2157,8 @@ function makeTeamChip(team, matchId, side){
   chip.dataset.matchId = String(matchId);
   chip.dataset.side = side;
 
-  const flag = document.createElement("span");
-  flag.className = "flag";
-  flag.textContent = flagForName(team?.name);
+  const flag = createFlagElement(team?.name);
+
 
   const name = document.createElement("span");
   name.className = "name";
