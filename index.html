@@ -86,18 +86,6 @@
       border-radius: 8px;
     }
 
-    .sortable-item{
-  touch-action: none;
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-.sortable-item.dragging{
-  opacity: 0.7;
-  transform: scale(1.02);
-}
-
-
     .sky-highlight{
   background: var(--sky-select) !important;
   border-color: var(--sky-border) !important;
@@ -181,12 +169,6 @@
       overflow: hidden;   /* add */
       min-width: 0;       /* add */
     }
-    .third-item,
-    .team-chip{
-      touch-action: none;          /* stops scroll hijack while dragging */
-     -webkit-user-select: none;
-     user-select: none;
-   }
     .team-item.dragging{
       opacity: 0.5;
       background: rgba(122,162,255,0.12);
@@ -2042,91 +2024,19 @@ function refreshGroupPositionTags(){
    SORTABLE LIST (for groups & 3rd list)
    ========================================================= */
 function enableSortableList(listEl, onUpdate){
-  const isCoarse =
-    window.matchMedia &&
-    window.matchMedia("(pointer: coarse)").matches;
-
-  // ✅ MOBILE / TABLET
-  if(isCoarse){
-    let dragged = null;
-
-    function getItem(target){
-      return target.closest(".sortable-item");
-    }
-
-    function moveAt(clientY){
-      const after = getDragAfterElement(listEl, clientY);
-      if(!dragged) return;
-
-      if(after == null){
-        listEl.appendChild(dragged);
-      } else {
-        if(after !== dragged) listEl.insertBefore(dragged, after);
-      }
-    }
-
-    function start(item){
-      dragged = item;
-      dragged.classList.add("dragging");
-    }
-
-    function end(){
-      if(!dragged) return;
-      dragged.classList.remove("dragging");
-      dragged = null;
-      if(typeof onUpdate === "function") onUpdate(listEl);
-    }
-
-    listEl.addEventListener("pointerdown", (e) => {
-      const item = getItem(e.target);
-      if(!item || !listEl.contains(item)) return;
-
-      e.preventDefault();
-      start(item);
-
-      try { item.setPointerCapture(e.pointerId); } catch(_) {}
-    });
-
-    listEl.addEventListener("pointermove", (e) => {
-      if(!dragged) return;
-      e.preventDefault();
-      moveAt(e.clientY);
-    }, { passive:false });
-
-    listEl.addEventListener("pointerup", (e) => {
-      try { dragged?.releasePointerCapture(e.pointerId); } catch(_) {}
-      end();
-    });
-
-    listEl.addEventListener("pointercancel", end);
-
-    // Extra iOS safety
-    listEl.addEventListener("touchmove", (e) => {
-      if(!dragged) return;
-      e.preventDefault();
-      const t = e.touches[0];
-      if(t) moveAt(t.clientY);
-    }, { passive:false });
-
-    listEl.addEventListener("touchend", end);
-
-    return;
-  }
-
-  // ✅ DESKTOP (HTML5 drag)
   let dragged = null;
 
   listEl.addEventListener("dragstart", e => {
-    const item = e.target.closest(".sortable-item");
-    if(!item) return;
-    dragged = item;
-    item.classList.add("dragging");
+    const li = e.target.closest("li");
+    if(!li) return;
+    dragged = li;
+    li.classList.add("dragging");
     e.dataTransfer.effectAllowed = "move";
   });
 
   listEl.addEventListener("dragend", e => {
-    const item = e.target.closest(".sortable-item");
-    if(item) item.classList.remove("dragging");
+    const li = e.target.closest("li");
+    if(li) li.classList.remove("dragging");
     dragged = null;
   });
 
@@ -2147,7 +2057,18 @@ function enableSortableList(listEl, onUpdate){
   });
 }
 
-
+function getDragAfterElement(container, y){
+  const els = [...container.querySelectorAll("li:not(.dragging)")];
+  return els.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if(offset < 0 && offset > closest.offset){
+      return { offset, element: child };
+    } else {
+      return closest;
+    }
+  }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
 
 /* =========================================================
    GROUP REORDER HANDLER
@@ -3389,26 +3310,8 @@ function resetKnockouts(hard){
 
 /* =========================================================
    HELPERS
-
    ========================================================= */
-
-  function getDragAfterElement(container, y){
-  const draggableElements = [...container.querySelectorAll(".sortable-item:not(.dragging)")];
-
-  return draggableElements.reduce((closest, child) => {
-    const box = child.getBoundingClientRect();
-    const offset = y - box.top - box.height / 2;
-    if(offset < 0 && offset > closest.offset){
-      return { offset, element: child };
-    }
-    return closest;
-  }, { offset: Number.NEGATIVE_INFINITY }).element;
-}
-
-  
-  
-  
-  function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
+function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
 function escapeHtml(str){
   return String(str ?? "")
     .replaceAll("&","&amp;")
