@@ -1,11 +1,549 @@
 <!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>My World Cup Predictor</title>
-  </head>
-  <body>
-    <h1>World Cup 2026 Predictor</h1>
-    <p>My simple prediction page.</p>
-  </body>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>World Cup 2026 Group Ranker (Mini)</title>
+  <style>
+    :root{
+      --bg:#0f1220;
+      --panel:#15192b;
+      --panel-2:#101426;
+      --text:#f5f7ff;
+      --muted:#b9bfd6;
+      --accent:#7aa2ff;
+      --accent-2:#7affc7;
+      --danger:#ff7a7a;
+      --border:rgba(255,255,255,0.08);
+      --shadow: 0 10px 30px rgba(0,0,0,0.25);
+      --radius: 14px;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(1200px 800px at 20% -10%, #1c2345 0%, transparent 50%),
+                  radial-gradient(1200px 900px at 110% 10%, #1a3a3a 0%, transparent 50%),
+                  var(--bg);
+      color:var(--text);
+    }
+
+    header{
+      padding: 28px 20px 10px;
+      max-width: 1200px;
+      margin: 0 auto;
+      display:flex;
+      gap: 14px;
+      align-items:center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .title{
+      display:flex;
+      gap: 12px;
+      align-items:center;
+    }
+    .badge{
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25), var(--shadow);
+    }
+    h1{
+      font-size: clamp(20px, 2.2vw, 28px);
+      margin:0;
+      letter-spacing: 0.2px;
+    }
+    .subtitle{
+      color:var(--muted);
+      font-size: 12.5px;
+      margin-top: 2px;
+    }
+
+    .controls{
+      display:flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    button{
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 10px;
+      cursor:pointer;
+      font-weight: 600;
+      font-size: 12.5px;
+      letter-spacing: 0.2px;
+      transition: transform .08s ease, border-color .15s ease, background .2s ease;
+    }
+    button:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,0.18); }
+    button:active{ transform: translateY(0); }
+    button.secondary{
+      color: var(--muted);
+      font-weight: 550;
+    }
+    button.danger{
+      border-color: rgba(255,122,122,0.35);
+      color: #ffecec;
+      background: linear-gradient(180deg, rgba(255,122,122,0.12), rgba(255,122,122,0.04));
+    }
+
+    main{
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 10px 20px 28px;
+    }
+
+    .hint{
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 14px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(240px, 1fr));
+      gap: 14px;
+    }
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: repeat(2, minmax(240px, 1fr)); }
+    }
+    @media (max-width: 620px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    .group-card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 12px 10px;
+      box-shadow: var(--shadow);
+    }
+    .group-header{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      padding: 2px 4px 10px;
+      border-bottom: 1px dashed rgba(255,255,255,0.08);
+      margin-bottom: 10px;
+    }
+    .group-name{
+      font-weight: 800;
+      font-size: 14.5px;
+      letter-spacing: 0.6px;
+      color: #ffffff;
+    }
+    .group-meta{
+      font-size: 10.5px;
+      color: var(--muted);
+    }
+
+    ul.team-list{
+      list-style:none;
+      padding: 0;
+      margin: 0;
+      display:flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 168px;
+    }
+
+    .team-item{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      padding: 10px 10px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      cursor: grab;
+      user-select:none;
+      transition: border-color .15s ease, background .15s ease, transform .08s ease;
+    }
+    .team-item:hover{
+      border-color: rgba(255,255,255,0.18);
+    }
+    .team-item:active{
+      cursor: grabbing;
+    }
+
+    .rank-pill{
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      display:grid;
+      place-items:center;
+      font-weight: 800;
+      font-size: 12px;
+      color: #0b0f1f;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      flex: 0 0 26px;
+    }
+
+    .team-name{
+      font-size: 12.8px;
+      font-weight: 650;
+      letter-spacing: 0.1px;
+      color: var(--text);
+      flex: 1;
+    }
+    .drag-handle{
+      opacity: 0.65;
+      font-size: 14px;
+      padding: 0 4px;
+    }
+
+    .dragging{
+      opacity: 0.55;
+      transform: scale(0.99);
+    }
+    .drop-target{
+      outline: 2px solid rgba(122,162,255,0.35);
+      background: rgba(122,162,255,0.08);
+    }
+
+    .footer{
+      max-width: 1200px;
+      margin: 16px auto 28px;
+      padding: 0 20px;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    textarea{
+      width: 100%;
+      min-height: 140px;
+      resize: vertical;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 11.5px;
+      line-height: 1.45;
+      outline: none;
+    }
+
+    .small{
+      font-size: 10.5px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">
+      <div class="badge" aria-hidden="true"></div>
+      <div>
+        <h1>World Cup 2026 Group Ranker</h1>
+        <div class="subtitle">Single-file mini tool — drag teams to set 1st → 4th.</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button id="btnSave" title="Save your current order to this browser">Save</button>
+      <button id="btnLoad" class="secondary" title="Load your last saved order">Load</button>
+      <button id="btnExport" class="secondary" title="Generate JSON of your rankings">Export JSON</button>
+      <button id="btnCopy" class="secondary" title="Copy JSON to clipboard">Copy JSON</button>
+      <button id="btnReset" class="danger" title="Reset to default order">Reset</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="hint">
+      Drag a team up or down within each group. This page only ranks groups (no knockout logic yet).
+      Your picks stay in your browser if you press <b>Save</b>.
+    </div>
+
+    <div id="groupsGrid" class="grid"></div>
+
+    <div class="footer">
+      <div class="small">Your current rankings (auto-updates):</div>
+      <textarea id="output" readonly></textarea>
+      <div class="small">Tip: If you later want me to add Round of 32 logic, I can extend this same file.</div>
+    </div>
+  </main>
+
+  <script>
+    // ====== Data (from your groups list) ======
+    const DEFAULT_GROUPS = [
+      { name: "A", teams: ["Mexico", "South Africa", "Korea Republic", "UEFA Play-Off D winner"] },
+      { name: "B", teams: ["Canada", "UEFA Play-Off A winner", "Qatar", "Switzerland"] },
+      { name: "C", teams: ["Brazil", "Morocco", "Haiti", "Scotland"] },
+      { name: "D", teams: ["United States", "Paraguay", "Australia", "UEFA Play-Off C winner"] },
+      { name: "E", teams: ["Germany", "Curaçao", "Côte d'Ivoire", "Ecuador"] },
+      { name: "F", teams: ["Netherlands", "Japan", "UEFA Play-Off B winner", "Tunisia"] },
+      { name: "G", teams: ["Belgium", "Egypt", "IR Iran", "New Zealand"] },
+      { name: "H", teams: ["Spain", "Cabo Verde", "Saudi Arabia", "Uruguay"] },
+      { name: "I", teams: ["France", "Senegal", "FIFA Play-Off Tournament winner 2", "Norway"] },
+      { name: "J", teams: ["Argentina", "Algeria", "Austria", "Jordan"] },
+      { name: "K", teams: ["Portugal", "FIFA Play-Off Tournament winner 1", "Uzbekistan", "Colombia"] },
+      { name: "L", teams: ["England", "Croatia", "Ghana", "Panama"] },
+    ];
+
+    const STORAGE_KEY = "wc2026_group_ranker_v1";
+
+    // Working state
+    let groups = structuredClone(DEFAULT_GROUPS);
+
+    // ====== Rendering ======
+    const gridEl = document.getElementById("groupsGrid");
+    const outputEl = document.getElementById("output");
+
+    function renderAll() {
+      gridEl.innerHTML = "";
+      groups.forEach(group => {
+        const card = document.createElement("div");
+        card.className = "group-card";
+
+        const header = document.createElement("div");
+        header.className = "group-header";
+
+        const left = document.createElement("div");
+        const name = document.createElement("div");
+        name.className = "group-name";
+        name.textContent = `GROUP ${group.name}`;
+        const meta = document.createElement("div");
+        meta.className = "group-meta";
+        meta.textContent = "Drag to rank";
+        left.appendChild(name);
+        left.appendChild(meta);
+
+        header.appendChild(left);
+
+        const list = document.createElement("ul");
+        list.className = "team-list";
+        list.dataset.group = group.name;
+
+        group.teams.forEach((teamName, index) => {
+          list.appendChild(createTeamItem(group.name, teamName, index));
+        });
+
+        card.appendChild(header);
+        card.appendChild(list);
+        gridEl.appendChild(card);
+
+        wireListDnD(list);
+      });
+
+      updateRanksUI();
+      updateOutput();
+    }
+
+    function createTeamItem(groupName, teamName, index) {
+      const li = document.createElement("li");
+      li.className = "team-item";
+      li.draggable = true;
+      li.dataset.group = groupName;
+      li.dataset.team = teamName;
+
+      const pill = document.createElement("div");
+      pill.className = "rank-pill";
+      pill.textContent = String(index + 1);
+
+      const label = document.createElement("div");
+      label.className = "team-name";
+      label.textContent = teamName;
+
+      const handle = document.createElement("div");
+      handle.className = "drag-handle";
+      handle.textContent = "⋮⋮";
+
+      li.appendChild(pill);
+      li.appendChild(label);
+      li.appendChild(handle);
+
+      return li;
+    }
+
+    function updateRanksUI() {
+      document.querySelectorAll(".team-list").forEach(list => {
+        [...list.children].forEach((li, idx) => {
+          const pill = li.querySelector(".rank-pill");
+          if (pill) pill.textContent = String(idx + 1);
+        });
+      });
+    }
+
+    // ====== Drag & Drop (HTML5) ======
+    let dragItem = null;
+
+    function wireListDnD(list) {
+      list.addEventListener("dragstart", (e) => {
+        const li = e.target.closest(".team-item");
+        if (!li) return;
+        dragItem = li;
+        li.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+        // required for Firefox
+        e.dataTransfer.setData("text/plain", li.dataset.team);
+      });
+
+      list.addEventListener("dragend", (e) => {
+        const li = e.target.closest(".team-item");
+        if (li) li.classList.remove("dragging");
+        dragItem = null;
+        clearDropTargets();
+      });
+
+      list.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        const afterElement = getDragAfterElement(list, e.clientY);
+        if (!dragItem) return;
+
+        // Only allow within same group list
+        if (dragItem.parentElement !== list) return;
+
+        if (afterElement == null) {
+          list.appendChild(dragItem);
+        } else {
+          list.insertBefore(dragItem, afterElement);
+        }
+
+        markDropTarget(list);
+      });
+
+      list.addEventListener("drop", (e) => {
+        e.preventDefault();
+        if (!dragItem) return;
+        if (dragItem.parentElement !== list) return; // stay in group
+        commitListToState(list);
+        clearDropTargets();
+      });
+    }
+
+    function getDragAfterElement(container, y) {
+      const draggableElements = [...container.querySelectorAll(".team-item:not(.dragging)")];
+
+      return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) {
+          return { offset, element: child };
+        } else {
+          return closest;
+        }
+      }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+    }
+
+    function commitListToState(list) {
+      const groupName = list.dataset.group;
+      const newOrder = [...list.querySelectorAll(".team-item")].map(li => li.dataset.team);
+
+      const g = groups.find(x => x.name === groupName);
+      if (g) g.teams = newOrder;
+
+      updateRanksUI();
+      updateOutput();
+    }
+
+    function markDropTarget(list) {
+      clearDropTargets();
+      list.classList.add("drop-target");
+    }
+
+    function clearDropTargets() {
+      document.querySelectorAll(".team-list.drop-target").forEach(el => el.classList.remove("drop-target"));
+    }
+
+    // ====== Output ======
+    function getRankingsObject() {
+      const obj = {};
+      groups.forEach(g => {
+        obj[g.name] = {
+          "1st": g.teams[0] ?? null,
+          "2nd": g.teams[1] ?? null,
+          "3rd": g.teams[2] ?? null,
+          "4th": g.teams[3] ?? null,
+          order: [...g.teams]
+        };
+      });
+      return obj;
+    }
+
+    function updateOutput() {
+      const obj = getRankingsObject();
+      outputEl.value = JSON.stringify(obj, null, 2);
+    }
+
+    // ====== Buttons ======
+    document.getElementById("btnSave").addEventListener("click", () => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
+      flashButton("btnSave", "Saved ✓");
+    });
+
+    document.getElementById("btnLoad").addEventListener("click", () => {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        flashButton("btnLoad", "No save yet");
+        return;
+      }
+      try {
+        const parsed = JSON.parse(raw);
+        // Minimal validation
+        if (Array.isArray(parsed) && parsed.length) {
+          groups = parsed;
+          renderAll();
+          flashButton("btnLoad", "Loaded ✓");
+        }
+      } catch {
+        flashButton("btnLoad", "Load failed");
+      }
+    });
+
+    document.getElementById("btnReset").addEventListener("click", () => {
+      groups = structuredClone(DEFAULT_GROUPS);
+      renderAll();
+      flashButton("btnReset", "Reset ✓");
+    });
+
+    document.getElementById("btnExport").addEventListener("click", () => {
+      updateOutput();
+      flashButton("btnExport", "Updated JSON ✓");
+    });
+
+    document.getElementById("btnCopy").addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(outputEl.value);
+        flashButton("btnCopy", "Copied ✓");
+      } catch {
+        flashButton("btnCopy", "Copy blocked");
+      }
+    });
+
+    function flashButton(id, text) {
+      const btn = document.getElementById(id);
+      const old = btn.textContent;
+      btn.textContent = text;
+      btn.disabled = true;
+      setTimeout(() => {
+        btn.textContent = old;
+        btn.disabled = false;
+      }, 700);
+    }
+
+    // ====== Init ======
+    // Auto-load saved state if present
+    (function init(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length) {
+            groups = parsed;
+          }
+        } catch {}
+      }
+      renderAll();
+    })();
+  </script>
+</body>
 </html>
