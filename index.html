@@ -602,6 +602,25 @@
       font-weight: 700;
     }
 
+    /* Winner name, normal length */
+    .winner-pill .winner-name{
+      max-width: 140px;           /* keeps it from pushing too wide */
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Winner name when it is long: smaller font, up to 2 lines */
+    .winner-pill .winner-name.long{
+      font-size: 10px;
+      line-height: 1.1;
+      white-space: normal;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;       /* clamp to 2 lines when supported */
+      -webkit-box-orient: vertical;
+    }
+
+
     .champ-box{
       border: 1px solid rgba(122,162,255,0.35);
       background: linear-gradient(90deg, rgba(122,162,255,0.18), rgba(122,162,255,0.05));
@@ -2264,10 +2283,14 @@ function makeWinnerZone(matchId, home, away){
 function renderWinnerZoneContent(zone, winner){
   if(winner && winner.name && winner.name !== "TBD"){
     zone.classList.add("filled");
+
+    const isLong = (winner.name || "").length > 22;   // same threshold as chips
+    const nameClass = isLong ? "winner-name long" : "winner-name";
+
     zone.innerHTML = `
       <span class="winner-pill">
         <span class="flag">${flagForName(winner.name)}</span>
-        <span>${escapeHtml(winner.name)}</span>
+        <span class="${nameClass}">${escapeHtml(winner.name)}</span>
       </span>
     `;
   } else {
@@ -2275,6 +2298,7 @@ function renderWinnerZoneContent(zone, winner){
     zone.textContent = "Drop winner";
   }
 }
+
 
 /* =========================================================
    WINNER STATE MANAGEMENT
