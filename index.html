@@ -1031,7 +1031,7 @@
     }
 
     // You can fill this later if you want exact FIFA mapping.
-    const THIR// You will fill this later based on FIFA's third-place mapping table.
+    // You will fill this later based on FIFA's third-place mapping table.
 
 // IMPORTANT:
 // The 8 outputs in each table row must map to the 8 R32 matches that use 3rd-place teams.
@@ -1043,88 +1043,92 @@
 // The official table columns should match this order IF your source table columns are arranged
 // in the same sequence. If your source header shows a different match order, change this array.
 
-const THIRD_MATCH_ID_ORDER = [74, 77, 79, 80, 81, 82, 85, 87];
+    // Third-place mapping table (from the HTML rows you pasted)
+    // IMPORTANT:
+    // The 8 outputs in each table row must map to the 8 R32 matches that use 3rd-place teams.
+    // In this code, those are the matches where slot.type === "3SET":
+    // 74, 77, 79, 80, 81, 82, 85, 87 (see THIRD_MATCH_ID_ORDER).
 
-/*
-  Compact input:
-  key = the 8 qualified third-place group letters sorted A→L
-  value = 8 tags in the SAME order as THIRD_MATCH_ID_ORDER
-*/
-const THIRD_TABLE_RAW = {
-  // Your pasted rows converted:
+    const THIRD_MATCH_ID_ORDER = [74, 77, 79, 80, 81, 82, 85, 87];
 
-  // Row 1: E F G H I J K L
-  "EFGHIJKL": ["3E","3J","3I","3F","3H","3G","3L","3K"],
+    /*
+      Compact input:
+      key = the 8 qualified third-place group letters sorted A→L
+      value = 8 tags in the SAME order as THIRD_MATCH_ID_ORDER
+    */
+    const THIRD_TABLE_RAW = {
+      // Row 1: E F G H I J K L
+      "EFGHIJKL": ["3E","3J","3I","3F","3H","3G","3L","3K"],
 
-  // Row 2: D F G H I J K L
-  "DFGHIJKL": ["3H","3G","3I","3D","3J","3F","3L","3K"],
+      // Row 2: D F G H I J K L
+      "DFGHIJKL": ["3H","3G","3I","3D","3J","3F","3L","3K"],
 
-  // Row 3: D E G H I J K L
-  "DEGHIJKL": ["3E","3J","3I","3D","3H","3G","3L","3K"],
+      // Row 3: D E G H I J K L
+      "DEGHIJKL": ["3E","3J","3I","3D","3H","3G","3L","3K"],
 
-  // Row 4: D E F H I J K L
-  "DEFHIJKL": ["3E","3J","3I","3D","3H","3F","3L","3K"],
+      // Row 4: D E F H I J K L
+      "DEFHIJKL": ["3E","3J","3I","3D","3H","3F","3L","3K"],
 
-  // Row 5: D E F G I J K L
-  "DEFGIJKL": ["3E","3G","3I","3D","3J","3F","3L","3K"],
+      // Row 5: D E F G I J K L
+      "DEFGIJKL": ["3E","3G","3I","3D","3J","3F","3L","3K"],
 
-  // Row 6: D E F G H J K L
-  "DEFGHJKL": ["3E","3G","3J","3D","3H","3F","3L","3K"],
+      // Row 6: D E F G H J K L
+      "DEFGHJKL": ["3E","3G","3J","3D","3H","3F","3L","3K"],
 
-  // Row 7: D E F G H I K L
-  "DEFGHIKL": ["3E","3G","3I","3D","3H","3F","3L","3K"],
+      // Row 7: D E F G H I K L
+      "DEFGHIKL": ["3E","3G","3I","3D","3H","3F","3L","3K"],
 
-  // Row 8: D E F G H I J L
-  "DEFGHIJL": ["3E","3G","3J","3D","3H","3F","3L","3I"],
+      // Row 8: D E F G H I J L
+      "DEFGHIJL": ["3E","3G","3J","3D","3H","3F","3L","3I"],
 
-  // Row 9: D E F G H I J K
-  "DEFGHIJK": ["3E","3G","3J","3D","3H","3F","3I","3K"],
+      // Row 9: D E F G H I J K
+      "DEFGHIJK": ["3E","3G","3J","3D","3H","3F","3I","3K"],
 
-  // Row 10: C F G H I J K L
-  "CFGHIJKL": ["3H","3G","3I","3C","3J","3F","3L","3K"],
+      // Row 10: C F G H I J K L
+      "CFGHIJKL": ["3H","3G","3I","3C","3J","3F","3L","3K"],
 
-  // Row 11: C E G H I J K L
-  "CEGHIJKL": ["3E","3J","3I","3C","3H","3G","3L","3K"],
+      // Row 11: C E G H I J K L
+      "CEGHIJKL": ["3E","3J","3I","3C","3H","3G","3L","3K"],
 
-  // Row 12: C E F H I J K L
-  "CEFHIJKL": ["3E","3J","3I","3C","3H","3F","3L","3K"],
+      // Row 12: C E F H I J K L
+      "CEFHIJKL": ["3E","3J","3I","3C","3H","3F","3L","3K"],
 
-  // Row 13: C E F G I J K L
-  "CEFGIJKL": ["3E","3G","3I","3C","3J","3F","3L","3K"],
+      // Row 13: C E F G I J K L
+      "CEFGIJKL": ["3E","3G","3I","3C","3J","3F","3L","3K"],
 
-  // Row 14: C E F G H J K L
-  "CEFGHJKL": ["3E","3G","3J","3C","3H","3F","3L","3K"],
+      // Row 14: C E F G H J K L
+      "CEFGHJKL": ["3E","3G","3J","3C","3H","3F","3L","3K"],
 
-  // Row 15: C E F G H I K L
-  "CEFGHIKL": ["3E","3G","3I","3C","3H","3F","3L","3K"],
+      // Row 15: C E F G H I K L
+      "CEFGHIKL": ["3E","3G","3I","3C","3H","3F","3L","3K"],
 
-  // Row 16: C E F G H I J L
-  "CEFGHIJL": ["3E","3G","3J","3C","3H","3F","3L","3I"],
+      // Row 16: C E F G H I J L
+      "CEFGHIJL": ["3E","3G","3J","3C","3H","3F","3L","3I"],
 
-  // Row 17: C E F G H I J K
-  "CEFGHIJK": ["3E","3G","3J","3C","3H","3F","3I","3K"],
+      // Row 17: C E F G H I J K
+      "CEFGHIJK": ["3E","3G","3J","3C","3H","3F","3I","3K"],
 
-  // Row 18: C D G H I J K L
-  "CDGHIJKL": ["3H","3G","3I","3C","3J","3D","3L","3K"],
+      // Row 18: C D G H I J K L
+      "CDGHIJKL": ["3H","3G","3I","3C","3J","3D","3L","3K"],
 
-  // Row 19: C D F H I J K L
-  "CDFHIJKL": ["3C","3J","3I","3D","3H","3F","3L","3K"],
+      // Row 19: C D F H I J K L
+      "CDFHIJKL": ["3C","3J","3I","3D","3H","3F","3L","3K"],
 
-  // Row 20: C D F G I J K L
-  "CDFGIJKL": ["3C","3G","3I","3D","3J","3F","3L","3K"],
-};
+      // Row 20: C D F G I J K L
+      "CDFGIJKL": ["3C","3G","3I","3D","3J","3F","3L","3K"],
+    };
 
-// Expand compact rows into the structure your resolver expects:
-const THIRD_TABLE = Object.fromEntries(
-  Object.entries(THIRD_TABLE_RAW).map(([key, arr]) => {
-    const matchMap = {};
-    THIRD_MATCH_ID_ORDER.forEach((mid, i) => {
-      matchMap[mid] = arr[i];
-    });
-    return [key, matchMap];
-  })
-);
-D_TABLE = {};
+    // Expand compact rows into per-match mapping
+    const THIRD_TABLE = Object.fromEntries(
+      Object.entries(THIRD_TABLE_RAW).map(([key, arr]) => {
+        const matchMap = {};
+        THIRD_MATCH_ID_ORDER.forEach((mid, i) => {
+          matchMap[mid] = arr[i];
+        });
+        return [key, matchMap];
+      })
+    );
+
 
     function resolveThirdFromRankingOnly(){
       computeTop8ThirdPlaced();
