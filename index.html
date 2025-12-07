@@ -240,279 +240,292 @@
   </div>
 
   <script>
-    /* =========================================================
-       JS MAP
-       1) Real groups input (your data)
-       2) IDs + derived keys
-       3) State constructor
-       4) Board builder (dynamic columns)
-       5) Render
-       6) State helpers
-       7) Pointer drag engine
-       8) Buttons + boot
-    ========================================================== */
+   /* =========================================================
+   World Cup 2026 Groups Drag/Drop (NO POOL)
+   Complete JS
+
+   Assumes your HTML has:
+   - <main class="board" id="board"></main>
+   Optional:
+   - <button id="resetBtn">Reset Groups</button>
+
+   This builds ONLY Group A–L columns using DEFAULT_GROUPS.
+   Mobile-safe drag uses Pointer Events + touch-action:none in CSS.
+========================================================= */
 
 
-    /* 1) REAL GROUPS (provided by you) */
-    const DEFAULT_GROUPS = {
-      A: ["Mexico","South Africa","South Korea","European Playoff D"],
-      B: ["Canada","European Playoff A","Qatar","Switzerland"],
-      C: ["Brazil","Morocco","Haiti","Scotland"],
-      D: ["United States","Paraguay","Australia","European Playoff C"],
-      E: ["Germany","Curaçao","Ivory Coast","Ecuador"],
-      F: ["Netherlands","Japan","European Playoff B","Tunisia"],
-      G: ["Belgium","Egypt","Iran","New Zealand"],
-      H: ["Spain","Cape Verde","Saudi Arabia","Uruguay"],
-      I: ["France","Senegal","FIFA Intercontinental Playoff Tournament 2","Norway"],
-      J: ["Argentina","Algeria","Austria","Jordan"],
-      K: ["Portugal","FIFA Intercontinental Playoff Tournament 1","Uzbekistan","Colombia"],
-      L: ["England","Croatia","Ghana","Panama"]
-    };
-
-    /* 2) Derived keys + ID helper */
-    const GROUP_KEYS = Object.keys(DEFAULT_GROUPS);
-
-    const toId = (name) =>
-      name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-
-    /* 3) State constructor
-       - pool is empty by default
-       - groups start pre-filled using DEFAULT_GROUPS
-    */
-    const initialState = () => {
-      const groups = {};
-
-      GROUP_KEYS.forEach(key => {
-        groups[key] = DEFAULT_GROUPS[key].map(name => ({
-          // Prefix with group to avoid rare collisions
-          id: toId(`${key}-${name}`),
-          name,
-          tag: `Group ${key}`
-        }));
-      });
-
-      return { pool: [], groups };
-    };
-
-    let state = initialState();
-
-    /* Zones list for iteration */
-    const zones = ["pool", ...GROUP_KEYS.map(g => `group-${g}`)];
+/* 1) REAL GROUPS (your data) */
+const DEFAULT_GROUPS = {
+  A: ["Mexico","South Africa","South Korea","European Playoff D"],
+  B: ["Canada","European Playoff A","Qatar","Switzerland"],
+  C: ["Brazil","Morocco","Haiti","Scotland"],
+  D: ["United States","Paraguay","Australia","European Playoff C"],
+  E: ["Germany","Curaçao","Ivory Coast","Ecuador"],
+  F: ["Netherlands","Japan","European Playoff B","Tunisia"],
+  G: ["Belgium","Egypt","Iran","New Zealand"],
+  H: ["Spain","Cape Verde","Saudi Arabia","Uruguay"],
+  I: ["France","Senegal","FIFA Intercontinental Playoff Tournament 2","Norway"],
+  J: ["Argentina","Algeria","Austria","Jordan"],
+  K: ["Portugal","FIFA Intercontinental Playoff Tournament 1","Uzbekistan","Colombia"],
+  L: ["England","Croatia","Ghana","Panama"]
+};
 
 
-    /* 4) Build board dynamically */
-    function makeColumn(title, zoneKey){
-      const col = document.createElement("section");
-      col.className = "column";
+/* 2) Derived keys + ID helper */
+const GROUP_KEYS = Object.keys(DEFAULT_GROUPS);
 
-      col.innerHTML = `
-        <div class="column-header">
-          <div class="column-title">${title}</div>
-          <div class="count" data-count-for="${zoneKey}"></div>
-        </div>
-        <div class="dropzone" data-zone="${zoneKey}"></div>
+/** Slugify helper for stable DOM IDs */
+const toId = (name) =>
+  name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+
+/* 3) State constructor */
+const initialState = () => {
+  const groups = {};
+
+  GROUP_KEYS.forEach(key => {
+    groups[key] = DEFAULT_GROUPS[key].map(name => ({
+      // Prefix group to minimize collision risk
+      id: toId(`${key}-${name}`),
+      name,
+      tag: `Group ${key}`
+    }));
+  });
+
+  return { groups };
+};
+
+let state = initialState();
+
+
+/* 4) Zones registry (only groups) */
+const zones = GROUP_KEYS.map(g => `group-${g}`);
+
+
+/* 5) Board builder (dynamic columns) */
+function makeColumn(title, zoneKey){
+  const col = document.createElement("section");
+  col.className = "column";
+
+  col.innerHTML = `
+    <div class="column-header">
+      <div class="column-title">${title}</div>
+      <div class="count" data-count-for="${zoneKey}"></div>
+    </div>
+    <div class="dropzone" data-zone="${zoneKey}"></div>
+  `;
+
+  return col;
+}
+
+function buildBoard(){
+  const board = document.getElementById("board");
+  if(!board) return;
+
+  board.innerHTML = "";
+
+  GROUP_KEYS.forEach(g => {
+    board.appendChild(makeColumn(`Group ${g}`, `group-${g}`));
+  });
+}
+
+
+/* 6) Zone access + render */
+function getZoneArray(zoneKey){
+  const m = zoneKey.match(/^group-([A-L])$/);
+  if(m){
+    return state.groups[m[1]];
+  }
+  return null;
+}
+
+function render(){
+  zones.forEach(zone => {
+    const dz = document.querySelector(`.dropzone[data-zone="${zone}"]`);
+    if(!dz) return;
+
+    dz.innerHTML = "";
+
+    const arr = getZoneArray(zone) ?? [];
+
+    arr.forEach(team => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.dataset.id = team.id;
+      card.dataset.zone = zone;
+
+      card.innerHTML = `
+        <span class="name">${team.name}</span>
+        <span class="tag">${team.tag ?? ""}</span>
       `;
 
-      return col;
-    }
-
-    function buildBoard(){
-      const board = document.getElementById("board");
-      board.innerHTML = "";
-
-      // Pool first
-      board.appendChild(makeColumn("Pool", "pool"));
-
-      // Groups A–L
-      GROUP_KEYS.forEach(g => {
-        board.appendChild(makeColumn(`Group ${g}`, `group-${g}`));
-      });
-    }
-
-
-    /* 5) Render
-       - Rebuilds card DOM per zone
-       - Updates counts
-    */
-    function getZoneArray(zoneKey){
-      if(zoneKey === "pool") return state.pool;
-
-      const m = zoneKey.match(/^group-([A-L])$/);
-      if(m){
-        return state.groups[m[1]];
-      }
-      return null;
-    }
-
-    function render(){
-      zones.forEach(zone => {
-        const dz = document.querySelector(`.dropzone[data-zone="${zone}"]`);
-        if(!dz) return;
-
-        dz.innerHTML = "";
-
-        const arr = getZoneArray(zone) ?? [];
-
-        arr.forEach(team => {
-          const card = document.createElement("div");
-          card.className = "card";
-          card.dataset.id = team.id;
-          card.dataset.zone = zone;
-
-          card.innerHTML = `
-            <span class="name">${team.name}</span>
-            <span class="tag">${team.tag ?? ""}</span>
-          `;
-
-          attachPointerDrag(card);
-          dz.appendChild(card);
-        });
-
-        const countEl = document.querySelector(`[data-count-for="${zone}"]`);
-        if(countEl){
-          countEl.textContent = `${arr.length} team${arr.length !== 1 ? "s" : ""}`;
-        }
-      });
-    }
-
-
-    /* 6) State helpers */
-    function findTeamAndZone(teamId){
-      for(const z of zones){
-        const arr = getZoneArray(z);
-        if(!arr) continue;
-
-        const idx = arr.findIndex(t => t.id === teamId);
-        if(idx !== -1) return { zone: z, index: idx, team: arr[idx] };
-      }
-      return null;
-    }
-
-    function moveTeam(teamId, toZone){
-      const found = findTeamAndZone(teamId);
-      if(!found) return;
-
-      if(found.zone === toZone) return;
-
-      const fromArr = getZoneArray(found.zone);
-      const toArr = getZoneArray(toZone);
-      if(!fromArr || !toArr) return;
-
-      const [team] = fromArr.splice(found.index, 1);
-      toArr.push(team);
-
-      render();
-    }
-
-    function zoneFromPoint(x, y){
-      const all = [...document.querySelectorAll(".dropzone")];
-      return all.find(dz => {
-        const r = dz.getBoundingClientRect();
-        return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
-      });
-    }
-
-
-    /* 7) Pointer drag engine (mobile-safe) */
-    let dragging = null;
-
-    function attachPointerDrag(card){
-      card.addEventListener("pointerdown", (e) => {
-        if(e.button !== undefined && e.button !== 0) return;
-
-        e.preventDefault();
-
-        const teamId = card.dataset.id;
-
-        const rect = card.getBoundingClientRect();
-        const clone = card.cloneNode(true);
-        clone.classList.add("drag-clone");
-        document.body.appendChild(clone);
-
-        card.classList.add("dragging");
-
-        dragging = {
-          teamId,
-          originCard: card,
-          clone,
-          pointerId: e.pointerId,
-          offsetX: e.clientX - (rect.left + rect.width/2),
-          offsetY: e.clientY - (rect.top + rect.height/2),
-          lastZoneEl: null
-        };
-
-        card.setPointerCapture(e.pointerId);
-        positionClone(e.clientX, e.clientY);
-      });
-
-      card.addEventListener("pointermove", (e) => {
-        if(!dragging || dragging.pointerId !== e.pointerId) return;
-
-        e.preventDefault();
-
-        positionClone(e.clientX, e.clientY);
-
-        const zoneEl = zoneFromPoint(e.clientX, e.clientY);
-
-        if(zoneEl !== dragging.lastZoneEl){
-          document.querySelectorAll(".dropzone").forEach(z => z.classList.remove("over"));
-          if(zoneEl) zoneEl.classList.add("over");
-          dragging.lastZoneEl = zoneEl;
-        }
-      });
-
-      card.addEventListener("pointerup", (e) => {
-        if(!dragging || dragging.pointerId !== e.pointerId) return;
-        e.preventDefault();
-        finishDrag(e.clientX, e.clientY);
-      });
-
-      card.addEventListener("pointercancel", (e) => {
-        if(!dragging || dragging.pointerId !== e.pointerId) return;
-        finishDrag(null, null, true);
-      });
-    }
-
-    function positionClone(x, y){
-      if(!dragging) return;
-      dragging.clone.style.left = `${x - dragging.offsetX}px`;
-      dragging.clone.style.top  = `${y - dragging.offsetY}px`;
-    }
-
-    function finishDrag(x, y, cancelled=false){
-      const { teamId, originCard, clone } = dragging;
-
-      document.querySelectorAll(".dropzone").forEach(z => z.classList.remove("over"));
-      originCard.classList.remove("dragging");
-      clone.remove();
-
-      if(!cancelled && x !== null && y !== null){
-        const zoneEl = zoneFromPoint(x, y);
-        if(zoneEl){
-          const toZone = zoneEl.dataset.zone;
-          moveTeam(teamId, toZone);
-        }
-      }
-
-      dragging = null;
-    }
-
-
-    /* 8) Buttons + boot */
-    document.getElementById("resetBtn").addEventListener("click", () => {
-      state = initialState();
-      buildBoard();
-      render();
+      attachPointerDrag(card);
+      dz.appendChild(card);
     });
 
-    document.getElementById("clearPoolBtn").addEventListener("click", () => {
-      state.pool = [];
-      render();
-    });
+    const countEl = document.querySelector(`[data-count-for="${zone}"]`);
+    if(countEl){
+      countEl.textContent = `${arr.length} team${arr.length !== 1 ? "s" : ""}`;
+    }
+  });
+}
 
-    // Boot
+
+/* 7) State helpers */
+function findTeamAndZone(teamId){
+  for(const z of zones){
+    const arr = getZoneArray(z);
+    if(!arr) continue;
+
+    const idx = arr.findIndex(t => t.id === teamId);
+    if(idx !== -1) return { zone: z, index: idx, team: arr[idx] };
+  }
+  return null;
+}
+
+function moveTeam(teamId, toZone){
+  const found = findTeamAndZone(teamId);
+  if(!found) return;
+
+  if(found.zone === toZone) return;
+
+  const fromArr = getZoneArray(found.zone);
+  const toArr = getZoneArray(toZone);
+  if(!fromArr || !toArr) return;
+
+  const [team] = fromArr.splice(found.index, 1);
+  toArr.push(team);
+
+  render();
+}
+
+function zoneFromPoint(x, y){
+  const all = [...document.querySelectorAll(".dropzone")];
+  return all.find(dz => {
+    const r = dz.getBoundingClientRect();
+    return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  });
+}
+
+
+/* 8) Pointer drag engine (mobile-safe) */
+let dragging = null;
+
+function attachPointerDrag(card){
+  // Start drag
+  card.addEventListener("pointerdown", (e) => {
+    // Allow left mouse or touch
+    if(e.button !== undefined && e.button !== 0) return;
+
+    // Prevent scroll / text selection
+    e.preventDefault();
+
+    const teamId = card.dataset.id;
+
+    const rect = card.getBoundingClientRect();
+    const clone = card.cloneNode(true);
+    clone.classList.add("drag-clone");
+    document.body.appendChild(clone);
+
+    card.classList.add("dragging");
+
+    dragging = {
+      teamId,
+      originCard: card,
+      clone,
+      pointerId: e.pointerId,
+      offsetX: e.clientX - (rect.left + rect.width / 2),
+      offsetY: e.clientY - (rect.top + rect.height / 2),
+      lastZoneEl: null
+    };
+
+    // Keep receiving pointer events during drag
+    card.setPointerCapture(e.pointerId);
+
+    positionClone(e.clientX, e.clientY);
+  });
+
+  // During drag
+  card.addEventListener("pointermove", (e) => {
+    if(!dragging || dragging.pointerId !== e.pointerId) return;
+
+    e.preventDefault();
+
+    positionClone(e.clientX, e.clientY);
+
+    const zoneEl = zoneFromPoint(e.clientX, e.clientY);
+
+    if(zoneEl !== dragging.lastZoneEl){
+      document.querySelectorAll(".dropzone")
+        .forEach(z => z.classList.remove("over"));
+
+      if(zoneEl) zoneEl.classList.add("over");
+
+      dragging.lastZoneEl = zoneEl;
+    }
+  });
+
+  // End drag
+  card.addEventListener("pointerup", (e) => {
+    if(!dragging || dragging.pointerId !== e.pointerId) return;
+    e.preventDefault();
+    finishDrag(e.clientX, e.clientY);
+  });
+
+  // Cancel drag
+  card.addEventListener("pointercancel", (e) => {
+    if(!dragging || dragging.pointerId !== e.pointerId) return;
+    finishDrag(null, null, true);
+  });
+}
+
+function positionClone(x, y){
+  if(!dragging) return;
+  dragging.clone.style.left = `${x - dragging.offsetX}px`;
+  dragging.clone.style.top  = `${y - dragging.offsetY}px`;
+}
+
+function finishDrag(x, y, cancelled = false){
+  const { teamId, originCard, clone } = dragging;
+
+  document.querySelectorAll(".dropzone")
+    .forEach(z => z.classList.remove("over"));
+
+  originCard.classList.remove("dragging");
+  clone.remove();
+
+  if(!cancelled && x !== null && y !== null){
+    const zoneEl = zoneFromPoint(x, y);
+    if(zoneEl){
+      const toZone = zoneEl.dataset.zone;
+      moveTeam(teamId, toZone);
+    }
+  }
+
+  dragging = null;
+}
+
+
+/* 9) Reset (optional button) */
+function wireReset(){
+  const resetBtn = document.getElementById("resetBtn");
+  if(!resetBtn) return;
+
+  resetBtn.addEventListener("click", () => {
+    state = initialState();
     buildBoard();
     render();
+  });
+}
+
+
+/* 10) Boot */
+document.addEventListener("DOMContentLoaded", () => {
+  buildBoard();
+  render();
+  wireReset();
+});
+
 
   </script>
 </body>
