@@ -1,38 +1,31 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <!-- =========================================
-       HTML <head>
-       - Metadata
+  <!-- =========================================================
+       HEAD
+       - Meta
        - Title
-       - Viewport for mobile
-       - CSS styles for theme + layout + drag UI
-  ========================================== -->
-
+       - Viewport
+       - Styles (theme + layout + drag UX)
+  ========================================================== -->
   <meta charset="utf-8" />
-  <title>Drag-Drop Starter (Mobile Safe)</title>
-
-  <!-- Critical for mobile layout + correct scaling -->
+  <title>World Cup 2026 Groups Drag-Drop (Mobile Safe Base)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
-    /* =========================================
-       CSS SECTION MAP
+    /* =========================================================
+       CSS MAP
        1) Theme variables
-       2) Global resets + body
-       3) Layout containers (header/board/column)
-       4) Dropzone styling (normal + "over")
-       5) Card styling (including mobile drag fix)
-       6) Dragging states (ghost + floating clone)
-       7) Buttons + footer
-    ========================================== */
+       2) Global/base
+       3) Header
+       4) Board grid
+       5) Column + dropzone
+       6) Cards
+       7) Drag states
+       8) Buttons + footer
+    ========================================================== */
 
-
-    /* =========================================
-       1) Theme variables (colors, sizes)
-       - Easy customization point
-       - Change these without touching logic
-    ========================================== */
+    /* 1) Theme variables */
     :root{
       --bg:#0f1220;
       --panel:#151a2e;
@@ -41,21 +34,12 @@
       --muted:#b9c0e6;
       --accent:#7aa2ff;
       --border:rgba(255,255,255,0.08);
-      --radius:14px;
       --shadow: 0 10px 30px rgba(0,0,0,0.35);
+      --radius: 14px;
     }
 
-    /* =========================================
-       2) Global resets
-       - Consistent box sizing
-    ========================================== */
+    /* 2) Global/base */
     *{box-sizing:border-box}
-
-    /* =========================================
-       Body styling
-       - Background ambience
-       - Base typography
-    ========================================== */
     body{
       margin:0;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -64,51 +48,49 @@
       min-height:100vh;
     }
 
-    /* =========================================
-       3) Header layout
-       - Title + hint + reset button
-    ========================================== */
+    /* 3) Header */
     header{
       padding: 18px 20px 0 20px;
       display:flex;
       gap:12px;
       align-items:center;
       justify-content:space-between;
+      flex-wrap: wrap;
     }
     header h1{
       font-size: 18px;
       font-weight: 650;
-      margin:0;
+      margin:0 0 2px 0;
       letter-spacing:0.2px;
     }
     header .hint{
       color:var(--muted);
-      font-size: 12px;
+      font-size: 11.5px;
+    }
+    .actions{
+      display:flex;
+      gap:8px;
+      align-items:center;
     }
 
-    /* =========================================
-       3) Main board grid
-       - 1 column on small screens
-       - 3 columns on large screens
-    ========================================== */
+    /* 4) Board grid */
     .board{
       display:grid;
       grid-template-columns: 1fr;
       gap: 14px;
       padding: 14px 16px 30px 16px;
     }
-
-    @media (min-width: 900px){
-      .board{
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 16px;
-      }
+    @media (min-width: 780px){
+      .board{ grid-template-columns: 1fr 1fr; }
+    }
+    @media (min-width: 1100px){
+      .board{ grid-template-columns: 1fr 1fr 1fr; }
+    }
+    @media (min-width: 1400px){
+      .board{ grid-template-columns: 1fr 1fr 1fr 1fr; }
     }
 
-    /* =========================================
-       3) Column container
-       - Visual "panel" for each zone
-    ========================================== */
+    /* 5) Column + dropzone */
     .column{
       background: linear-gradient(180deg, var(--panel), var(--panel-2));
       border:1px solid var(--border);
@@ -119,32 +101,31 @@
       display:flex;
       flex-direction:column;
     }
-
-    /* Column top header inside each panel */
     .column-header{
       padding: 12px 14px;
       display:flex;
       align-items:center;
       justify-content:space-between;
       border-bottom:1px solid var(--border);
+      gap: 10px;
     }
     .column-title{
-      font-size: 13px;
-      letter-spacing: 0.3px;
+      font-size: 12.5px;
+      letter-spacing: 0.35px;
       text-transform: uppercase;
       color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 70%;
     }
     .count{
-      font-size: 11px;
+      font-size: 10.5px;
       color: var(--muted);
       opacity: 0.9;
+      white-space: nowrap;
     }
 
-    /* =========================================
-       4) Dropzone
-       - Container that holds cards
-       - "over" class is applied during drag hover
-    ========================================== */
     .dropzone{
       padding: 10px;
       display:flex;
@@ -153,22 +134,13 @@
       flex: 1;
       transition: background 120ms ease, outline 120ms ease;
     }
-
-    /* Highlight state when pointer is over this zone */
     .dropzone.over{
       background: rgba(122,162,255,0.08);
       outline: 1px dashed rgba(122,162,255,0.5);
       outline-offset: -6px;
     }
 
-    /* =========================================
-       5) Card styling
-       - Each draggable item
-       - Most important mobile fix:
-         touch-action: none;
-         This stops the browser from treating
-         finger drag as page scroll.
-    ========================================== */
+    /* 6) Cards */
     .card{
       background: rgba(255,255,255,0.04);
       border:1px solid var(--border);
@@ -181,7 +153,7 @@
       cursor: grab;
       user-select: none;
 
-      /* ✅ CRITICAL MOBILE FIX */
+      /* ✅ Critical mobile fix */
       touch-action: none;
 
       transition: transform 80ms ease, background 120ms ease, border-color 120ms ease;
@@ -189,7 +161,7 @@
     .card:active{ cursor: grabbing; }
 
     .name{
-      font-size: 14px;
+      font-size: 13.8px;
       font-weight: 560;
       letter-spacing: 0.1px;
       white-space: nowrap;
@@ -197,23 +169,17 @@
       text-overflow: ellipsis;
     }
     .tag{
-      font-size: 10px;
+      font-size: 9.5px;
       color: var(--muted);
       border:1px solid var(--border);
       padding: 3px 6px;
       border-radius: 999px;
+      white-space: nowrap;
     }
 
-    /* =========================================
-       6) Dragging states
-    ========================================== */
+    /* 7) Drag states */
+    .dragging{ opacity: 0.35; }
 
-    /* Original card becomes faint while dragging */
-    .dragging{
-      opacity: 0.35;
-    }
-
-    /* Floating clone that follows your finger/mouse */
     .drag-clone{
       position: fixed;
       z-index: 9999;
@@ -226,16 +192,8 @@
       backdrop-filter: blur(8px);
     }
 
-    /* =========================================
-       7) Footer + button
-    ========================================== */
-    .footer{
-      padding: 0 16px 24px 16px;
-      color: var(--muted);
-      font-size: 11px;
-    }
-
-    button.reset{
+    /* 8) Buttons + footer */
+    button{
       background: rgba(122,162,255,0.12);
       color: var(--text);
       border: 1px solid rgba(122,162,255,0.35);
@@ -244,180 +202,208 @@
       font-size: 11px;
       cursor: pointer;
     }
-    button.reset:hover{
+    button:hover{
       background: rgba(122,162,255,0.18);
+    }
+    .footer{
+      padding: 0 16px 24px 16px;
+      color: var(--muted);
+      font-size: 11px;
     }
   </style>
 </head>
 
 <body>
-  <!-- =========================================
-       HTML BODY SECTION MAP
-       1) Header (title + hint + reset)
-       2) Board (3 columns)
-          - Each column contains:
-            - column header (title + count)
-            - dropzone container
+  <!-- =========================================================
+       BODY / HTML STRUCTURE
+       1) Header + actions
+       2) Dynamic board container
        3) Footer
-  ========================================== -->
+  ========================================================== -->
 
-  <!-- 1) App header -->
   <header>
     <div>
-      <h1>Mobile-Safe Drag & Drop Foundation</h1>
-      <div class="hint">Pointer Events + touch-action:none + no scroll while dragging</div>
+      <h1>World Cup 2026 Groups – Drag & Drop Base</h1>
+      <div class="hint">Uses Pointer Events for reliable mobile dragging.</div>
     </div>
-
-    <!-- Reset button restores starter demo state -->
-    <button class="reset" id="resetBtn">Reset Demo</button>
+    <div class="actions">
+      <button id="resetBtn">Reset Groups</button>
+      <button id="clearPoolBtn">Clear Pool</button>
+    </div>
   </header>
 
-  <!-- 2) Main board: contains all dropzones -->
-  <main class="board" id="board">
+  <!-- Board will be built dynamically from DEFAULT_GROUPS -->
+  <main class="board" id="board"></main>
 
-    <!-- Column 1: Pool -->
-    <section class="column">
-      <div class="column-header">
-        <div class="column-title">Pool</div>
-        <div class="count" data-count-for="pool"></div>
-      </div>
-      <div class="dropzone" data-zone="pool"></div>
-    </section>
-
-    <!-- Column 2: Group A Slot 1 -->
-    <section class="column">
-      <div class="column-header">
-        <div class="column-title">Group A (Slot 1)</div>
-        <div class="count" data-count-for="a1"></div>
-      </div>
-      <div class="dropzone" data-zone="a1"></div>
-    </section>
-
-    <!-- Column 3: Group A Slot 2 -->
-    <section class="column">
-      <div class="column-header">
-        <div class="column-title">Group A (Slot 2)</div>
-        <div class="count" data-count-for="a2"></div>
-      </div>
-      <div class="dropzone" data-zone="a2"></div>
-    </section>
-  </main>
-
-  <!-- 3) Simple footer note -->
   <div class="footer">
-    Next step after this works flawlessly on your phone: replace demo structures with real World Cup groups.
+    This is a stable foundation. Next upgrades: group capacity rules (max 4), pool auto-fill, standings, and 3rd-place ranking.
   </div>
 
   <script>
-    /* =========================================
-       JAVASCRIPT SECTION MAP
-       1) State model
-       2) Render function
-       3) State helpers
-       4) Pointer-based drag engine
-       5) Reset action
-       6) Boot
-    ========================================== */
+    /* =========================================================
+       JS MAP
+       1) Real groups input (your data)
+       2) IDs + derived keys
+       3) State constructor
+       4) Board builder (dynamic columns)
+       5) Render
+       6) State helpers
+       7) Pointer drag engine
+       8) Buttons + boot
+    ========================================================== */
 
 
-    /* =========================================
-       1) Minimal state
-       - Each zone is an array of team objects
-       - Later you will expand zones to Group A-L etc.
-    ========================================== */
-    const initialState = () => ({
-      pool: [
-        { id: "usa", name: "United States", tag: "Demo" },
-        { id: "bra", name: "Brazil", tag: "Demo" },
-        { id: "fra", name: "France", tag: "Demo" },
-        { id: "jpn", name: "Japan", tag: "Demo" }
-      ],
-      a1: [],
-      a2: []
-    });
+    /* 1) REAL GROUPS (provided by you) */
+    const DEFAULT_GROUPS = {
+      A: ["Mexico","South Africa","South Korea","European Playoff D"],
+      B: ["Canada","European Playoff A","Qatar","Switzerland"],
+      C: ["Brazil","Morocco","Haiti","Scotland"],
+      D: ["United States","Paraguay","Australia","European Playoff C"],
+      E: ["Germany","Curaçao","Ivory Coast","Ecuador"],
+      F: ["Netherlands","Japan","European Playoff B","Tunisia"],
+      G: ["Belgium","Egypt","Iran","New Zealand"],
+      H: ["Spain","Cape Verde","Saudi Arabia","Uruguay"],
+      I: ["France","Senegal","FIFA Intercontinental Playoff Tournament 2","Norway"],
+      J: ["Argentina","Algeria","Austria","Jordan"],
+      K: ["Portugal","FIFA Intercontinental Playoff Tournament 1","Uzbekistan","Colombia"],
+      L: ["England","Croatia","Ghana","Panama"]
+    };
+
+    /* 2) Derived keys + ID helper */
+    const GROUP_KEYS = Object.keys(DEFAULT_GROUPS);
+
+    const toId = (name) =>
+      name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+    /* 3) State constructor
+       - pool is empty by default
+       - groups start pre-filled using DEFAULT_GROUPS
+    */
+    const initialState = () => {
+      const groups = {};
+
+      GROUP_KEYS.forEach(key => {
+        groups[key] = DEFAULT_GROUPS[key].map(name => ({
+          // Prefix with group to avoid rare collisions
+          id: toId(`${key}-${name}`),
+          name,
+          tag: `Group ${key}`
+        }));
+      });
+
+      return { pool: [], groups };
+    };
 
     let state = initialState();
 
-    /* =========================================
-       Zones registry
-       - This list drives rendering + searches
-       - When you add more groups,
-         extend this array and state keys.
-    ========================================== */
-    const zones = ["pool", "a1", "a2"];
+    /* Zones list for iteration */
+    const zones = ["pool", ...GROUP_KEYS.map(g => `group-${g}`)];
 
 
-    /* =========================================
-       2) Render
-       - Clears each dropzone
-       - Rebuilds cards from current state
+    /* 4) Build board dynamically */
+    function makeColumn(title, zoneKey){
+      const col = document.createElement("section");
+      col.className = "column";
+
+      col.innerHTML = `
+        <div class="column-header">
+          <div class="column-title">${title}</div>
+          <div class="count" data-count-for="${zoneKey}"></div>
+        </div>
+        <div class="dropzone" data-zone="${zoneKey}"></div>
+      `;
+
+      return col;
+    }
+
+    function buildBoard(){
+      const board = document.getElementById("board");
+      board.innerHTML = "";
+
+      // Pool first
+      board.appendChild(makeColumn("Pool", "pool"));
+
+      // Groups A–L
+      GROUP_KEYS.forEach(g => {
+        board.appendChild(makeColumn(`Group ${g}`, `group-${g}`));
+      });
+    }
+
+
+    /* 5) Render
+       - Rebuilds card DOM per zone
        - Updates counts
-       - Attaches drag listeners per card
-    ========================================== */
+    */
+    function getZoneArray(zoneKey){
+      if(zoneKey === "pool") return state.pool;
+
+      const m = zoneKey.match(/^group-([A-L])$/);
+      if(m){
+        return state.groups[m[1]];
+      }
+      return null;
+    }
+
     function render(){
       zones.forEach(zone => {
         const dz = document.querySelector(`.dropzone[data-zone="${zone}"]`);
+        if(!dz) return;
+
         dz.innerHTML = "";
 
-        state[zone].forEach(team => {
+        const arr = getZoneArray(zone) ?? [];
+
+        arr.forEach(team => {
           const card = document.createElement("div");
           card.className = "card";
-
-          /* Store metadata on the element itself */
           card.dataset.id = team.id;
           card.dataset.zone = zone;
 
-          /* Card content */
           card.innerHTML = `
             <span class="name">${team.name}</span>
             <span class="tag">${team.tag ?? ""}</span>
           `;
 
-          /* Attach pointer-based drag behavior */
           attachPointerDrag(card);
-
           dz.appendChild(card);
         });
 
-        /* Update header counts */
         const countEl = document.querySelector(`[data-count-for="${zone}"]`);
-        if(countEl) countEl.textContent = `${state[zone].length} item${state[zone].length !== 1 ? "s" : ""}`;
+        if(countEl){
+          countEl.textContent = `${arr.length} team${arr.length !== 1 ? "s" : ""}`;
+        }
       });
     }
 
 
-    /* =========================================
-       3) State helpers
-    ========================================== */
-
-    /* Find the team in any zone */
+    /* 6) State helpers */
     function findTeamAndZone(teamId){
       for(const z of zones){
-        const idx = state[z].findIndex(t => t.id === teamId);
-        if(idx !== -1) return { zone: z, index: idx, team: state[z][idx] };
+        const arr = getZoneArray(z);
+        if(!arr) continue;
+
+        const idx = arr.findIndex(t => t.id === teamId);
+        if(idx !== -1) return { zone: z, index: idx, team: arr[idx] };
       }
       return null;
     }
 
-    /* Move a team from one zone to another */
     function moveTeam(teamId, toZone){
       const found = findTeamAndZone(teamId);
       if(!found) return;
 
-      const { zone: fromZone, index, team } = found;
+      if(found.zone === toZone) return;
 
-      /* Ignore if dropped into same zone */
-      if(fromZone === toZone) return;
+      const fromArr = getZoneArray(found.zone);
+      const toArr = getZoneArray(toZone);
+      if(!fromArr || !toArr) return;
 
-      /* Remove from old zone, push to new */
-      state[fromZone].splice(index, 1);
-      state[toZone].push(team);
+      const [team] = fromArr.splice(found.index, 1);
+      toArr.push(team);
 
-      /* Re-render to reflect changes */
       render();
     }
 
-    /* Determine which dropzone lies under x/y */
     function zoneFromPoint(x, y){
       const all = [...document.querySelectorAll(".dropzone")];
       return all.find(dz => {
@@ -427,71 +413,45 @@
     }
 
 
-    /* =========================================
-       4) Pointer-based drag engine
-       Why pointer events?
-       - Unifies mouse + touch + pen
-       - More reliable than HTML5 drag on mobile
-       Key mobile protections:
-       - card { touch-action: none }
-       - pointerdown/move: preventDefault()
-       - setPointerCapture() keeps drag stable
-    ========================================== */
-
+    /* 7) Pointer drag engine (mobile-safe) */
     let dragging = null;
 
     function attachPointerDrag(card){
-      /* Start drag */
       card.addEventListener("pointerdown", (e) => {
-        /* Only allow left mouse button or touch */
         if(e.button !== undefined && e.button !== 0) return;
 
-        /* Stop page scrolling / text selecting */
         e.preventDefault();
 
         const teamId = card.dataset.id;
 
-        /* Create a clone that visually follows pointer */
         const rect = card.getBoundingClientRect();
         const clone = card.cloneNode(true);
         clone.classList.add("drag-clone");
         document.body.appendChild(clone);
 
-        /* Fade the original card */
         card.classList.add("dragging");
 
-        /* Store drag session data */
         dragging = {
           teamId,
           originCard: card,
           clone,
           pointerId: e.pointerId,
-
-          /* Center-follow offset so clone feels natural */
           offsetX: e.clientX - (rect.left + rect.width/2),
           offsetY: e.clientY - (rect.top + rect.height/2),
-
-          /* Track hover zone to update highlight */
           lastZoneEl: null
         };
 
-        /* Ensures we keep receiving pointer events */
         card.setPointerCapture(e.pointerId);
-
-        /* Place clone at start position */
         positionClone(e.clientX, e.clientY);
       });
 
-      /* During drag */
       card.addEventListener("pointermove", (e) => {
         if(!dragging || dragging.pointerId !== e.pointerId) return;
 
-        /* Prevent scroll on mobile */
         e.preventDefault();
 
         positionClone(e.clientX, e.clientY);
 
-        /* Highlight zone under pointer */
         const zoneEl = zoneFromPoint(e.clientX, e.clientY);
 
         if(zoneEl !== dragging.lastZoneEl){
@@ -501,40 +461,31 @@
         }
       });
 
-      /* End drag */
       card.addEventListener("pointerup", (e) => {
         if(!dragging || dragging.pointerId !== e.pointerId) return;
         e.preventDefault();
         finishDrag(e.clientX, e.clientY);
       });
 
-      /* Cancel drag (system interruption) */
       card.addEventListener("pointercancel", (e) => {
         if(!dragging || dragging.pointerId !== e.pointerId) return;
         finishDrag(null, null, true);
       });
     }
 
-    /* Position floating clone near pointer */
     function positionClone(x, y){
       if(!dragging) return;
       dragging.clone.style.left = `${x - dragging.offsetX}px`;
       dragging.clone.style.top  = `${y - dragging.offsetY}px`;
     }
 
-    /* Finalize drag:
-       - remove hover styles
-       - remove clone
-       - if over a zone, move team */
     function finishDrag(x, y, cancelled=false){
       const { teamId, originCard, clone } = dragging;
 
-      /* Clear visual states */
       document.querySelectorAll(".dropzone").forEach(z => z.classList.remove("over"));
       originCard.classList.remove("dragging");
       clone.remove();
 
-      /* Execute drop if valid */
       if(!cancelled && x !== null && y !== null){
         const zoneEl = zoneFromPoint(x, y);
         if(zoneEl){
@@ -547,20 +498,20 @@
     }
 
 
-    /* =========================================
-       5) Reset demo
-       - Restores original starter content
-    ========================================== */
+    /* 8) Buttons + boot */
     document.getElementById("resetBtn").addEventListener("click", () => {
       state = initialState();
+      buildBoard();
       render();
     });
 
+    document.getElementById("clearPoolBtn").addEventListener("click", () => {
+      state.pool = [];
+      render();
+    });
 
-    /* =========================================
-       6) Boot
-       - First render when page loads
-    ========================================== */
+    // Boot
+    buildBoard();
     render();
 
   </script>
