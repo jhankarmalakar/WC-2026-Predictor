@@ -71,7 +71,7 @@
       flex-wrap: wrap;
     }
 
-    /* Bigger stage pill (button-like) */
+    /* Bigger stage pill */
     .stage-pill{
       font-size: 11.5px;
       color: var(--text);
@@ -307,7 +307,7 @@
   <main class="board" id="board"></main>
 
   <div class="footer">
-    50% reorder works both directions. Tap/click two teams in the same zone to swap.
+    Drag preview and drop use the same symmetric midpoint logic. Tap/click two teams in the same zone to swap.
   </div>
 
   <script>
@@ -573,10 +573,8 @@
       cardEl.classList.remove("rank-strong", "rank-mild", "qualified", "eliminated");
 
       if(isPathZone(zone)){
-        // Pool topper strong highlight always
         if(idx === 0) cardEl.classList.add("rank-strong");
 
-        // After Form Groups, use flags for status styling
         if(stage === "groups"){
           if(team.isQualified) cardEl.classList.add("qualified");
           if(team.isEliminated) cardEl.classList.add("eliminated");
@@ -635,7 +633,7 @@
     }
 
     /* ==============================
-       10) Reorder logic (correct 50% both directions)
+       10) Find team helper
     ============================== */
     function findTeamAndZone(teamId){
       for(const z of zones){
@@ -647,104 +645,72 @@
       return null;
     }
 
-    // Compute insertion index in ORIGINAL array coordinates
-    function getInsertIndexByDrop(zoneEl, clientY, arr, draggedId){
+    /* ==============================
+       11) Symmetric insertion computation
+       - SINGLE source of truth for:
+         * preview highlight
+         * reorder index
+       - Uses midpoint rule only (no "inside-rect" bias)
+    ============================== */
+    function computeInsertion(zoneEl, clientY, draggedId){
       const cards = [...zoneEl.querySelectorAll(".card")]
         .filter(c => c.dataset.id && c.dataset.id !== draggedId);
 
-      if(cards.length === 0) return 0;
+      // Index in "remaining list" space
+      let insertIndex = cards.length;
+      let targetCard = null;
 
-      // 1) Direct overlap rule (upper half/bottom half)
-      for(const card of cards){
-        const r = card.getBoundingClientRect();
-        if(clientY >= r.top && clientY <= r.bottom){
-          const mid = r.top + r.height / 2;
-          const targetId = card.dataset.id;
-          const targetIndex = arr.findIndex(t => t.id === targetId);
-          if(targetIndex === -1) continue;
-
-          return clientY > mid ? targetIndex + 1 : targetIndex;
-        }
-      }
-
-      // 2) Fallback: midpoint scan
-      for(const card of cards){
-        const r = card.getBoundingClientRect();
+      for(let i = 0; i < cards.length; i++){
+        const r = cards[i].getBoundingClientRect();
         const mid = r.top + r.height / 2;
-        const targetId = card.dataset.id;
-        const targetIndex = arr.findIndex(t => t.id === targetId);
-        if(targetIndex === -1) continue;
 
         if(clientY < mid){
-          return targetIndex;
+          insertIndex = i;
+          targetCard = cards[i];
+          break;
         }
       }
 
-      // 3) End
-      return arr.length;
+      // If inserting at end, highlight last card as reference (optional but clearer)
+      if(!targetCard && cards.length){
+        targetCard = cards[cards.length - 1];
+      }
+
+      return { insertIndex, targetCard };
     }
 
     function reorderWithinZone(teamId, zoneEl, clientY){
-      const toZone = zoneEl.dataset.zone;
-      const arr = getZoneArray(toZone);
+      const zoneKey = zoneEl.dataset.zone;
+      const arr = getZoneArray(zoneKey);
       if(!arr) return;
 
       const found = findTeamAndZone(teamId);
-      if(!found) return;
-      if(found.zone !== toZone) return;
+      if(!found || found.zone !== zoneKey) return;
 
       const fromIndex = found.index;
+      const { insertIndex } = computeInsertion(zoneEl, clientY, teamId);
 
-      const insertIndexRaw = getInsertIndexByDrop(zoneEl, clientY, arr, teamId);
-
+      // Remove then insert using index relative to remaining list
       const [team] = arr.splice(fromIndex, 1);
-
-      const insertIndex =
-        insertIndexRaw > fromIndex ? insertIndexRaw - 1 : insertIndexRaw;
-
       arr.splice(insertIndex, 0, team);
     }
 
     /* ==============================
-       11) Drag target preview helpers
+       12) Drag target preview helpers
     ============================== */
     function clearDragTargets(){
       document.querySelectorAll(".drag-target")
         .forEach(el => el.classList.remove("drag-target"));
     }
 
-    function markDragTarget(zoneEl, clientY, draggedId){
+    function updateDragPreview(zoneEl, clientY, draggedId){
       clearDragTargets();
-
-      const cards = [...zoneEl.querySelectorAll(".card")]
-        .filter(c => c.dataset.id && c.dataset.id !== draggedId);
-
-      // Overlap target
-      for(const card of cards){
-        const r = card.getBoundingClientRect();
-        if(clientY >= r.top && clientY <= r.bottom){
-          card.classList.add("drag-target");
-          return;
-        }
-      }
-
-      // Midpoint fallback
-      for(const card of cards){
-        const r = card.getBoundingClientRect();
-        const mid = r.top + r.height / 2;
-        if(clientY < mid){
-          card.classList.add("drag-target");
-          return;
-        }
-      }
-
-      if(cards.length){
-        cards[cards.length - 1].classList.add("drag-target");
-      }
+      const { targetCard } = computeInsertion(zoneEl, clientY, draggedId);
+      if(targetCard) targetCard.classList.add("drag-target");
     }
 
     /* ==============================
-       12) Form Groups (COPY, don't move)
+       13) Form Groups (COPY, don't move)
     ============================== */
     function groupHasPlaceholder(groupKey, pathId){
       return state.groups[groupKey].some(t => t.isPlaceholder && t.pathId === pathId);
@@ -796,7 +762,7 @@
     }
 
     /* ==============================
-       13) Pointer drag engine with tap detection
+       14) Pointer drag engine with tap detection
     ============================== */
     function zoneFromPoint(x, y){
       const all = [...document.querySelectorAll(".dropzone")];
@@ -864,7 +830,7 @@
 
           if(zoneEl && zoneEl.dataset.zone === dragging.fromZone){
             zoneEl.classList.add("over");
-            markDragTarget(zoneEl, e.clientY, dragging.teamId);
+            updateDragPreview(zoneEl, e.clientY, dragging.teamId);
           } else {
             clearDragTargets();
           }
@@ -924,7 +890,7 @@
     }
 
     /* ==============================
-       14) Buttons + boot
+       15) Buttons + boot
     ============================== */
     function wireButtons(){
       const formBtn = document.getElementById("formGroupsBtn");
@@ -943,7 +909,7 @@
           swapSelection = null;
           buildBoard();
           render();
-          wireButtons(); // Form button is rebuilt
+          wireButtons();
         });
       }
     }
