@@ -419,6 +419,35 @@
       color: var(--muted);
       opacity: 0.9;
     }
+
+          /* ==========================
+           Upset reaction toast
+        ========================== */
+        .upset-toast{
+          position: fixed;
+          top: 14px;
+          right: 14px;
+          z-index: 9999;
+          max-width: min(420px, 92vw);
+          padding: 10px 12px;
+          border-radius: 12px;
+          font-size: 12.5px;
+          font-weight: 650;
+          letter-spacing: 0.2px;
+          color: var(--text);
+          background: linear-gradient(135deg, rgba(255,184,107,0.18), rgba(122,162,255,0.14));
+          border: 1px solid rgba(255,184,107,0.55);
+          box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+          opacity: 0;
+          transform: translateY(-6px);
+          pointer-events: none;
+          transition: opacity 160ms ease, transform 160ms ease;
+        }
+        .upset-toast.show{
+          opacity: 1;
+          transform: translateY(0);
+        }
+
   </style>
 </head>
 
@@ -1094,6 +1123,55 @@
       return { name: t.name, groupKey: g };
     }
 
+    
+    /* ==============================
+   Upset reactions (R16+)
+============================== */
+let upsetToastTimer = null;
+
+function showUpsetToast(msg){
+  const el = document.getElementById("upsetToast");
+  if(!el) return;
+
+  el.textContent = msg;
+  el.classList.add("show");
+
+  if(upsetToastTimer) clearTimeout(upsetToastTimer);
+  upsetToastTimer = setTimeout(() => {
+    el.classList.remove("show");
+  }, 1600);
+}
+
+function maybeShowUpsetReaction(matchId, winnerName, loserName){
+  // R16 onwards: match ids 89+
+  if(matchId < 89) return;
+
+  const rw = rankOf(winnerName);
+  const rl = rankOf(loserName);
+
+  // avoid unknown-rank noise
+  if(rw >= 900 || rl >= 900) return;
+
+  const delta = rw - rl; // positive => winner is worse-ranked
+  if(delta < 7) return;
+
+  const lines = [
+    `My god. ${winnerName} over ${loserName}?`,
+    `${winnerName} really said “watch this.”`,
+    `Bold. Unhinged. Beautiful. ${winnerName}.`,
+    `That’s… a choice. ${winnerName} ✅`,
+    `Football heritage just fainted.`,
+    `${loserName} fans are logging off as we speak.`,
+    `The rankings are crying right now.`,
+    `Chaos has entered the chat.`,
+    `This bracket is officially spicy.`
+  ];
+if(rl <= 9 && rw >= 18) {
+  showUpsetToast(lines[Math.floor(Math.random() * lines.length)]);
+}
+}
+
+    
     function teamAbbrev(name){
       if(!name) return "---";
       const SPECIAL = {
@@ -1241,26 +1319,31 @@
       });
     }
 
-    function setWinner(matchId, side, name){
-      const match = findMatchById(matchId);
-      if(!match) return;
-
-      const p = resolveParticipants(match);
-      if(p.left.placeholder || p.right.placeholder) return;
-
-      const ab = teamAbbrev(name);
-
-      state.winners[matchId] = {
-        side,
-        name,
-        abbrev: ab,
-        leftAtPick: p.left.name,
-        rightAtPick: p.right.name
-      };
-
-      validateAllWinners();
-      render();
-    }
+   function setWinner(matchId, side, name){
+        const match = findMatchById(matchId);
+        if(!match) return;
+      
+        const p = resolveParticipants(match);
+        if(p.left.placeholder || p.right.placeholder) return;
+      
+        const ab = teamAbbrev(name);
+      
+        state.winners[matchId] = {
+          side,
+          name,
+          abbrev: ab,
+          leftAtPick: p.left.name,
+          rightAtPick: p.right.name
+        };
+      
+        // Upset reaction logic
+        const loserName = (name === p.left.name) ? p.right.name : p.left.name;
+        maybeShowUpsetReaction(matchId, name, loserName);
+      
+        validateAllWinners();
+        render();
+      }
+      
 
     /* ==============================
        12) Edit rules
@@ -2006,5 +2089,7 @@
       wireButtons();
     });
   </script>
+
+  <div id="upsetToast" class="upset-toast" aria-live="polite"></div>
 </body>
 </html>
