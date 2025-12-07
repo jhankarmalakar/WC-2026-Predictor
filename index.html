@@ -306,6 +306,17 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
+    .flag-img{
+        width: 16px;
+        height: 12px;
+        object-fit: cover;
+        border-radius: 2px;
+        margin-right: 6px;
+        vertical-align: -1px;
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
+      }
+
     .tag{
       font-size: 9.8px;
       color: var(--muted);
@@ -463,85 +474,96 @@
        2) FLAGS
        - Add more anytime you want
     ============================== */
-    const FLAG_BY_NAME = {
-      "Mexico":"🇲🇽",
-      "South Africa":"🇿🇦",
-      "South Korea":"🇰🇷",
-      "Canada":"🇨🇦",
-      "Qatar":"🇶🇦",
-      "Switzerland":"🇨🇭",
-      "Brazil":"🇧🇷",
-      "Morocco":"🇲🇦",
-      "Haiti":"🇭🇹",
-      "Scotland":"🇬🇧",
-      "United States":"🇺🇸",
-      "United States of America":"🇺🇸",
-      "Paraguay":"🇵🇾",
-      "Australia":"🇦🇺",
-      "Germany":"🇩🇪",
-      "Curaçao":"🇨🇼",
-      "Ivory Coast":"🇨🇮",
-      "Ecuador":"🇪🇨",
-      "Netherlands":"🇳🇱",
-      "Japan":"🇯🇵",
-      "Tunisia":"🇹🇳",
-      "Belgium":"🇧🇪",
-      "Egypt":"🇪🇬",
-      "Iran":"🇮🇷",
-      "New Zealand":"🇳🇿",
-      "Spain":"🇪🇸",
-      "Cape Verde":"🇨🇻",
-      "Saudi Arabia":"🇸🇦",
-      "Uruguay":"🇺🇾",
-      "France":"🇫🇷",
-      "Senegal":"🇸🇳",
-      "Norway":"🇳🇴",
-      "Argentina":"🇦🇷",
-      "Algeria":"🇩🇿",
-      "Austria":"🇦🇹",
-      "Jordan":"🇯🇴",
-      "Portugal":"🇵🇹",
-      "Uzbekistan":"🇺🇿",
-      "Colombia":"🇨🇴",
-      "England":"🇬🇧",
-      "Croatia":"🇭🇷",
-      "Ghana":"🇬🇭",
-      "Panama":"🇵🇦",
+const FLAG_CODE_BY_NAME = {
+  "Mexico":"mx",
+  "South Africa":"za",
+  "South Korea":"kr",
+  "Canada":"ca",
+  "Qatar":"qa",
+  "Switzerland":"ch",
+  "Brazil":"br",
+  "Morocco":"ma",
+  "Haiti":"ht",
+  "Scotland":"gb",           // fallback to GB
+  "United States":"us",
+  "United States of America":"us",
+  "Paraguay":"py",
+  "Australia":"au",
+  "Germany":"de",
+  "Curaçao":"cw",
+  "Ivory Coast":"ci",
+  "Ecuador":"ec",
+  "Netherlands":"nl",
+  "Japan":"jp",
+  "Tunisia":"tn",
+  "Belgium":"be",
+  "Egypt":"eg",
+  "Iran":"ir",
+  "New Zealand":"nz",
+  "Spain":"es",
+  "Cape Verde":"cv",
+  "Saudi Arabia":"sa",
+  "Uruguay":"uy",
+  "France":"fr",
+  "Senegal":"sn",
+  "Norway":"no",
+  "Argentina":"ar",
+  "Algeria":"dz",
+  "Austria":"at",
+  "Jordan":"jo",
+  "Portugal":"pt",
+  "Uzbekistan":"uz",
+  "Colombia":"co",
+  "England":"gb",            // fallback to GB
+  "Croatia":"hr",
+  "Ghana":"gh",
+  "Panama":"pa",
 
-      // Path candidates
-      "Wales":"🇬🇧",
-      "Bosnia and Herzegovina":"🇧🇦",
-      "Italy":"🇮🇹",
-      "Northern Ireland":"🇬🇧",
-      "Ukraine":"🇺🇦",
-      "Sweden":"🇸🇪",
-      "Poland":"🇵🇱",
-      "Albania":"🇦🇱",
-      "Slovakia":"🇸🇰",
-      "Kosovo":"🇽🇰",
-      "Turkey":"🇹🇷",
-      "Romania":"🇷🇴",
-      "Czech Republic":"🇨🇿",
-      "Republic of Ireland":"🇮🇪",
-      "Denmark":"🇩🇰",
-      "North Macedonia":"🇲🇰",
-      "New Caledonia":"🇳🇨",
-      "Jamaica":"🇯🇲",
-      "DR Congo":"🇨🇩",
-      "Bolivia":"🇧🇴",
-      "Suriname":"🇸🇷",
-      "Iraq":"🇮🇶"
-    };
+  // Path candidates
+  "Wales":"gb",              // fallback to GB
+  "Bosnia and Herzegovina":"ba",
+  "Italy":"it",
+  "Northern Ireland":"gb",   // fallback to GB
+  "Ukraine":"ua",
+  "Sweden":"se",
+  "Poland":"pl",
+  "Albania":"al",
+  "Slovakia":"sk",
+  "Kosovo":"xk",             // may or may not exist on all CDNs
+  "Turkey":"tr",
+  "Romania":"ro",
+  "Czech Republic":"cz",
+  "Republic of Ireland":"ie",
+  "Denmark":"dk",
+  "North Macedonia":"mk",
+  "New Caledonia":"nc",
+  "Jamaica":"jm",
+  "DR Congo":"cd",
+  "Bolivia":"bo",
+  "Suriname":"sr",
+  "Iraq":"iq"
+};
 
-    function flagEmoji(name){
-      if(!name) return "";
-      if(name.startsWith("UEFA Path") || name.startsWith("FIFA IC Path") || name.includes("Path")) return "";
-      return FLAG_BY_NAME[name] ? `${FLAG_BY_NAME[name]} ` : "";
-    }
 
-    function nameWithFlag(name){
-      return `${flagEmoji(name)}${name}`;
-    }
+function flagHTML(name){
+  if(!name) return "";
+
+  // Don't show flags for placeholders/path labels
+  if(name.startsWith("UEFA Path") || name.startsWith("FIFA IC Path") || name.includes("Path"))
+    return "";
+
+  const code = FLAG_CODE_BY_NAME[name];
+  if(!code) return "";
+
+  // FlagCDN provides simple, light PNGs
+  // Use 20px width variant to keep it crisp but small
+  return `<img class="flag-img" src="https://flagcdn.com/w20/${code}.png" alt="${code} flag" loading="lazy">`;
+}
+
+function nameWithFlagHTML(name){
+  return `${flagHTML(name)}${name}`;
+}
+
 
     /* ==============================
        3) Edit mode + click-swap state
@@ -1380,11 +1402,11 @@
 
         const leftBtn = document.createElement("div");
         leftBtn.className = "match-team";
-        leftBtn.textContent = nameWithFlag(L.name);
+       leftBtn.innerHTML = nameWithFlagHTML(L.name);
 
         const rightBtn = document.createElement("div");
         rightBtn.className = "match-team";
-        rightBtn.textContent = nameWithFlag(R.name);
+        rightBtn.innerHTML = nameWithFlagHTML(R.name);
 
         const mid = document.createElement("div");
         mid.className = "match-mid";
@@ -1573,9 +1595,10 @@
           }
 
           card.innerHTML = `
-            <span class="name">${nameWithFlag(team.name)}</span>
-            <span class="tag">${tagText}</span>
-          `;
+                <span class="name">${nameWithFlagHTML(team.name)}</span>
+                <span class="tag">${tagText}</span>
+              `;
+
 
           if(!team.isPlaceholder && ![CHAMP_ZONE, RUNNERS_ZONE, TOP8_ZONE].includes(zone)){
             attachClickSwap(card);
