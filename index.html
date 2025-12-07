@@ -23,8 +23,13 @@
       --hl-mild-bg:   rgba(122, 162, 255, 0.10);
       --hl-mild-br:   rgba(122, 162, 255, 0.35);
 
-      --qualified-bg: rgba(255,255,255,0.06);
-      --qualified-br: rgba(94, 230, 168, 0.30);
+      /* Status border/glow for qualified */
+      --qualified-br: rgba(94, 230, 168, 0.55);
+      --qualified-glow: rgba(94, 230, 168, 0.18);
+
+      /* Eliminated styling token */
+      --elim-bg: rgba(255, 107, 122, 0.08);
+      --elim-br: rgba(255, 107, 122, 0.35);
     }
 
     *{box-sizing:border-box}
@@ -57,27 +62,30 @@
 
     .actions{
       display:flex;
-      gap:8px;
+      gap:10px;
       align-items:center;
       flex-wrap: wrap;
     }
 
+    /* Bigger stage pill (button-like) */
     .stage-pill{
-      font-size: 10px;
-      color: var(--muted);
+      font-size: 11.5px;
+      color: var(--text);
       border: 1px solid var(--border);
-      padding: 6px 8px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.04);
+      padding: 9px 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.05);
+      letter-spacing: 0.2px;
     }
 
+    /* Bigger buttons (Form + Reset) */
     button{
       background: rgba(122,162,255,0.12);
       color: var(--text);
       border: 1px solid rgba(122,162,255,0.35);
-      padding: 8px 10px;
-      border-radius: 10px;
-      font-size: 11px;
+      padding: 11px 14px;              /* bigger */
+      border-radius: 12px;
+      font-size: 12.5px;               /* bigger */
       cursor: pointer;
       white-space: nowrap;
     }
@@ -203,7 +211,7 @@
       /* ✅ critical mobile drag fix */
       touch-action: none;
 
-      transition: background 120ms ease, border-color 120ms ease, transform 80ms ease;
+      transition: background 120ms ease, border-color 120ms ease, transform 80ms ease, box-shadow 120ms ease;
     }
     .card:active{ cursor: grabbing; }
 
@@ -216,10 +224,10 @@
       text-overflow: ellipsis;
     }
     .tag{
-      font-size: 9.5px;
+      font-size: 9.8px;
       color: var(--muted);
       border:1px solid var(--border);
-      padding: 3px 6px;
+      padding: 3px 7px;
       border-radius: 999px;
       white-space: nowrap;
     }
@@ -248,10 +256,16 @@
       border-color: var(--hl-mild-br);
     }
 
-    /* Qualified styling for pool #1 after Form Groups */
+    /* Qualified: do NOT override strong highlight background */
     .qualified{
-      background: var(--qualified-bg);
       border-color: var(--qualified-br);
+      box-shadow: 0 0 0 1px var(--qualified-glow) inset;
+    }
+
+    /* Eliminated */
+    .eliminated{
+      background: var(--elim-bg);
+      border-color: var(--elim-br);
     }
 
     .footer{
@@ -281,11 +295,9 @@
   <main class="board" id="board"></main>
 
   <div class="footer">
-    Highlights:
-    top-ranked team in each pool;
-    top two teams in each group;
-    3rd team mild.
-    After forming groups, pool #1 also shows as “Qualified”.
+    Highlights: pool #1 strong; group #1-2 strong; group #3 mild.
+    After forming groups, pool #1 shows “Qualified” and others show “Eliminated”.
+    Group tags show A1–A4, B1–B4, etc.
   </div>
 
   <script>
@@ -364,9 +376,6 @@
 
     /* ==============================
        4) State
-       - We track qualification per path so we can:
-         * keep pool order intact
-         * mark top team as qualified after forming
     ============================== */
     const initialState = () => {
       const paths = {};
@@ -376,7 +385,8 @@
           name,
           tag: p.label,
           originPathId: p.id,
-          isQualified: false
+          isQualified: false,
+          isEliminated: false
         }));
       });
 
@@ -401,7 +411,6 @@
         });
       });
 
-      // Tracks which path has been used to form groups
       const qualifiedByPath = {};
       PATHS.forEach(p => { qualifiedByPath[p.id] = false; });
 
@@ -515,6 +524,8 @@
         dz.innerHTML = "";
         const arr = getZoneArray(zone) ?? [];
 
+        const gKey = isGroupZone(zone) ? groupKeyFromZone(zone) : null;
+
         arr.forEach((team, idx) => {
           const card = document.createElement("div");
           card.className = "card";
@@ -523,10 +534,30 @@
 
           applyRankHighlight(card, zone, idx, team);
 
-          // Tag tweaks for qualified pool top team
-          const tagText = team.isQualified && isPathZone(zone)
-            ? "Qualified"
-            : (team.tag ?? "");
+          // Tag text rules:
+          // Pools:
+          //  - after form: Qualified for top, Eliminated for others
+          //  - before form: show path label
+          // Groups:
+          //  - non-placeholder: A1/A2/A3/A4 (dynamic)
+          //  - placeholder: Placeholder
+          let tagText = team.tag ?? "";
+
+          if(isPathZone(zone)){
+            if(stage === "groups"){
+              tagText = team.isQualified ? "Qualified" : "Eliminated";
+            } else {
+              tagText = team.tag ?? "";
+            }
+          }
+
+          if(isGroupZone(zone)){
+            if(team.isPlaceholder){
+              tagText = "Placeholder";
+            } else {
+              tagText = `${gKey}${idx + 1}`;
+            }
+          }
 
           card.innerHTML = `
             <span class="name">${team.name}</span>
@@ -554,16 +585,22 @@
     }
 
     /* Highlight rules:
-       - Pools: rank #1 strong
-         + if qualified, add .qualified class
+       - Pools: rank #1 strong.
+         After form:
+           - top also gets .qualified
+           - others get .eliminated
        - Groups: rank #1-2 strong, #3 mild
     */
     function applyRankHighlight(cardEl, zone, idx, team){
-      cardEl.classList.remove("rank-strong", "rank-mild", "qualified");
+      cardEl.classList.remove("rank-strong", "rank-mild", "qualified", "eliminated");
 
       if(isPathZone(zone)){
         if(idx === 0) cardEl.classList.add("rank-strong");
-        if(team && team.isQualified) cardEl.classList.add("qualified");
+
+        if(stage === "groups"){
+          if(idx === 0 && team.isQualified) cardEl.classList.add("qualified");
+          if(idx !== 0 && team.isEliminated) cardEl.classList.add("eliminated");
+        }
         return;
       }
 
@@ -575,17 +612,8 @@
 
     /* ==============================
        7) Reorder within same zone only
+       - Improved "drop on card" 50% behavior
     ============================== */
-    function getInsertIndex(zoneEl, clientY){
-      const cards = [...zoneEl.querySelectorAll(".card:not(.dragging)")];
-      for(let i = 0; i < cards.length; i++){
-        const r = cards[i].getBoundingClientRect();
-        const mid = r.top + r.height / 2;
-        if(clientY < mid) return i;
-      }
-      return cards.length;
-    }
-
     function findTeamAndZone(teamId){
       for(const z of zones){
         const arr = getZoneArray(z);
@@ -596,6 +624,28 @@
       return null;
     }
 
+    // NEW: get insertion index by detecting which card you released over
+    function getInsertIndexByDrop(zoneEl, clientY){
+      const cards = [...zoneEl.querySelectorAll(".card:not(.dragging)")];
+
+      for(let i = 0; i < cards.length; i++){
+        const r = cards[i].getBoundingClientRect();
+        if(clientY >= r.top && clientY <= r.bottom){
+          const mid = r.top + r.height / 2;
+          // upper half -> before; lower half -> after
+          return clientY > mid ? i + 1 : i;
+        }
+      }
+
+      // fallback: classic midpoint scan
+      for(let i = 0; i < cards.length; i++){
+        const r = cards[i].getBoundingClientRect();
+        const mid = r.top + r.height / 2;
+        if(clientY < mid) return i;
+      }
+      return cards.length;
+    }
+
     function reorderWithinZone(teamId, zoneEl, clientY){
       const toZone = zoneEl.dataset.zone;
       const arr = getZoneArray(toZone);
@@ -603,12 +653,13 @@
 
       const found = findTeamAndZone(teamId);
       if(!found) return;
-
       if(found.zone !== toZone) return;
 
       const [team] = arr.splice(found.index, 1);
 
-      let insertIndex = getInsertIndex(zoneEl, clientY);
+      let insertIndex = getInsertIndexByDrop(zoneEl, clientY);
+
+      // adjust if removal shifts indices
       if(insertIndex > found.index) insertIndex -= 1;
 
       arr.splice(insertIndex, 0, team);
@@ -620,8 +671,8 @@
        8) Feeding logic (COPY, don't move)
        - Takes #1 team from each path
        - Replaces placeholder in group
-       - Marks that pool team as Qualified
-       - Leaves pool list intact
+       - Marks pool top Qualified and others Eliminated
+       - Leaves pool order intact
     ============================== */
     function groupHasPlaceholder(groupKey, pathId){
       return state.groups[groupKey].some(t => t.isPlaceholder && t.pathId === pathId);
@@ -635,7 +686,7 @@
 
       if(idx !== -1) arr.splice(idx, 1);
 
-      // Insert a COPY for the group (new id)
+      // Insert a COPY for the group
       arr.splice(insertionIndex, 0, {
         id: toId(`grp-${groupKey}-${pathId}-${chosenTeam.name}`),
         name: chosenTeam.name,
@@ -644,15 +695,14 @@
       });
     }
 
-    function markTopAsQualified(pathId){
+    function markQualifiedAndEliminated(pathId){
       const pathArr = state.paths[pathId];
       if(!pathArr || pathArr.length === 0) return;
 
-      // Clear previous qualification flags in this path
-      pathArr.forEach(t => t.isQualified = false);
-
-      // Mark current top team
-      pathArr[0].isQualified = true;
+      pathArr.forEach((t, i) => {
+        t.isQualified = (i === 0);
+        t.isEliminated = (i !== 0);
+      });
 
       state.qualifiedByPath[pathId] = true;
     }
@@ -667,7 +717,7 @@
         if(!groupHasPlaceholder(p.group, p.id)) return;
 
         replacePlaceholderWithTeam(p.group, p.id, chosen);
-        markTopAsQualified(p.id);
+        markQualifiedAndEliminated(p.id);
       });
 
       stage = "groups";
