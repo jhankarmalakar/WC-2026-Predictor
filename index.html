@@ -1323,8 +1323,6 @@ dz.appendChild(note);
 
 }
 
-}
-
 
     function thirdPlaceholderName(setSpec){
         // "C/D/F/G/H" -> "3C/3D/3F/3G/3H"
@@ -1478,7 +1476,7 @@ dz.appendChild(note);
       const genR32Btn = document.getElementById("generateR32Btn");
             if(genR32Btn){
               // allow generation only in group mode (optional but cleaner)
-              genR32Btn.disabled = (editMode !== "groups");
+              genR32Btn.disabled = false;
             }
 
       
