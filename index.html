@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>World Cup 2026 – Qualifier Pools → Form Groups</title>
+  <title>World Cup 2026 – Pools → Form Groups → Group Tools</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
@@ -57,11 +57,11 @@
       font-size: 18px;
       font-weight: 650;
       margin:0 0 2px 0;
-      letter-spacing:0.2px;
     }
     header .hint{
       color:var(--muted);
       font-size: 11.5px;
+      max-width: 70ch;
     }
 
     .actions{
@@ -81,7 +81,6 @@
       letter-spacing: 0.2px;
     }
 
-    /* Bigger buttons */
     button{
       background: rgba(122,162,255,0.12);
       color: var(--text);
@@ -169,7 +168,7 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 75%;
+      max-width: 80%;
     }
     .count{
       font-size: 10.5px;
@@ -200,11 +199,14 @@
       cursor: pointer;
       transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
     }
+    .card.locked{
+      cursor: default;
+      opacity: 0.9;
+    }
 
     .name{
       font-size: 13.8px;
       font-weight: 560;
-      letter-spacing: 0.1px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -256,14 +258,16 @@
 <body>
   <header>
     <div>
-      <h1>Qualifier Pools → Form Groups → Group Stage</h1>
+      <h1>Qualifier Pools → Form Groups → Tools</h1>
       <div class="hint">
-        Use click/tap-to-swap to rank teams. “Form Groups” uses the current #1 from each path.
+        Click/tap two teams in the same editable zone to swap. Use “Form Groups” to copy current pool winners into groups.
+        Use “Reform Pool” to unlock pools and lock groups (without changing group order).
       </div>
     </div>
 
     <div class="actions">
-      <span class="stage-pill" id="stagePill">Stage: Pools</span>
+      <span class="stage-pill" id="stagePill">Edit: Pools</span>
+      <button id="reformPoolBtn" disabled>Reform Pool</button>
       <button id="resetBtn">Reset</button>
     </div>
   </header>
@@ -271,12 +275,12 @@
   <main class="board" id="board"></main>
 
   <div class="footer">
-    No drag. Click/tap two teams in the same pool/group to swap. First click arms (amber).
+    No drag. Pools editable only in Pool mode. Groups + Third-place ranking editable only in Group mode.
   </div>
 
   <script>
     /* ==============================
-       1) GROUPS
+       1) GROUPS + PATHS
     ============================== */
     const DEFAULT_GROUPS = {
       A: ["Mexico","South Africa","South Korea","UFEA Path D"],
@@ -293,9 +297,6 @@
       L: ["England","Croatia","Ghana","Panama"]
     };
 
-    /* ==============================
-       2) PATHS (Pools)
-    ============================== */
     const PATHS = [
       { id: "ufeapath-a", label: "UFEA Path A",
         candidates: ["Wales", "Bosnia and Herzegovina", "Italy", "Northern Ireland"], group: "B" },
@@ -319,27 +320,18 @@
       name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
     /* ==============================
-       3) Stage + click-swap state
+       2) Edit mode + click-swap state
+       editMode:
+         - "pools": pools editable, groups locked
+         - "groups": groups + third-ranking editable, pools locked
     ============================== */
-    let stage = "pools"; // "pools" -> "groups"
+    let editMode = "pools";
     let swapSelection = null; // { teamId, zone }
 
     /* ==============================
-       4) State
+       3) State
     ============================== */
-    const initialState = () => {
-      const paths = {};
-      PATHS.forEach(p => {
-        paths[p.id] = p.candidates.map(name => ({
-          id: toId(`${p.id}-${name}`),
-          name,
-          tag: p.label,
-          originPathId: p.id,
-          isQualified: false,
-          isEliminated: false
-        }));
-      });
-
+    function buildGroupsFromDefaults(){
       const groups = {};
       GROUP_KEYS.forEach(g => {
         groups[g] = DEFAULT_GROUPS[g].map(entryName => {
@@ -356,28 +348,80 @@
           return {
             id: toId(`${g}-${entryName}`),
             name: entryName,
-            tag: `Group ${g}`
+            tag: `Group ${g}`,
+            isPlaceholder: false
           };
         });
       });
+      return groups;
+    }
 
+    function buildPaths(){
+      const paths = {};
+      PATHS.forEach(p => {
+        paths[p.id] = p.candidates.map(name => ({
+          id: toId(`${p.id}-${name}`),
+          name,
+          tag: p.label,
+          originPathId: p.id,
+          isQualified: false,
+          isEliminated: false
+        }));
+      });
+      return paths;
+    }
+
+    function buildThirdRankingFromGroups(groups){
+      const base = [];
+      GROUP_KEYS.forEach(g => {
+        const third = groups[g]?.[2];
+        base.push({
+          id: toId(`third-${g}-${third?.name ?? "tbd"}`),
+          groupKey: g,
+          name: third?.name ?? "TBD"
+        });
+      });
+      return base;
+    }
+
+    const initialState = () => {
+      const groups = buildGroupsFromDefaults();
+      const paths  = buildPaths();
       const qualifiedByPath = {};
-      PATHS.forEach(p => { qualifiedByPath[p.id] = false; });
+      PATHS.forEach(p => qualifiedByPath[p.id] = false);
 
-      return { paths, groups, qualifiedByPath };
+      return {
+        paths,
+        groups,
+        qualifiedByPath,
+        thirdRanking: buildThirdRankingFromGroups(groups)
+      };
     };
 
     let state = initialState();
 
     /* ==============================
-       5) Zones
+       4) Zones
     ============================== */
-    const pathZones = PATHS.map(p => `path-${p.id}`);
+    const pathZones  = PATHS.map(p => `path-${p.id}`);
     const groupZones = GROUP_KEYS.map(g => `group-${g}`);
-    const zones = [...pathZones, ...groupZones];
+
+    const THIRD_RANK_ZONE = "third-ranking";
+    const CHAMP_ZONE      = "champions-view";
+    const RUNNERS_ZONE    = "runners-view";
+    const TOP8_ZONE       = "top8-third-view";
+
+    const zones = [
+      ...pathZones,
+      ...groupZones,
+      THIRD_RANK_ZONE, CHAMP_ZONE, RUNNERS_ZONE, TOP8_ZONE
+    ];
 
     const isPathZone = (z) => z.startsWith("path-");
     const isGroupZone = (z) => z.startsWith("group-");
+    const isDerivedZone = (z) =>
+      [THIRD_RANK_ZONE, CHAMP_ZONE, RUNNERS_ZONE, TOP8_ZONE].includes(z);
+
     const pathIdFromZone = (z) => z.replace("path-","");
     const groupKeyFromZone = (z) => {
       const m = z.match(/^group-([A-L])$/);
@@ -385,9 +429,9 @@
     };
 
     /* ==============================
-       6) UI build
+       5) UI build
     ============================== */
-    function makeSeparator(text, withFormButton=false){
+    function makeSeparator(text, withButton=false){
       const sep = document.createElement("div");
       sep.className = "stage-separator";
 
@@ -399,7 +443,7 @@
       `;
       sep.appendChild(left);
 
-      if(withFormButton){
+      if(withButton){
         const btn = document.createElement("button");
         btn.id = "formGroupsBtn";
         btn.textContent = "Form Groups";
@@ -425,19 +469,106 @@
       const board = document.getElementById("board");
       board.innerHTML = "";
 
-      board.appendChild(makeSeparator("Qualifier Pools (rank by click-swap)"));
+      // Pools
+      board.appendChild(makeSeparator("Qualifier Pools (click-swap in Pool mode)"));
       PATHS.forEach(p => {
         board.appendChild(makeColumn(p.label, `path-${p.id}`, `feeds Group ${p.group}`));
       });
 
-      board.appendChild(makeSeparator("Groups (unlock after Form Groups)", true));
+      // Groups
+      board.appendChild(makeSeparator("Groups (click-swap in Group mode)", true));
       GROUP_KEYS.forEach(g => {
         board.appendChild(makeColumn(`Group ${g}`, `group-${g}`));
       });
+
+      // Tools / tables
+      board.appendChild(makeSeparator("Group Tools & Third-Place Logic"));
+      board.appendChild(makeColumn("Third Place Team Ranking", THIRD_RANK_ZONE, "A3 → L3"));
+      board.appendChild(makeColumn("Group Champions", CHAMP_ZONE, "A1 → L1"));
+      board.appendChild(makeColumn("Group Runners", RUNNERS_ZONE, "A2 → L2"));
+      board.appendChild(makeColumn("Top-8 Third Placed Teams", TOP8_ZONE, "auto"));
     }
 
     /* ==============================
-       7) Data access + stage rules
+       6) Edit rules
+    ============================== */
+    function isClickSwapEnabledForZone(zoneKey){
+      if(editMode === "pools"){
+        return isPathZone(zoneKey);
+      }
+      if(editMode === "groups"){
+        return isGroupZone(zoneKey) || zoneKey === THIRD_RANK_ZONE;
+      }
+      return false;
+    }
+
+    /* ==============================
+       7) Derived data
+    ============================== */
+    function getThirdTeamForGroup(g){
+      const arr = state.groups[g] ?? [];
+      const t = arr[2];
+      return t && !t.isPlaceholder ? t : null;
+    }
+
+    function syncThirdRankingNames(){
+      // Ensure one entry per groupKey, preserve user order
+      const existingByGroup = new Map(state.thirdRanking.map(x => [x.groupKey, x]));
+
+      // Add missing groups
+      GROUP_KEYS.forEach(g => {
+        if(!existingByGroup.has(g)){
+          state.thirdRanking.push({
+            id: toId(`third-${g}-tbd`),
+            groupKey: g,
+            name: "TBD"
+          });
+        }
+      });
+
+      // Remove extras that no longer map to a group (unlikely)
+      state.thirdRanking = state.thirdRanking.filter(x => GROUP_KEYS.includes(x.groupKey));
+
+      // Update names based on current group 3rd-place
+      state.thirdRanking.forEach(item => {
+        const third = getThirdTeamForGroup(item.groupKey);
+        item.name = third ? third.name : "TBD";
+      });
+    }
+
+    function computeChampions(){
+      return GROUP_KEYS.map(g => {
+        const t = state.groups[g]?.[0];
+        return {
+          id: toId(`champ-${g}-${t?.name ?? "tbd"}`),
+          name: t?.name ?? "TBD",
+          groupKey: g
+        };
+      });
+    }
+
+    function computeRunners(){
+      return GROUP_KEYS.map(g => {
+        const t = state.groups[g]?.[1];
+        return {
+          id: toId(`runner-${g}-${t?.name ?? "tbd"}`),
+          name: t?.name ?? "TBD",
+          groupKey: g
+        };
+      });
+    }
+
+    function computeTop8ThirdPlaced(){
+      syncThirdRankingNames();
+      return state.thirdRanking.slice(0, 8).map((x, i) => ({
+        id: toId(`top8-third-${i}-${x.groupKey}-${x.name}`),
+        name: x.name,
+        groupKey: x.groupKey
+      }));
+    }
+
+    /* ==============================
+       8) Zone arrays
     ============================== */
     function getZoneArray(zoneKey){
       if(isPathZone(zoneKey)){
@@ -446,209 +577,34 @@
       if(isGroupZone(zoneKey)){
         return state.groups[groupKeyFromZone(zoneKey)];
       }
+      if(zoneKey === THIRD_RANK_ZONE){
+        syncThirdRankingNames();
+        return state.thirdRanking;
+      }
+      if(zoneKey === CHAMP_ZONE){
+        return computeChampions();
+      }
+      if(zoneKey === RUNNERS_ZONE){
+        return computeRunners();
+      }
+      if(zoneKey === TOP8_ZONE){
+        return computeTop8ThirdPlaced();
+      }
       return null;
     }
 
-    function isClickSwapEnabledForZone(zoneKey){
-      if(stage === "pools") return isPathZone(zoneKey);
-      if(stage === "groups") return isGroupZone(zoneKey);
-      return false;
-    }
-
-    function updateStagePill(){
-      const pill = document.getElementById("stagePill");
-      if(!pill) return;
-      pill.textContent = stage === "pools" ? "Stage: Pools" : "Stage: Groups";
-    }
-
     /* ==============================
-       8) Rank/Status refresh
-       - Ensures pool #1 is always the one
-         that will be qualified after Form Groups.
+       9) Pool status display
     ============================== */
-    function refreshPoolStatusForStage(){
-      // Only show/update qualified/eliminated flags after Form Groups stage
-      if(stage !== "groups") return;
-
+    function clearPoolStatus(){
       PATHS.forEach(p => {
         const arr = state.paths[p.id];
         if(!arr) return;
-        arr.forEach((t, i) => {
-          t.isQualified = (i === 0);
-          t.isEliminated = (i !== 0);
+        arr.forEach(t => {
+          t.isQualified = false;
+          t.isEliminated = false;
         });
-        state.qualifiedByPath[p.id] = true;
-      });
-    }
-
-    /* ==============================
-       9) Render
-    ============================== */
-    function render(){
-      refreshPoolStatusForStage();
-
-      zones.forEach(zone => {
-        const dz = document.querySelector(`.zone[data-zone="${zone}"]`);
-        if(!dz) return;
-
-        dz.innerHTML = "";
-        const arr = getZoneArray(zone) ?? [];
-        const gKey = isGroupZone(zone) ? groupKeyFromZone(zone) : null;
-
-        arr.forEach((team, idx) => {
-          const card = document.createElement("div");
-          card.className = "card";
-          card.dataset.id = team.id;
-          card.dataset.zone = zone;
-
-          applyRankHighlight(card, zone, idx, team);
-
-          if(swapSelection && swapSelection.teamId === team.id && swapSelection.zone === zone){
-            card.classList.add("swap-armed");
-          }
-
-          let tagText = team.tag ?? "";
-
-          if(isPathZone(zone)){
-            if(stage === "groups"){
-              tagText = team.isQualified ? "Qualified" : "Eliminated";
-            } else {
-              tagText = team.tag ?? "";
-            }
-          }
-
-          if(isGroupZone(zone)){
-            if(team.isPlaceholder){
-              tagText = "Placeholder";
-            } else {
-              tagText = `${gKey}${idx + 1}`;
-            }
-          }
-
-          card.innerHTML = `
-            <span class="name">${team.name}</span>
-            <span class="tag">${tagText}</span>
-          `;
-
-          // Attach click-swap for all real teams,
-          // but enforce stage gating inside handler.
-          if(!team.isPlaceholder){
-            attachClickSwap(card);
-          }
-
-          dz.appendChild(card);
-        });
-
-        const countEl = document.querySelector(`[data-count-for="${zone}"]`);
-        if(countEl){
-          countEl.textContent = `${arr.length} team${arr.length !== 1 ? "s" : ""}`;
-        }
-      });
-
-      const formBtn = document.getElementById("formGroupsBtn");
-      if(formBtn){
-        formBtn.disabled = (stage === "groups");
-      }
-
-      updateStagePill();
-    }
-
-    function applyRankHighlight(cardEl, zone, idx, team){
-      cardEl.classList.remove("rank-strong", "rank-mild", "qualified", "eliminated");
-
-      if(isPathZone(zone)){
-        // Pool topper always strong highlight
-        if(idx === 0) cardEl.classList.add("rank-strong");
-
-        // After Form Groups, status classes apply
-        if(stage === "groups"){
-          if(team.isQualified) cardEl.classList.add("qualified");
-          if(team.isEliminated) cardEl.classList.add("eliminated");
-        }
-        return;
-      }
-
-      if(isGroupZone(zone)){
-        if(idx === 0 || idx === 1) cardEl.classList.add("rank-strong");
-        else if(idx === 2) cardEl.classList.add("rank-mild");
-      }
-    }
-
-    /* ==============================
-       10) Click-to-swap logic
-    ============================== */
-    function swapTeamsInZone(zoneKey, id1, id2){
-      const arr = getZoneArray(zoneKey);
-      if(!arr) return;
-
-      const i1 = arr.findIndex(t => t.id === id1);
-      const i2 = arr.findIndex(t => t.id === id2);
-      if(i1 === -1 || i2 === -1) return;
-
-      [arr[i1], arr[i2]] = [arr[i2], arr[i1]];
-    }
-
-    function handleClickSwap(teamId, zone){
-      // Enforce stage rules
-      if(!isClickSwapEnabledForZone(zone)){
-        // If user clicks in locked zone, just move selection there (optional UX)
-        swapSelection = { teamId, zone };
-        render();
-        return;
-      }
-
-      if(!swapSelection){
-        swapSelection = { teamId, zone };
-        render();
-        return;
-      }
-
-      // Clicking same card cancels
-      if(swapSelection.teamId === teamId && swapSelection.zone === zone){
-        swapSelection = null;
-        render();
-        return;
-      }
-
-      // Different zone = re-arm selection there
-      if(swapSelection.zone !== zone){
-        swapSelection = { teamId, zone };
-        render();
-        return;
-      }
-
-      // Same zone = swap
-      swapTeamsInZone(zone, swapSelection.teamId, teamId);
-      swapSelection = null;
-      render();
-    }
-
-    function attachClickSwap(card){
-      card.addEventListener("click", () => {
-        handleClickSwap(card.dataset.id, card.dataset.zone);
-      });
-    }
-
-    /* ==============================
-       11) Form Groups (COPY, don't move)
-    ============================== */
-    function groupHasPlaceholder(groupKey, pathId){
-      return state.groups[groupKey].some(t => t.isPlaceholder && t.pathId === pathId);
-    }
-
-    function replacePlaceholderWithTeam(groupKey, pathId, chosenTeam){
-      const arr = state.groups[groupKey];
-
-      const idx = arr.findIndex(t => t.isPlaceholder && t.pathId === pathId);
-      const insertionIndex = (idx === -1) ? arr.length : idx;
-
-      if(idx !== -1) arr.splice(idx, 1);
-
-      arr.splice(insertionIndex, 0, {
-        id: toId(`grp-${groupKey}-${pathId}-${chosenTeam.name}`),
-        name: chosenTeam.name,
-        tag: PATH_BY_ID[pathId].label,
-        chosenFromPath: true
+        state.qualifiedByPath[p.id] = false;
       });
     }
 
@@ -660,58 +616,22 @@
         t.isQualified = (i === 0);
         t.isEliminated = (i !== 0);
       });
-
       state.qualifiedByPath[pathId] = true;
     }
 
-    function formGroupsFromPools(){
-      // Uses current #1 in each pool
-      PATHS.forEach(p => {
-        const pathArr = state.paths[p.id];
-        if(!pathArr || pathArr.length === 0) return;
-
-        const chosen = pathArr[0];
-        if(!groupHasPlaceholder(p.group, p.id)) return;
-
-        replacePlaceholderWithTeam(p.group, p.id, chosen);
-        markQualifiedAndEliminated(p.id);
-      });
-
-      stage = "groups";
-      swapSelection = null;
-      render();
-    }
-
     /* ==============================
-       12) Buttons + boot
+       10) Render
     ============================== */
-    function wireButtons(){
-      const formBtn = document.getElementById("formGroupsBtn");
-      if(formBtn){
-        formBtn.addEventListener("click", () => {
-          if(stage === "groups") return;
-          formGroupsFromPools();
-        });
-      }
+    function render(){
+      // Keep third-ranking synced with group A3..L3
+      syncThirdRankingNames();
 
-      const resetBtn = document.getElementById("resetBtn");
-      if(resetBtn){
-        resetBtn.addEventListener("click", () => {
-          state = initialState();
-          stage = "pools";
-          swapSelection = null;
-          buildBoard();
-          render();
-          wireButtons(); // because Form Groups button is rebuilt
-        });
-      }
-    }
+      zones.forEach(zone => {
+        const dz = document.querySelector(`.zone[data-zone="${zone}"]`);
+        if(!dz) return;
 
-    document.addEventListener("DOMContentLoaded", () => {
-      buildBoard();
-      render();
-      wireButtons();
-    });
-  </script>
-</body>
-</html>
+        dz.innerHTML = "";
+        const arr = getZoneArray(zone) ?? [];
+        const gKey = isGroupZone(zone) ? groupKeyFromZone(zone) : null;
+
+        arr.fo
