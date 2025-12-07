@@ -533,7 +533,7 @@ function fallbackPathNameForGroup(g){
         CHAMP_ZONE,
         RUNNERS_ZONE,
         TOP8_ZONE,
-        R32_ZONE,
+        R32_ZONE
       ];
 
 
@@ -811,7 +811,7 @@ function fallbackPathNameForGroup(g){
 
     
     
-    function getZoneArray(zoneKey){
+ function getZoneArray(zoneKey){
       if(isPathZone(zoneKey)){
         return state.paths[pathIdFromZone(zoneKey)];
       }
@@ -834,10 +834,10 @@ function fallbackPathNameForGroup(g){
       if(zoneKey === R32_ZONE){
         return []; // rendered manually
       }
+    
+      return null;
 }
 
-      return null;
-    }
 
     /* ==============================
        9) Pool status display
