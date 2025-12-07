@@ -84,9 +84,7 @@
       flex-direction:column;
       gap: 8px;
     }
-    .hint-line{
-      padding-left: 2px;
-    }
+    .hint-line{ padding-left: 2px; }
 
     .actions{
       display:flex;
@@ -385,11 +383,30 @@
     ========================== */
     .ko-section{
       grid-column: 1 / -1;
-      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 12px;
       box-shadow: var(--shadow);
+    }
+
+    /* Mild different tints per stage */
+    .ko-r32{
+      background: linear-gradient(180deg, rgba(122,162,255,0.08), rgba(122,162,255,0.02));
+    }
+    .ko-r16{
+      background: linear-gradient(180deg, rgba(94,230,168,0.08), rgba(94,230,168,0.02));
+    }
+    .ko-qf{
+      background: linear-gradient(180deg, rgba(94,230,255,0.08), rgba(94,230,255,0.02));
+    }
+    .ko-sf{
+      background: linear-gradient(180deg, rgba(255,184,107,0.08), rgba(255,184,107,0.02));
+    }
+    .ko-third{
+      background: linear-gradient(180deg, rgba(255,107,122,0.07), rgba(255,107,122,0.02));
+    }
+    .ko-final{
+      background: linear-gradient(180deg, rgba(122,255,187,0.08), rgba(122,255,187,0.02));
     }
 
     .ko-grid{
@@ -814,14 +831,16 @@
               name: entryName,
               tag: "Placeholder",
               isPlaceholder: true,
-              pathId
+              pathId,
+              userMoved: false
             };
           }
           return {
             id: toId(`${g}-${entryName}`),
             name: entryName,
             tag: `Group ${g}`,
-            isPlaceholder: false
+            isPlaceholder: false,
+            userMoved: false
           };
         });
       });
@@ -837,7 +856,8 @@
           tag: p.label,
           originPathId: p.id,
           isQualified: false,
-          isEliminated: false
+          isEliminated: false,
+          userMoved: false
         }));
       });
       return paths;
@@ -867,7 +887,8 @@
         base.push({
           id: toId(`third-${g}-${third?.name ?? "tbd"}`),
           groupKey: g,
-          name: third?.name ?? fallbackPathNameForGroup(g)
+          name: third?.name ?? fallbackPathNameForGroup(g),
+          userMoved: false
         });
       });
       return base;
@@ -892,7 +913,7 @@
         winners: {},
 
         // SNAPSHOTS for R32 third-place assignment
-        r32ThirdSnapshot: null,   // { letters, top8, assignment }
+        r32ThirdSnapshot: null   // { letters, top8, assignment }
       };
     };
 
@@ -1044,7 +1065,7 @@
 
     /* ==============================
        8) Third-place mapping table
-       - keep ONLY TWO entries as requested
+       - keep ONLY TWO entries
     ============================== */
     const THIRD_MATCH_ID_ORDER = [74, 77, 79, 80, 81, 82, 85, 87];
 
@@ -1074,20 +1095,25 @@
     }
 
     function syncThirdRankingNames(){
-      const existingByGroup = new Map(state.thirdRanking.map(x => [x.groupKey, x]));
+      // Preserve existing objects (and userMoved flags) by groupKey
+      const byGroup = new Map(state.thirdRanking.map(x => [x.groupKey, x]));
 
+      // Ensure all groups exist
       GROUP_KEYS.forEach(g => {
-        if(!existingByGroup.has(g)){
-          state.thirdRanking.push({
+        if(!byGroup.has(g)){
+          byGroup.set(g, {
             id: toId(`third-${g}-tbd`),
             groupKey: g,
-            name: fallbackPathNameForGroup(g)
+            name: fallbackPathNameForGroup(g),
+            userMoved: false
           });
         }
       });
 
-      state.thirdRanking = state.thirdRanking.filter(x => GROUP_KEYS.includes(x.groupKey));
+      // Rebuild in group order to keep stable list
+      state.thirdRanking = GROUP_KEYS.map(g => byGroup.get(g));
 
+      // Update names from current group 3rd positions
       state.thirdRanking.forEach(item => {
         const third = getThirdTeamForGroup(item.groupKey);
         item.name = third ? third.name : fallbackPathNameForGroup(item.groupKey);
@@ -1149,7 +1175,7 @@
        10) Build R32 third snapshot
     ============================== */
     function buildR32ThirdSnapshot(){
-      const top8 = computeTop8ThirdPlaced();
+      computeTop8ThirdPlaced();
       const letters = qualifiedThirdGroupLetters;
 
       const tableRow = THIRD_TABLE[letters];
@@ -1259,11 +1285,9 @@
         return { name: t.name, label: `2${slot.g}`, placeholder:false };
       }
       if(slot.type === "3SET"){
-        const allowed = parseAllowedThird(slot.set);
-
         if(!state.r32Generated){
           const ph = thirdPlaceholderName(slot.set);
-          return { name: ph, label: ph, placeholder:true, source:"placeholder", allowed };
+          return { name: ph, label: ph, placeholder:true, source:"placeholder" };
         }
 
         const snap = state.r32ThirdSnapshot;
@@ -1278,7 +1302,7 @@
           };
         }
 
-        return { name:"3rd TBD", label:"3?", placeholder:true, source:"fallback", allowed };
+        return { name:"3rd TBD", label:"3?", placeholder:true, source:"fallback" };
       }
       if(slot.type === "WM"){
         const w = state.winners[slot.id];
@@ -1446,7 +1470,7 @@
     function isClickSwapEnabledForZone(zoneKey){
       if(editMode === "pools") return isPathZone(zoneKey);
       if(editMode === "groups"){
-        return isGroupZone(zoneKey) || zoneKey === THIRD_RANK_ZONE;
+        return isGroupZone(zoneKey) || zoneKey === "third-ranking";
       }
       return false;
     }
@@ -1457,10 +1481,10 @@
     function getZoneArray(zoneKey){
       if(isPathZone(zoneKey)) return state.paths[pathIdFromZone(zoneKey)];
       if(isGroupZone(zoneKey)) return state.groups[groupKeyFromZone(zoneKey)];
-      if(zoneKey === THIRD_RANK_ZONE){ syncThirdRankingNames(); return state.thirdRanking; }
-      if(zoneKey === CHAMP_ZONE) return computeChampions();
-      if(zoneKey === RUNNERS_ZONE) return computeRunners();
-      if(zoneKey === TOP8_ZONE) return computeTop8ThirdPlaced();
+      if(zoneKey === "third-ranking"){ syncThirdRankingNames(); return state.thirdRanking; }
+      if(zoneKey === "champions-view") return computeChampions();
+      if(zoneKey === "runners-view") return computeRunners();
+      if(zoneKey === "top8-third-view") return computeTop8ThirdPlaced();
       return null;
     }
 
@@ -1487,13 +1511,21 @@
     }
 
     /* ==============================
-       16) Click-to-swap logic
+       16) Click-to-swap logic (+ userMoved)
     ============================== */
-    function swapTeamsInArray(arr, id1, id2){
+    function swapTeamsInArrayAndMark(arr, id1, id2){
       const i1 = arr.findIndex(t => t.id === id1);
       const i2 = arr.findIndex(t => t.id === id2);
       if(i1 === -1 || i2 === -1) return false;
+
+      const t1 = arr[i1];
+      const t2 = arr[i2];
+
       [arr[i1], arr[i2]] = [arr[i2], arr[i1]];
+
+      if(t1) t1.userMoved = true;
+      if(t2) t2.userMoved = true;
+
       return true;
     }
 
@@ -1521,11 +1553,11 @@
       const arr = getZoneArray(zone);
       if(!arr) return;
 
-      const ok = swapTeamsInArray(arr, swapSelection.teamId, teamId);
+      const ok = swapTeamsInArrayAndMark(arr, swapSelection.teamId, teamId);
       swapSelection = null;
 
       if(ok){
-        if(zone === THIRD_RANK_ZONE){
+        if(zone === "third-ranking"){
           thirdRankingDirty = true;
         }
         validateAllWinners();
@@ -1547,37 +1579,28 @@
       const arr = state.groups[groupKey];
       if(!arr) return;
 
+      const newObj = {
+        id: toId(`grp-${groupKey}-${pathId}-${chosenTeam.name}`),
+        name: chosenTeam.name,
+        tag: PATH_BY_ID[pathId].label,
+        chosenFromPath: true,
+        pathId,
+        userMoved: false
+      };
+
       const phIndex = arr.findIndex(t => t.isPlaceholder && t.pathId === pathId);
       if(phIndex !== -1){
-        arr.splice(phIndex, 1, {
-          id: toId(`grp-${groupKey}-${pathId}-${chosenTeam.name}`),
-          name: chosenTeam.name,
-          tag: PATH_BY_ID[pathId].label,
-          chosenFromPath: true,
-          pathId
-        });
+        arr.splice(phIndex, 1, newObj);
         return;
       }
 
       const exIndex = arr.findIndex(t => t.chosenFromPath && t.pathId === pathId);
       if(exIndex !== -1){
-        arr.splice(exIndex, 1, {
-          id: toId(`grp-${groupKey}-${pathId}-${chosenTeam.name}`),
-          name: chosenTeam.name,
-          tag: PATH_BY_ID[pathId].label,
-          chosenFromPath: true,
-          pathId
-        });
+        arr.splice(exIndex, 1, newObj);
         return;
       }
 
-      arr.push({
-        id: toId(`grp-${groupKey}-${pathId}-${chosenTeam.name}`),
-        name: chosenTeam.name,
-        tag: PATH_BY_ID[pathId].label,
-        chosenFromPath: true,
-        pathId
-      });
+      arr.push(newObj);
     }
 
     function placeQualifiersToGroups(){
@@ -1604,38 +1627,70 @@
     }
 
     /* ==============================
-       18) AUTO select
+       18) AUTO select with lock-on-moved
     ============================== */
-    function sortArrayByRank(arr){
+    function sortKeyForTeam(t){
+      const ph = t?.isPlaceholder ? 1 : 0;
+      const r  = rankOf(t?.name);
+      return { ph, r, n: String(t?.name ?? "") };
+    }
+
+    function sortMovable(arr){
       arr.sort((a,b) => {
-        const ra = rankOf(a.name);
-        const rb = rankOf(b.name);
-        if(ra === rb) return String(a.name).localeCompare(String(b.name));
-        return ra - rb;
+        const A = sortKeyForTeam(a);
+        const B = sortKeyForTeam(b);
+        if(A.ph !== B.ph) return A.ph - B.ph; // placeholders last
+        if(A.r !== B.r) return A.r - B.r;
+        return A.n.localeCompare(B.n);
       });
+    }
+
+    function reorderRespectingUserMoved(arr){
+      const n = arr.length;
+      const fixed = new Map();
+      for(let i=0;i<n;i++){
+        const t = arr[i];
+        if(t && t.userMoved){
+          fixed.set(i, t);
+        }
+      }
+
+      const movable = arr.filter(t => !t.userMoved);
+      sortMovable(movable);
+
+      const out = new Array(n);
+      let k = 0;
+      for(let i=0;i<n;i++){
+        if(fixed.has(i)){
+          out[i] = fixed.get(i);
+        } else {
+          out[i] = movable[k++] ?? arr[i];
+        }
+      }
+      return out;
     }
 
     function autoPools(){
       PATHS.forEach(p => {
         const arr = state.paths[p.id];
-        if(arr) sortArrayByRank(arr);
+        if(!arr) return;
+        state.paths[p.id] = reorderRespectingUserMoved(arr);
       });
       render();
     }
 
     function autoGroups(){
       GROUP_KEYS.forEach(g => {
-        const arr = state.groups[g];
+        let arr = state.groups[g];
         if(!arr) return;
-        const real = arr.filter(x => !x.isPlaceholder);
-        const ph   = arr.filter(x => x.isPlaceholder);
-        real.sort((a,b) => {
-          const ra = rankOf(a.name);
-          const rb = rankOf(b.name);
-          if(ra === rb) return String(a.name).localeCompare(String(b.name));
-          return ra - rb;
-        });
-        state.groups[g] = [...real, ...ph].slice(0,4);
+
+        // enforce max 4
+        arr = arr.slice(0,4);
+
+        // reorder with userMoved locks
+        const re = reorderRespectingUserMoved(arr);
+
+        state.groups[g] = re;
       });
 
       validateAllWinners();
@@ -1644,12 +1699,11 @@
 
     function autoThirdRanking(){
       syncThirdRankingNames();
-      state.thirdRanking.sort((a,b) => {
-        const ra = rankOf(a.name);
-        const rb = rankOf(b.name);
-        if(ra === rb) return a.groupKey.localeCompare(b.groupKey);
-        return ra - rb;
-      });
+
+      // Reorder respecting userMoved locks
+      state.thirdRanking = reorderRespectingUserMoved(state.thirdRanking);
+
+      thirdRankingDirty = true;
 
       validateAllWinners();
       render();
@@ -1802,7 +1856,7 @@
 
     function makeKoSection(roundKey, className=""){
       const section = document.createElement("div");
-      section.className = "ko-section";
+      section.className = `ko-section ko-${roundKey}`.trim();
 
       const grid = document.createElement("div");
       grid.className = `ko-grid ${className}`.trim();
@@ -1813,19 +1867,17 @@
     }
 
     /* ==============================
-       21) Build Board (NEW ORDER)
+       21) Build Board (ORDER)
     ============================== */
     function buildBoard(){
       const board = document.getElementById("board");
       board.innerHTML = "";
 
-      /* 3) Then comes the POOLS. */
       board.appendChild(makeSeparator("Qualifier Pools"));
       PATHS.forEach(p => {
         board.appendChild(makeColumn(p.label, `path-${p.id}`, `feeds Group ${p.group}`));
       });
 
-      /* 4) Buttons AFTER pool groups in the exact order */
       board.appendChild(
         makeSeparator(
           "Pool Actions",
@@ -1837,13 +1889,11 @@
         )
       );
 
-      /* 5) Then comes the groups. */
       board.appendChild(makeSeparator("Groups"));
       GROUP_KEYS.forEach(g => {
         board.appendChild(makeColumn(`Group ${g}`, `group-${g}`));
       });
 
-      /* 6) Auto Select Remaining Group Positions BELOW groups */
       board.appendChild(
         makeSeparator(
           "Group Actions",
@@ -1853,11 +1903,9 @@
         )
       );
 
-      /* 7) Third place team ranking table */
       board.appendChild(makeSeparator("Third-Place Ranking"));
-      board.appendChild(makeColumn("Third Place Team Ranking", THIRD_RANK_ZONE, "A3 → L3"));
+      board.appendChild(makeColumn("Third Place Team Ranking", "third-ranking", "A3 → L3"));
 
-      /* Auto Select Remaining Third Positions BELOW the ranking */
       board.appendChild(
         makeSeparator(
           "Third-Place Actions",
@@ -1867,13 +1915,11 @@
         )
       );
 
-      /* 8) After that: champions/runners + top-8 with code */
       board.appendChild(makeSeparator("Qualified Overview"));
-      board.appendChild(makeColumn("Group Champions", CHAMP_ZONE, "A1 → L1"));
-      board.appendChild(makeColumn("Group Runners", RUNNERS_ZONE, "A2 → L2"));
-      board.appendChild(makeColumn("Top-8 Third Placed Teams", TOP8_ZONE, "auto"));
+      board.appendChild(makeColumn("Group Champions", "champions-view", "A1 → L1"));
+      board.appendChild(makeColumn("Group Runners", "runners-view", "A2 → L2"));
+      board.appendChild(makeColumn("Top-8 Third Placed Teams", "top8-third-view", "auto"));
 
-      /* 9) Regenerate R32 BEFORE Round of 32 begins */
       board.appendChild(
         makeSeparator(
           "R32 Sync",
@@ -1883,11 +1929,9 @@
         )
       );
 
-      /* R32 Stage */
       board.appendChild(makeSeparator("Round of 32"));
       board.appendChild(makeKoSection("r32"));
 
-      /* 10) Auto Select R32 winners AFTER fixtures and BEFORE R16 */
       board.appendChild(
         makeSeparator(
           "Round of 32 Actions",
@@ -1897,7 +1941,6 @@
         )
       );
 
-      /* R16 */
       board.appendChild(makeSeparator("Round of 16"));
       board.appendChild(makeKoSection("r16"));
       board.appendChild(
@@ -1909,7 +1952,6 @@
         )
       );
 
-      /* QF */
       board.appendChild(makeSeparator("Quarterfinals"));
       board.appendChild(makeKoSection("qf"));
       board.appendChild(
@@ -1921,7 +1963,6 @@
         )
       );
 
-      /* SF (centered) */
       board.appendChild(makeSeparator("Semifinals"));
       board.appendChild(makeKoSection("sf", "centered"));
       board.appendChild(
@@ -1933,7 +1974,6 @@
         )
       );
 
-      /* Third Place match */
       board.appendChild(makeSeparator("Third Place Match"));
       board.appendChild(makeKoSection("third", "centered"));
       board.appendChild(
@@ -1945,7 +1985,6 @@
         )
       );
 
-      /* Final */
       board.appendChild(makeSeparator("Final"));
       board.appendChild(makeKoSection("final", "centered"));
       board.appendChild(
@@ -1979,14 +2018,18 @@
         return;
       }
 
-      if(zone === THIRD_RANK_ZONE){
+      if(zone === "third-ranking"){
         if(idx < 8) cardEl.classList.add("rank-strong");
         return;
       }
 
-      if(zone === TOP8_ZONE){
+      if(zone === "top8-third-view"){
         cardEl.classList.add("rank-strong");
       }
+    }
+
+    function movedSuffix(team){
+      return team?.userMoved ? " • moved" : "";
     }
 
     function renderStandardZones(){
@@ -2009,9 +2052,9 @@
           const editable =
             isClickSwapEnabledForZone(zone) &&
             !team.isPlaceholder &&
-            zone !== CHAMP_ZONE &&
-            zone !== RUNNERS_ZONE &&
-            zone !== TOP8_ZONE;
+            zone !== "champions-view" &&
+            zone !== "runners-view" &&
+            zone !== "top8-third-view";
 
           if(!editable) card.classList.add("locked");
 
@@ -2023,23 +2066,29 @@
 
           let tagText = "";
           if(isPathZone(zone)){
-            tagText = (editMode === "groups")
-              ? (team.isQualified ? "Qualified" : "Eliminated")
-              : (team.tag ?? PATH_BY_ID[pathIdFromZone(zone)]?.label ?? "");
+            if(editMode === "groups"){
+              tagText = (team.isQualified ? "Qualified" : "Eliminated") + movedSuffix(team);
+            } else {
+              tagText = team.userMoved ? "User moved" : (team.tag ?? PATH_BY_ID[pathIdFromZone(zone)]?.label ?? "");
+            }
           }
           else if(isGroupZone(zone)){
-            tagText = team.isPlaceholder ? "Placeholder" : `${gKey}${idx + 1}`;
+            if(team.isPlaceholder){
+              tagText = "Placeholder";
+            } else {
+              tagText = `${gKey}${idx + 1}${movedSuffix(team)}`;
+            }
           }
-          else if(zone === THIRD_RANK_ZONE){
-            tagText = `${team.groupKey}3`;
+          else if(zone === "third-ranking"){
+            tagText = `${team.groupKey}3${movedSuffix(team)}`;
           }
-          else if(zone === CHAMP_ZONE){
+          else if(zone === "champions-view"){
             tagText = `${team.groupKey}1`;
           }
-          else if(zone === RUNNERS_ZONE){
+          else if(zone === "runners-view"){
             tagText = `${team.groupKey}2`;
           }
-          else if(zone === TOP8_ZONE){
+          else if(zone === "top8-third-view"){
             tagText = `${team.groupKey}3`;
           }
 
@@ -2048,14 +2097,14 @@
             <span class="tag">${tagText}</span>
           `;
 
-          if(!team.isPlaceholder && ![CHAMP_ZONE, RUNNERS_ZONE, TOP8_ZONE].includes(zone)){
+          if(!team.isPlaceholder && !["champions-view", "runners-view", "top8-third-view"].includes(zone)){
             attachClickSwap(card);
           }
 
           dz.appendChild(card);
         });
 
-        if(zone === TOP8_ZONE){
+        if(zone === "top8-third-view"){
           const summary = document.createElement("div");
           summary.className = "top8-summary";
           summary.textContent = qualifiedThirdGroupLetters || "—";
@@ -2213,21 +2262,23 @@
       const grid = document.querySelector(`.ko-grid[data-ko-round="${roundKey}"]`);
       if(!grid) return;
 
+      // Clear grid only
       grid.innerHTML = "";
 
       const matches = ALL_ROUNDS[roundKey] ?? [];
+      matches.forEach(m => grid.appendChild(buildMatchCard(m)));
 
-      matches.forEach(m => {
-        grid.appendChild(buildMatchCard(m));
-      });
-
+      // Single-status R32 note (no duplicates)
       if(roundKey === "r32"){
+        const parent = grid.parentElement;
+        parent.querySelectorAll(".r32-note").forEach(n => n.remove());
+
         const note = document.createElement("div");
         note.className = "r32-note";
         note.textContent = (!state.r32Generated)
           ? "R32 not generated yet. Third-place slots are placeholders from the mapping sets."
           : "R32 3rd-place teams are frozen from your last Regenerate click.";
-        grid.parentElement.appendChild(note);
+        parent.appendChild(note);
       }
     }
 
@@ -2257,7 +2308,7 @@
     }
 
     /* ==============================
-       26) Wire Buttons (NEW IDS/ORDER)
+       26) Wire Buttons
     ============================== */
     function wireButtons(){
       const resetBtn = document.getElementById("resetBtn");
@@ -2332,7 +2383,6 @@
       renderAllKo();
       updateRegenerateR32Badge();
 
-      // Button enablement rules
       const reformBtn = document.getElementById("reformPoolBtn");
       const placeBtn  = document.getElementById("placeQualifiersBtn");
 
