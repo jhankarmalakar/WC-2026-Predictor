@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>World Cup 2026 – Pools → Form Groups → Group Tools</title>
+  <title>World Cup 2026 – Pools → Form Groups → Tools → Knockouts</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
@@ -61,7 +61,7 @@
     header .hint{
       color:var(--muted);
       font-size: 11.5px;
-      max-width: 70ch;
+      max-width: 80ch;
     }
 
     .actions{
@@ -141,13 +141,13 @@
       min-width: 30px;
     }
 
-    /* Column */
+    /* Column (used for pools/groups/tools only) */
     .column{
       background: linear-gradient(180deg, var(--panel), var(--panel-2));
       border:1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
-      overflow: visible;
+      overflow: hidden;
       min-height: 160px;
       display:flex;
       flex-direction:column;
@@ -185,17 +185,7 @@
       flex: 1;
     }
 
-    /* Make R32 column span full board width */
-
-
-
-/* Board-level R32 tiles */
-.r32-tile{
-  width: 100%;
-}
-
-
-    /* Card */
+    /* Normal team card */
     .card{
       background: rgba(255,255,255,0.04);
       border:1px solid var(--border);
@@ -214,8 +204,9 @@
       opacity: 0.9;
     }
 
+    /* KO match tile (board-level) */
     .match-card{
-      background: rgba(255,255,255,0.035);
+      background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.02));
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 10px;
@@ -223,8 +214,13 @@
       grid-template-columns: 1fr auto 1fr;
       gap: 8px;
       align-items: center;
+      box-shadow: var(--shadow);
     }
-    
+
+    .r32-tile{
+      width: 100%;
+    }
+
     .match-team{
       padding: 8px 10px;
       border-radius: 10px;
@@ -233,13 +229,13 @@
       font-size: 12.5px;
       cursor: pointer;
       text-align: center;
+      user-select: none;
     }
-    
     .match-team.locked{
       cursor: default;
       opacity: 0.9;
     }
-    
+
     .match-mid{
       min-width: 48px;
       text-align: center;
@@ -250,7 +246,7 @@
       border: 1px solid var(--border);
       background: rgba(255,255,255,0.03);
     }
-    
+
     .match-meta{
       grid-column: 1 / -1;
       font-size: 10px;
@@ -259,7 +255,6 @@
       justify-content: space-between;
       gap: 8px;
     }
-
     .match-meta.secondary{
       margin-top: 2px;
       opacity: 0.9;
@@ -273,15 +268,6 @@
       font-size: 9.5px;
       white-space: nowrap;
     }
-
-    
-    .r32-fallback-note{
-      margin-top: 8px;
-      font-size: 10.5px;
-      color: var(--muted);
-      opacity: 0.9;
-    }
-
 
     .name{
       font-size: 13.8px;
@@ -333,29 +319,29 @@
     }
 
     .top8-summary{
-          margin-top: 10px;
-          padding: 10px 12px;
-          font-size: 14px;
-          font-weight: 800;
-          color: var(--text);
-          border: 1px dashed var(--border);
-          border-radius: 10px;
-          letter-spacing: 2px;
-          text-transform: uppercase;
-          text-align: center;
-          background: rgba(255,255,255,0.03);
-        }
-
+      margin-top: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text);
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-align: center;
+      background: rgba(255,255,255,0.03);
+    }
   </style>
 </head>
 
 <body>
   <header>
     <div>
-      <h1>Qualifier Pools → Form Groups → Tools</h1>
+      <h1>Qualifier Pools → Form Groups → Tools → Knockouts</h1>
       <div class="hint">
         Click/tap two teams in the same editable zone to swap. Use “Form Groups” to copy current pool winners into groups.
         Use “Reform Pool” to unlock pools and lock groups (without changing group order).
+        Knockouts are click-pick tiles (no drag).
       </div>
     </div>
 
@@ -370,6 +356,7 @@
 
   <div class="footer">
     No drag. Pools editable only in Pool mode. Groups + Third-place ranking editable only in Group mode.
+    Knockouts become resolvable as you pick winners.
   </div>
 
   <script>
@@ -377,12 +364,12 @@
        1) GROUPS + PATHS
     ============================== */
     const DEFAULT_GROUPS = {
-      A: ["Mexico","South Africa","South Korea","UEFA Path D"],
-      B: ["Canada","UEFA Path A","Qatar","Switzerland"],
+      A: ["Mexico","South Africa","South Korea","UFEA Path D"],
+      B: ["Canada","UFEA Path A","Qatar","Switzerland"],
       C: ["Brazil","Morocco","Haiti","Scotland"],
-      D: ["United States","Paraguay","Australia","UEFA Path C"],
+      D: ["United States","Paraguay","Australia","UFEA Path C"],
       E: ["Germany","Curaçao","Ivory Coast","Ecuador"],
-      F: ["Netherlands","Japan","UEFA Path B","Tunisia"],
+      F: ["Netherlands","Japan","UFEA Path B","Tunisia"],
       G: ["Belgium","Egypt","Iran","New Zealand"],
       H: ["Spain","Cape Verde","Saudi Arabia","Uruguay"],
       I: ["France","Senegal","FIFA IC Path 2","Norway"],
@@ -392,13 +379,13 @@
     };
 
     const PATHS = [
-      { id: "UEFApath-a", label: "UEFA Path A",
+      { id: "ufeapath-a", label: "UFEA Path A",
         candidates: ["Wales", "Bosnia and Herzegovina", "Italy", "Northern Ireland"], group: "B" },
-      { id: "UEFApath-b", label: "UEFA Path B",
+      { id: "ufeapath-b", label: "UFEA Path B",
         candidates: ["Ukraine", "Sweden", "Poland", "Albania"], group: "F" },
-      { id: "UEFApath-c", label: "UEFA Path C",
+      { id: "ufeapath-c", label: "UFEA Path C",
         candidates: ["Slovakia", "Kosovo", "Turkey", "Romania"], group: "D" },
-      { id: "UEFApath-d", label: "UEFA Path D",
+      { id: "ufeapath-d", label: "UFEA Path D",
         candidates: ["Czech Republic", "Republic of Ireland", "Denmark", "North Macedonia"], group: "A" },
       { id: "fifaicpath-1", label: "FIFA IC Path 1",
         candidates: ["New Caledonia", "Jamaica", "DR Congo"], group: "K" },
@@ -415,20 +402,15 @@
 
     /* ==============================
        2) Edit mode + click-swap state
-       editMode:
-         - "pools": pools editable, groups locked
-         - "groups": groups + third-ranking editable, pools locked
     ============================== */
     let editMode = "pools";
-    let swapSelection = null; // { teamId, zone }
+    let swapSelection = null;
     let qualifiedThirdGroupLetters = "";
-    let qualifiedThirdPlacedTeams = []; // NEW: full objects hook
-    let usedThirdFallback = false;       // NEW: display note
-
-
+    let qualifiedThirdPlacedTeams = [];
+    let usedThirdFallback = false;
 
     /* ==============================
-       3) State
+       3) Build initial state
     ============================== */
     function buildGroupsFromDefaults(){
       const groups = {};
@@ -469,63 +451,68 @@
       });
       return paths;
     }
-    
-function fallbackPathNameForGroup(g){
-        const p = PATHS.find(x => x.group === g);
-        if(!p) return "TBD";
-      
-        if(p.id.startsWith("UEFApath-")){
-          const letter = p.id.replace("UEFApath-",""); // a/b/c/d
-          const map = { a: 1, b: 2, c: 3, d: 4 };
-          const n = map[letter] ?? letter.toUpperCase();
-          return `UEFA Path ${n}`;
-        }
-      
-        if(p.id.startsWith("fifaicpath-")){
-          const n = p.id.replace("fifaicpath-","");
-          return `FIFA IC Path ${n}`;
-        }
-      
-        return p.label;
+
+    function fallbackPathNameForGroup(g){
+      const p = PATHS.find(x => x.group === g);
+      if(!p) return "TBD";
+
+      if(p.id.startsWith("ufeapath-")){
+        const letter = p.id.replace("ufeapath-","");
+        const map = { a: 1, b: 2, c: 3, d: 4 };
+        const n = map[letter] ?? letter.toUpperCase();
+        return `UEFA Path ${n}`;
       }
 
-   function buildThirdRankingFromGroups(groups){
-          const base = [];
-          GROUP_KEYS.forEach(g => {
-            const third = groups[g]?.[2];
-        
-            base.push({
-              id: toId(`third-${g}-${third?.name ?? "tbd"}`),
-              groupKey: g,
-              name: third?.name ?? fallbackPathNameForGroup(g)
-            });
-          });
-          return base;
-        }
-    
+      if(p.id.startsWith("fifaicpath-")){
+        const n = p.id.replace("fifaicpath-","");
+        return `FIFA IC Path ${n}`;
+      }
 
+      return p.label;
+    }
+
+    function buildThirdRankingFromGroups(groups){
+      const base = [];
+      GROUP_KEYS.forEach(g => {
+        const third = groups[g]?.[2];
+        base.push({
+          id: toId(`third-${g}-${third?.name ?? "tbd"}`),
+          groupKey: g,
+          name: third?.name ?? fallbackPathNameForGroup(g)
+        });
+      });
+      return base;
+    }
 
     const initialState = () => {
       const groups = buildGroupsFromDefaults();
       const paths  = buildPaths();
+
       const qualifiedByPath = {};
       PATHS.forEach(p => qualifiedByPath[p.id] = false);
 
-     return {
+      return {
         paths,
         groups,
         qualifiedByPath,
         thirdRanking: buildThirdRankingFromGroups(groups),
-        r32Winners: {}, // NEW
-        r32Generated: false
-      };
 
+        // R32
+        r32Winners: {},
+        r32Teams: {},      // store resolved L/R names for loser logic
+        r32Generated: false,
+
+        // Later KO
+        koWinners: {},
+        koTeams: {}        // store resolved L/R names for loser logic
+      };
     };
 
     let state = initialState();
 
     /* ==============================
-       4) Zones
+       4) Zones for swap-UI columns
+         (KO is board-level tiles)
     ============================== */
     const pathZones  = PATHS.map(p => `path-${p.id}`);
     const groupZones = GROUP_KEYS.map(g => `group-${g}`);
@@ -534,23 +521,18 @@ function fallbackPathNameForGroup(g){
     const CHAMP_ZONE      = "champions-view";
     const RUNNERS_ZONE    = "runners-view";
     const TOP8_ZONE       = "top8-third-view";
-    const R32_ZONE = "r32-fixtures";
-    const ABBR_ZONE = "abbr-table";
 
-      const zones = [
-        ...pathZones,
-        ...groupZones,
-        THIRD_RANK_ZONE,
-        CHAMP_ZONE,
-        RUNNERS_ZONE,
-        TOP8_ZONE
-      ];
-
+    const zones = [
+      ...pathZones,
+      ...groupZones,
+      THIRD_RANK_ZONE,
+      CHAMP_ZONE,
+      RUNNERS_ZONE,
+      TOP8_ZONE
+    ];
 
     const isPathZone = (z) => z.startsWith("path-");
     const isGroupZone = (z) => z.startsWith("group-");
-    const isDerivedZone = (z) =>
-      [THIRD_RANK_ZONE, CHAMP_ZONE, RUNNERS_ZONE, TOP8_ZONE].includes(z);
 
     const pathIdFromZone = (z) => z.replace("path-","");
     const groupKeyFromZone = (z) => {
@@ -559,127 +541,145 @@ function fallbackPathNameForGroup(g){
     };
 
     /* ==============================
-       5) UI build
+       5) R32 DATA
     ============================== */
-    function makeSeparator(text, buttonOptions=null){
-      const sep = document.createElement("div");
-      sep.className = "stage-separator";
-    
-      const left = document.createElement("div");
-      left.className = "stage-left";
-      left.innerHTML = `
-        <span class="stage-title">${text}</span>
-        <span class="stage-line"></span>
-      `;
-      sep.appendChild(left);
-    
-      if(buttonOptions){
-        const btn = document.createElement("button");
-        btn.id = buttonOptions.id;
-        btn.textContent = buttonOptions.text;
-        sep.appendChild(btn);
-      }
-    
-      return sep;
+    function getGroupPosTeam(g, idx){
+      const t = state.groups[g]?.[idx];
+      if(!t || t.isPlaceholder) return { name: fallbackPathNameForGroup(g), groupKey: g };
+      return { name: t.name, groupKey: g };
     }
 
-
-    function makeColumn(title, zoneKey, subtitle = ""){
-      const col = document.createElement("section");
-      col.className = "column";
-      col.innerHTML = `
-        <div class="column-header">
-          <div class="column-title">${title}${subtitle ? ` • ${subtitle}` : ""}</div>
-          <div class="count" data-count-for="${zoneKey}"></div>
-        </div>
-        <div class="zone" data-zone="${zoneKey}"></div>
-      `;
-      return col;
+    function parseAllowedThird(spec){
+      return spec.split("/").map(s => s.trim()).filter(Boolean);
     }
 
-    function makeR32NoteTile(){
-          const note = document.createElement("section");
-          note.className = "column";
-          note.style.gridColumn = "1 / -1";
-          note.innerHTML = `
-            <div class="column-header">
-              <div class="column-title">R32 Third-place Mapping Status</div>
-              <div class="count"></div>
-            </div>
-            <div class="zone" data-zone="r32-note"></div>
-          `;
-          return note;
-        }
+    const R32_INFO = {
+      73: { date: "June 28, 2026", time: "12:00 p.m. (UTC−7)", stadium: "SoFi Stadium", city: "Inglewood" },
 
-    function makeR32Tile(match){
-        const tile = document.createElement("div");
-        tile.className = "match-card r32-tile";
-        tile.dataset.matchId = match.id;
-        return tile;
-      }
-    function buildBoard(){
-      const board = document.getElementById("board");
-      board.innerHTML = "";
+      74: { date: "June 29, 2026", time: "4:30 p.m. (UTC−4)", stadium: "Gillette Stadium", city: "Foxborough" },
+      75: { date: "June 29, 2026", time: "7:00 p.m. (UTC−6)", stadium: "Estadio BBVA", city: "Guadalupe" },
+      76: { date: "June 29, 2026", time: "12:00 p.m. (UTC−5)", stadium: "NRG Stadium", city: "Houston" },
 
-      // Pools
-      board.appendChild(makeSeparator("Qualifier Pools (click-swap in Pool mode)"));
-      PATHS.forEach(p => {
-        board.appendChild(makeColumn(p.label, `path-${p.id}`, `feeds Group ${p.group}`));
-      });
+      77: { date: "June 30, 2026", time: "5:00 p.m. (UTC−4)", stadium: "MetLife Stadium", city: "East Rutherford" },
+      78: { date: "June 30, 2026", time: "12:00 p.m. (UTC−5)", stadium: "AT&T Stadium", city: "Arlington" },
+      79: { date: "June 30, 2026", time: "7:00 p.m. (UTC−6)", stadium: "Estadio Azteca", city: "Mexico City" },
 
-      // Groups
-      board.appendChild(
-            makeSeparator(
-              "Groups (click-swap in Group mode)",
-              { id:"formGroupsBtn", text:"Form Groups" }
-            )
-          );
+      80: { date: "July 1, 2026", time: "12:00 p.m. (UTC−4)", stadium: "Mercedes-Benz Stadium", city: "Atlanta" },
+      81: { date: "July 1, 2026", time: "5:00 p.m. (UTC−7)", stadium: "Levi's Stadium", city: "Santa Clara" },
+      82: { date: "July 1, 2026", time: "1:00 p.m. (UTC−7)", stadium: "Lumen Field", city: "Seattle" },
 
-      GROUP_KEYS.forEach(g => {
-        board.appendChild(makeColumn(`Group ${g}`, `group-${g}`));
-      });
+      83: { date: "July 2, 2026", time: "7:00 p.m. (UTC−4)", stadium: "BMO Field", city: "Toronto" },
+      84: { date: "July 2, 2026", time: "12:00 p.m. (UTC−7)", stadium: "SoFi Stadium", city: "Inglewood" },
+      85: { date: "July 2, 2026", time: "8:00 p.m. (UTC−7)", stadium: "BC Place", city: "Vancouver" },
 
-      // Tools / tables
-      board.appendChild(makeSeparator("Group Tools & Third-Place Logic"));
-      board.appendChild(makeColumn("Third Place Team Ranking", THIRD_RANK_ZONE, "A3 → L3"));
-      board.appendChild(makeColumn("Group Champions", CHAMP_ZONE, "A1 → L1"));
-      board.appendChild(makeColumn("Group Runners", RUNNERS_ZONE, "A2 → L2"));
-      board.appendChild(makeColumn("Top-8 Third Placed Teams", TOP8_ZONE, "auto"));
-      
-   board.appendChild(
-  makeSeparator(
-    "Round of 32 (placeholder → generate → pick winners)",
-    { id:"generateR32Btn", text:"Generate R32" }
-  )
-);
-      board.appendChild(makeR32NoteTile());
+      86: { date: "July 3, 2026", time: "6:00 p.m. (UTC−4)", stadium: "Hard Rock Stadium", city: "Miami Gardens" },
+      87: { date: "July 3, 2026", time: "8:30 p.m. (UTC−5)", stadium: "Arrowhead Stadium", city: "Kansas City" },
+      88: { date: "July 3, 2026", time: "1:00 p.m. (UTC−5)", stadium: "AT&T Stadium", city: "Arlington" }
+    };
 
+    const R32_MATCHES = [
+      { id: 73, left: {type:"RU", g:"A"}, right:{type:"RU", g:"B"} },
+      { id: 74, left: {type:"W",  g:"E"}, right:{type:"3SET", set:"A/B/C/D/F"} },
+      { id: 75, left: {type:"W",  g:"F"}, right:{type:"RU", g:"C"} },
+      { id: 76, left: {type:"W",  g:"C"}, right:{type:"RU", g:"F"} },
 
-// Option B: each match is a board-level tile
-R32_MATCHES.forEach(m => {
-  board.appendChild(makeR32Tile(m));
-});
+      { id: 77, left: {type:"W",  g:"I"}, right:{type:"3SET", set:"C/D/F/G/H"} },
+      { id: 78, left: {type:"RU", g:"E"}, right:{type:"RU", g:"I"} },
+      { id: 79, left: {type:"W",  g:"A"}, right:{type:"3SET", set:"C/E/F/H/I"} },
+      { id: 80, left: {type:"W",  g:"L"}, right:{type:"3SET", set:"E/H/I/J/K"} },
 
-             
+      { id: 81, left: {type:"W",  g:"D"}, right:{type:"3SET", set:"B/E/F/I/J"} },
+      { id: 82, left: {type:"W",  g:"G"}, right:{type:"3SET", set:"A/E/H/I/J"} },
+      { id: 83, left: {type:"RU", g:"K"}, right:{type:"RU", g:"L"} },
+      { id: 84, left: {type:"W",  g:"H"}, right:{type:"RU", g:"J"} },
 
-
-    }
+      { id: 85, left: {type:"W",  g:"B"}, right:{type:"3SET", set:"E/F/G/I/J"} },
+      { id: 86, left: {type:"W",  g:"J"}, right:{type:"RU", g:"H"} },
+      { id: 87, left: {type:"W",  g:"K"}, right:{type:"3SET", set:"D/E/I/J/L"} },
+      { id: 88, left: {type:"RU", g:"D"}, right:{type:"RU", g:"G"} }
+    ];
 
     /* ==============================
-       6) Edit rules
+       6) LATER KO DATA (from your list)
     ============================== */
-    function isClickSwapEnabledForZone(zoneKey){
-      if(editMode === "pools"){
-        return isPathZone(zoneKey);
-      }
-      if(editMode === "groups"){
-        return isGroupZone(zoneKey) || zoneKey === THIRD_RANK_ZONE;
-      }
-      return false;
-    }
+    const KO_INFO = {
+      // Round of 16
+      89:  { stage:"R16", date:"July 4, 2026", time:"5:00 p.m. (UTC−4)", stadium:"Lincoln Financial Field", city:"Philadelphia" },
+      90:  { stage:"R16", date:"July 4, 2026", time:"12:00 p.m. (UTC−5)", stadium:"NRG Stadium", city:"Houston" },
+      91:  { stage:"R16", date:"July 5, 2026", time:"4:00 p.m. (UTC−4)", stadium:"MetLife Stadium", city:"East Rutherford" },
+      92:  { stage:"R16", date:"July 5, 2026", time:"6:00 p.m. (UTC−6)", stadium:"Estadio Azteca", city:"Mexico City" },
+      93:  { stage:"R16", date:"July 6, 2026", time:"2:00 p.m. (UTC−5)", stadium:"AT&T Stadium", city:"Arlington" },
+      94:  { stage:"R16", date:"July 6, 2026", time:"5:00 p.m. (UTC−7)", stadium:"Lumen Field", city:"Seattle" },
+      95:  { stage:"R16", date:"July 7, 2026", time:"12:00 p.m. (UTC−4)", stadium:"Mercedes-Benz Stadium", city:"Atlanta" },
+      96:  { stage:"R16", date:"July 7, 2026", time:"1:00 p.m. (UTC−7)", stadium:"BC Place", city:"Vancouver" },
+
+      // Quarterfinals
+      97:  { stage:"QF",  date:"July 9, 2026", time:"4:00 p.m. (UTC−4)", stadium:"Gillette Stadium", city:"Foxborough" },
+      98:  { stage:"QF",  date:"July 10, 2026", time:"12:00 p.m. (UTC−7)", stadium:"SoFi Stadium", city:"Inglewood" },
+      99:  { stage:"QF",  date:"July 11, 2026", time:"5:00 p.m. (UTC−4)", stadium:"Hard Rock Stadium", city:"Miami Gardens" },
+      100: { stage:"QF",  date:"July 11, 2026", time:"8:00 p.m. (UTC−5)", stadium:"Arrowhead Stadium", city:"Kansas City" },
+
+      // Semifinals
+      101: { stage:"SF",  date:"July 14, 2026", time:"2:00 p.m. (UTC−5)", stadium:"AT&T Stadium", city:"Arlington" },
+      102: { stage:"SF",  date:"July 15, 2026", time:"3:00 p.m. (UTC−4)", stadium:"Mercedes-Benz Stadium", city:"Atlanta" },
+
+      // Third place
+      103: { stage:"3P",  date:"July 18, 2026", time:"5:00 p.m. (UTC−4)", stadium:"Hard Rock Stadium", city:"Miami Gardens" },
+
+      // Final
+      104: { stage:"F",   date:"July 19, 2026", time:"3:00 p.m. (UTC−4)", stadium:"MetLife Stadium", city:"East Rutherford" }
+    };
+
+    // Slot types:
+    //  W/RU/3SET = group-based
+    //  WM = Winner Match <id>
+    //  LM = Loser Match <id>
+    const R16_MATCHES = [
+      { id: 90, left:{ type:"WM", m:73 }, right:{ type:"WM", m:75 } },
+      { id: 89, left:{ type:"WM", m:74 }, right:{ type:"WM", m:77 } },
+      { id: 91, left:{ type:"WM", m:76 }, right:{ type:"WM", m:78 } },
+      { id: 92, left:{ type:"WM", m:79 }, right:{ type:"WM", m:80 } },
+      { id: 93, left:{ type:"WM", m:83 }, right:{ type:"WM", m:84 } },
+      { id: 94, left:{ type:"WM", m:81 }, right:{ type:"WM", m:82 } },
+      { id: 95, left:{ type:"WM", m:86 }, right:{ type:"WM", m:88 } },
+      { id: 96, left:{ type:"WM", m:85 }, right:{ type:"WM", m:87 } }
+    ];
+
+    const QF_MATCHES = [
+      { id: 97, left:{ type:"WM", m:89 }, right:{ type:"WM", m:90 } },
+      { id: 98, left:{ type:"WM", m:93 }, right:{ type:"WM", m:94 } },
+      { id: 99, left:{ type:"WM", m:91 }, right:{ type:"WM", m:92 } },
+      { id: 100,left:{ type:"WM", m:95 }, right:{ type:"WM", m:96 } }
+    ];
+
+    const SF_MATCHES = [
+      { id: 101,left:{ type:"WM", m:97 }, right:{ type:"WM", m:98 } },
+      { id: 102,left:{ type:"WM", m:99 }, right:{ type:"WM", m:100 } }
+    ];
+
+    const THIRD_MATCH = [
+      { id: 103,left:{ type:"LM", m:101 }, right:{ type:"LM", m:102 } }
+    ];
+
+    const FINAL_MATCH = [
+      { id: 104,left:{ type:"WM", m:101 }, right:{ type:"WM", m:102 } }
+    ];
+
+    const KO_STAGES = [
+      { key:"r16", label:"Round of 16", matches:R16_MATCHES },
+      { key:"qf",  label:"Quarterfinals", matches:QF_MATCHES },
+      { key:"sf",  label:"Semifinals", matches:SF_MATCHES },
+      { key:"3p",  label:"Third place", matches:THIRD_MATCH },
+      { key:"f",   label:"Final", matches:FINAL_MATCH }
+    ];
 
     /* ==============================
-       7) Derived data
+       7) Third-place mapping hook
+    ============================== */
+    const THIRD_TABLE = {}; // optional future FIFA mapping table
+
+    /* ==============================
+       8) Third tools logic
     ============================== */
     function getThirdTeamForGroup(g){
       const arr = state.groups[g] ?? [];
@@ -688,182 +688,167 @@ R32_MATCHES.forEach(m => {
     }
 
     function syncThirdRankingNames(){
-      // Ensure one entry per groupKey, preserve user order
       const existingByGroup = new Map(state.thirdRanking.map(x => [x.groupKey, x]));
 
-      // Add missing groups
       GROUP_KEYS.forEach(g => {
         if(!existingByGroup.has(g)){
-         state.thirdRanking.push({
+          state.thirdRanking.push({
             id: toId(`third-${g}-tbd`),
             groupKey: g,
             name: fallbackPathNameForGroup(g)
           });
-
         }
       });
 
-      // Remove extras that no longer map to a group (unlikely)
       state.thirdRanking = state.thirdRanking.filter(x => GROUP_KEYS.includes(x.groupKey));
 
-      // Update names based on current group 3rd-place
       state.thirdRanking.forEach(item => {
-            const third = getThirdTeamForGroup(item.groupKey);
-            item.name = third ? third.name : fallbackPathNameForGroup(item.groupKey);
-          });
-
+        const third = getThirdTeamForGroup(item.groupKey);
+        item.name = third ? third.name : fallbackPathNameForGroup(item.groupKey);
+      });
     }
 
     function computeChampions(){
-          return GROUP_KEYS.map(g => {
-            const t = state.groups[g]?.[0];
-        
-            const name =
-              (!t || t.isPlaceholder)
-                ? fallbackPathNameForGroup(g)
-                : t.name;
-        
-            return {
-              id: toId(`champ-${g}-${name}`),
-              name,
-              groupKey: g
-            };
-          });
-        }
+      return GROUP_KEYS.map(g => {
+        const t = state.groups[g]?.[0];
+        const name = (!t || t.isPlaceholder) ? fallbackPathNameForGroup(g) : t.name;
+        return { id: toId(`champ-${g}-${name}`), name, groupKey: g };
+      });
+    }
 
+    function computeRunners(){
+      return GROUP_KEYS.map(g => {
+        const t = state.groups[g]?.[1];
+        const name = (!t || t.isPlaceholder) ? fallbackPathNameForGroup(g) : t.name;
+        return { id: toId(`runner-${g}-${name}`), name, groupKey: g };
+      });
+    }
 
-   function computeRunners(){
-          return GROUP_KEYS.map(g => {
-            const t = state.groups[g]?.[1];
-        
-            const name =
-              (!t || t.isPlaceholder)
-                ? fallbackPathNameForGroup(g)
-                : t.name;
-        
-            return {
-              id: toId(`runner-${g}-${name}`),
-              name,
-              groupKey: g
-            };
-          });
-        }
+    function computeTop8ThirdPlaced(){
+      syncThirdRankingNames();
 
+      const top8Source = state.thirdRanking.slice(0, 8);
 
-      function computeTop8ThirdPlaced(){
-          syncThirdRankingNames();
-        
-          // 1) Take top 8 based on manual ranking order
-          const top8Source = state.thirdRanking.slice(0, 8);
-        
-          // 2) Save full objects hook
-          qualifiedThirdPlacedTeams = top8Source.map(x => ({
-            groupKey: x.groupKey,
-            name: x.name
-          }));
-        
-          // 3) Save letters hook (sorted A→L)
-          qualifiedThirdGroupLetters = top8Source
-            .map(x => x.groupKey)
-            .sort((a,b) => a.localeCompare(b))
-            .join("");
-        
-          // 4) Build display list
-          const top8 = top8Source.map((x, i) => ({
-            id: toId(`top8-third-${i}-${x.groupKey}-${x.name}`),
-            name: x.name,
-            groupKey: x.groupKey
-          }));
-        
-          // 5) Display in alphabetical group order
-          top8.sort((a, b) => a.groupKey.localeCompare(b.groupKey));
-        
-          return top8;
-        }
+      qualifiedThirdPlacedTeams = top8Source.map(x => ({
+        groupKey: x.groupKey,
+        name: x.name
+      }));
+
+      qualifiedThirdGroupLetters = top8Source
+        .map(x => x.groupKey)
+        .sort((a,b) => a.localeCompare(b))
+        .join("");
+
+      const top8 = top8Source.map((x, i) => ({
+        id: toId(`top8-third-${i}-${x.groupKey}-${x.name}`),
+        name: x.name,
+        groupKey: x.groupKey
+      }));
+
+      top8.sort((a, b) => a.groupKey.localeCompare(b.groupKey));
+      return top8;
+    }
 
     function resolveThirdFromAllowedGroups(allowedLetters){
-            // allowedLetters: array of group letters ["A","B","C"...]
-            usedThirdFallback = false;
-          
-            // Ensure hooks are up to date
-            computeTop8ThirdPlaced();
-          
-            // Use manual ranking priority
-            const ranked = state.thirdRanking.slice(0, 8);
-          
-            const found = ranked.find(x => allowedLetters.includes(x.groupKey));
-          
-            if(found){
-              return { groupKey: found.groupKey, name: found.name, fallback: false };
-            }
-          
-            // Fallback rule per your instruction
-            usedThirdFallback = true;
-          
-            // Interpret fallback ABCDEFGH as "pretend allowed set is A..H"
-            const fallbackAllowed = ["A","B","C","D","E","F","G","H"];
-            const fbFound = ranked.find(x => fallbackAllowed.includes(x.groupKey));
-          
-            if(fbFound){
-              return { groupKey: fbFound.groupKey, name: fbFound.name, fallback: true };
-            }
-          
-            // Absolute last fallback
-            return { groupKey: "?", name: "UEFA/FIFA Path", fallback: true };
-          }
+      usedThirdFallback = false;
+      computeTop8ThirdPlaced();
 
-    const ABBR_SPECIAL = {
-            "United States": "USA",
-            "United States of America": "USA",
-            "South Korea": "KOR",
-            "North Macedonia": "MKD",
-            "Republic of Ireland": "IRL",
-            "Czech Republic": "CZE",
-            "Bosnia and Herzegovina": "BIH",
-            "New Zealand": "NZL",
-            "Cape Verde": "CPV",
-            "Ivory Coast": "CIV",
-            "DR Congo": "COD",
-            "Northern Ireland": "NIR"
-          };
+      const ranked = state.thirdRanking.slice(0, 8);
+      const found = ranked.find(x => allowedLetters.includes(x.groupKey));
 
-      function teamAbbrev(name){
-              if(!name) return "---";
-              if(ABBR_SPECIAL[name]) return ABBR_SPECIAL[name];
-            
-              // Ignore placeholders/path labels for abbreviations
-              if(name.startsWith("UEFA Path")) return "UEF";
-              if(name.startsWith("FIFA IC Path")) return "FIC";
-            
-              const words = name
-                .replace(/[().]/g,"")
-                .split(/\s+/)
-                .filter(Boolean);
-            
-              // If multi-word: use initials up to 3
-              if(words.length >= 2){
-                const init = words.map(w => w[0]).join("").toUpperCase();
-                return init.slice(0,3).padEnd(3, init[0] ?? "X");
-              }
-            
-              // Single word fallback
-              const s = words[0].toUpperCase();
-              if(s.length <= 3) return s;
-              return s.slice(0,3);
-            }
+      if(found){
+        return { groupKey: found.groupKey, name: found.name, fallback: false };
+      }
 
+      usedThirdFallback = true;
+      const fallbackAllowed = ["A","B","C","D","E","F","G","H"];
+      const fbFound = ranked.find(x => fallbackAllowed.includes(x.groupKey));
 
+      if(fbFound){
+        return { groupKey: fbFound.groupKey, name: fbFound.name, fallback: true };
+      }
 
+      return { groupKey: "?", name: "UEFA/FIFA Path", fallback: true };
+    }
 
+    function thirdPlaceholderName(setSpec){
+      return setSpec
+        .split("/")
+        .map(s => s.trim())
+        .filter(Boolean)
+        .map(g => `3${g}`)
+        .join("/");
+    }
+
+    function resolveThirdForMatch(matchId, allowedLetters){
+      computeTop8ThirdPlaced();
+
+      const key = qualifiedThirdGroupLetters;
+      const row = THIRD_TABLE[key];
+
+      if(row && row[matchId]){
+        const tag = row[matchId];
+        const g = tag.replace("3", "");
+        const third = state.thirdRanking.find(x => x.groupKey === g);
+        const name = third ? third.name : tag;
+
+        return { groupKey: g, name, source: "table", tableKey: key, fallback: false };
+      }
+
+      const res = resolveThirdFromAllowedGroups(allowedLetters);
+      return {
+        groupKey: res.groupKey,
+        name: res.name,
+        source: res.fallback ? "fallback" : "allowed",
+        tableKey: key,
+        fallback: res.fallback
+      };
+    }
 
     /* ==============================
-       8) Zone arrays
+       9) Abbreviations
     ============================== */
-  
+    const ABBR_SPECIAL = {
+      "United States": "USA",
+      "United States of America": "USA",
+      "South Korea": "KOR",
+      "North Macedonia": "MKD",
+      "Republic of Ireland": "IRL",
+      "Czech Republic": "CZE",
+      "Bosnia and Herzegovina": "BIH",
+      "New Zealand": "NZL",
+      "Cape Verde": "CPV",
+      "Ivory Coast": "CIV",
+      "DR Congo": "COD",
+      "Northern Ireland": "NIR"
+    };
 
-    
-    
- function getZoneArray(zoneKey){
+    function teamAbbrev(name){
+      if(!name) return "---";
+      if(ABBR_SPECIAL[name]) return ABBR_SPECIAL[name];
+
+      if(name.startsWith("UEFA Path")) return "UEF";
+      if(name.startsWith("FIFA IC Path")) return "FIC";
+
+      const words = name
+        .replace(/[().]/g,"")
+        .split(/\s+/)
+        .filter(Boolean);
+
+      if(words.length >= 2){
+        const init = words.map(w => w[0]).join("").toUpperCase();
+        return init.slice(0,3).padEnd(3, init[0] ?? "X");
+      }
+
+      const s = words[0].toUpperCase();
+      if(s.length <= 3) return s;
+      return s.slice(0,3);
+    }
+
+    /* ==============================
+       10) Zone array getter
+    ============================== */
+    function getZoneArray(zoneKey){
       if(isPathZone(zoneKey)){
         return state.paths[pathIdFromZone(zoneKey)];
       }
@@ -883,14 +868,11 @@ R32_MATCHES.forEach(m => {
       if(zoneKey === TOP8_ZONE){
         return computeTop8ThirdPlaced();
       }
-     
-    
       return null;
-}
-
+    }
 
     /* ==============================
-       9) Pool status display
+       11) Pool status display
     ============================== */
     function clearPoolStatus(){
       PATHS.forEach(p => {
@@ -916,10 +898,498 @@ R32_MATCHES.forEach(m => {
     }
 
     /* ==============================
-       10) Render
+       12) KO Winner/Loser helpers
+    ============================== */
+    function getWinnerOfMatch(matchId){
+      if(state.r32Winners && state.r32Winners[matchId]){
+        return state.r32Winners[matchId];
+      }
+      if(state.koWinners && state.koWinners[matchId]){
+        return state.koWinners[matchId];
+      }
+      return null;
+    }
+
+    function getTeamsOfMatch(matchId){
+      if(state.r32Teams && state.r32Teams[matchId]) return state.r32Teams[matchId];
+      if(state.koTeams && state.koTeams[matchId]) return state.koTeams[matchId];
+      return null;
+    }
+
+    function getLoserOfMatch(matchId){
+      const w = getWinnerOfMatch(matchId);
+      const teams = getTeamsOfMatch(matchId);
+
+      if(!w || !teams){
+        return null;
+      }
+
+      const loserName = (w.side === "L") ? teams.R : teams.L;
+      return { name: loserName, abbrev: teamAbbrev(loserName) };
+    }
+
+    /* ==============================
+       13) Slot resolver for KO tiles
+    ============================== */
+    function resolveSlot(slot, matchId){
+      if(slot.type === "W"){
+        const t = getGroupPosTeam(slot.g, 0);
+        return { name: t.name, label: `1${slot.g}`, groupKey: slot.g, placeholder: false };
+      }
+
+      if(slot.type === "RU"){
+        const t = getGroupPosTeam(slot.g, 1);
+        return { name: t.name, label: `2${slot.g}`, groupKey: slot.g, placeholder: false };
+      }
+
+      if(slot.type === "3SET"){
+        const allowed = parseAllowedThird(slot.set);
+
+        if(!state.r32Generated){
+          const ph = thirdPlaceholderName(slot.set);
+          return {
+            name: ph,
+            label: ph,
+            groupKey: "?",
+            placeholder: true,
+            allowed,
+            source: "placeholder"
+          };
+        }
+
+        const res = resolveThirdForMatch(matchId, allowed);
+
+        return {
+          name: res.name,
+          label: `3${res.groupKey}`,
+          groupKey: res.groupKey,
+          placeholder: false,
+          allowed,
+          source: res.source,
+          tableKey: res.tableKey,
+          fallback: res.fallback
+        };
+      }
+
+      if(slot.type === "WM"){
+        const w = getWinnerOfMatch(slot.m);
+        if(!w){
+          return {
+            name: `Winner Match ${slot.m}`,
+            label: `W${slot.m}`,
+            groupKey: "?",
+            placeholder: true,
+            source: "placeholder"
+          };
+        }
+        return {
+          name: w.name,
+          label: `W${slot.m}`,
+          groupKey: "?",
+          placeholder: false,
+          source: "winner"
+        };
+      }
+
+      if(slot.type === "LM"){
+        const l = getLoserOfMatch(slot.m);
+        if(!l){
+          return {
+            name: `Loser Match ${slot.m}`,
+            label: `L${slot.m}`,
+            groupKey: "?",
+            placeholder: true,
+            source: "placeholder"
+          };
+        }
+        return {
+          name: l.name,
+          label: `L${slot.m}`,
+          groupKey: "?",
+          placeholder: false,
+          source: "loser"
+        };
+      }
+
+      return { name: "TBD", label: "---", groupKey: "?", placeholder: true };
+    }
+
+    /* ==============================
+       14) Click-to-swap rules
+    ============================== */
+    function isClickSwapEnabledForZone(zoneKey){
+      if(editMode === "pools"){
+        return isPathZone(zoneKey);
+      }
+      if(editMode === "groups"){
+        return isGroupZone(zoneKey) || zoneKey === THIRD_RANK_ZONE;
+      }
+      return false;
+    }
+
+    function swapTeamsInArray(arr, id1, id2){
+      const i1 = arr.findIndex(t => t.id === id1);
+      const i2 = arr.findIndex(t => t.id === id2);
+      if(i1 === -1 || i2 === -1) return false;
+      [arr[i1], arr[i2]] = [arr[i2], arr[i1]];
+      return true;
+    }
+
+    function handleClickSwap(teamId, zone){
+      if(!isClickSwapEnabledForZone(zone)){
+        return;
+      }
+
+      if(!swapSelection){
+        swapSelection = { teamId, zone };
+        render();
+        return;
+      }
+
+      if(swapSelection.teamId === teamId && swapSelection.zone === zone){
+        swapSelection = null;
+        render();
+        return;
+      }
+
+      if(swapSelection.zone !== zone){
+        swapSelection = { teamId, zone };
+        render();
+        return;
+      }
+
+      const arr = getZoneArray(zone);
+      if(!arr) return;
+
+      const ok = swapTeamsInArray(arr, swapSelection.teamId, teamId);
+      swapSelection = null;
+
+      if(ok){
+        // derived will refresh on render
+      }
+
+      render();
+    }
+
+    function attachClickSwap(card){
+      card.addEventListener("click", () => {
+        handleClickSwap(card.dataset.id, card.dataset.zone);
+      });
+    }
+
+    /* ==============================
+       15) Form Groups
+    ============================== */
+    function upsertPathTeamInGroup(groupKey, pathId, chosenTeam){
+      const arr = state.groups[groupKey];
+      if(!arr) return;
+
+      const phIndex = arr.findIndex(t => t.isPlaceholder && t.pathId === pathId);
+      if(phIndex !== -1){
+        arr.splice(phIndex, 1, {
+          id: toId(`grp-${groupKey}-${pathId}-${chosenTeam.name}`),
+          name: chosenTeam.name,
+          tag: PATH_BY_ID[pathId].label,
+          chosenFromPath: true,
+          pathId
+        });
+        return;
+      }
+
+      const exIndex = arr.findIndex(t => t.chosenFromPath && t.pathId === pathId);
+      if(exIndex !== -1){
+        arr.splice(exIndex, 1, {
+          id: toId(`grp-${groupKey}-${pathId}-${chosenTeam.name}`),
+          name: chosenTeam.name,
+          tag: PATH_BY_ID[pathId].label,
+          chosenFromPath: true,
+          pathId
+        });
+        return;
+      }
+
+      arr.push({
+        id: toId(`grp-${groupKey}-${pathId}-${chosenTeam.name}`),
+        name: chosenTeam.name,
+        tag: PATH_BY_ID[pathId].label,
+        chosenFromPath: true,
+        pathId
+      });
+    }
+
+    function formGroupsFromPools(){
+      PATHS.forEach(p => {
+        const pathArr = state.paths[p.id];
+        if(!pathArr || pathArr.length === 0) return;
+
+        const chosen = pathArr[0];
+        upsertPathTeamInGroup(p.group, p.id, chosen);
+        markQualifiedAndEliminated(p.id);
+      });
+
+      editMode = "groups";
+      swapSelection = null;
+      render();
+    }
+
+    function reformPoolMode(){
+      editMode = "pools";
+      swapSelection = null;
+      clearPoolStatus();
+      render();
+    }
+
+    /* ==============================
+       16) Board builders
+    ============================== */
+    function makeSeparator(text, buttonOptions=null){
+      const sep = document.createElement("div");
+      sep.className = "stage-separator";
+
+      const left = document.createElement("div");
+      left.className = "stage-left";
+      left.innerHTML = `
+        <span class="stage-title">${text}</span>
+        <span class="stage-line"></span>
+      `;
+      sep.appendChild(left);
+
+      if(buttonOptions){
+        const btn = document.createElement("button");
+        btn.id = buttonOptions.id;
+        btn.textContent = buttonOptions.text;
+        sep.appendChild(btn);
+      }
+
+      return sep;
+    }
+
+    function makeColumn(title, zoneKey, subtitle = ""){
+      const col = document.createElement("section");
+      col.className = "column";
+      col.innerHTML = `
+        <div class="column-header">
+          <div class="column-title">${title}${subtitle ? ` • ${subtitle}` : ""}</div>
+          <div class="count" data-count-for="${zoneKey}"></div>
+        </div>
+        <div class="zone" data-zone="${zoneKey}"></div>
+      `;
+      return col;
+    }
+
+    function makeKOTile(match, stageKey){
+      const tile = document.createElement("div");
+      tile.className = "match-card r32-tile";
+      tile.dataset.matchId = String(match.id);
+      tile.dataset.stage = stageKey;
+      return tile;
+    }
+
+    function buildBoard(){
+      const board = document.getElementById("board");
+      board.innerHTML = "";
+
+      // Pools
+      board.appendChild(makeSeparator("Qualifier Pools (click-swap in Pool mode)"));
+      PATHS.forEach(p => {
+        board.appendChild(makeColumn(p.label, `path-${p.id}`, `feeds Group ${p.group}`));
+      });
+
+      // Groups
+      board.appendChild(
+        makeSeparator(
+          "Groups (click-swap in Group mode)",
+          { id:"formGroupsBtn", text:"Form Groups" }
+        )
+      );
+
+      GROUP_KEYS.forEach(g => {
+        board.appendChild(makeColumn(`Group ${g}`, `group-${g}`));
+      });
+
+      // Tools
+      board.appendChild(makeSeparator("Group Tools & Third-Place Logic"));
+      board.appendChild(makeColumn("Third Place Team Ranking", THIRD_RANK_ZONE, "A3 → L3"));
+      board.appendChild(makeColumn("Group Champions", CHAMP_ZONE, "A1 → L1"));
+      board.appendChild(makeColumn("Group Runners", RUNNERS_ZONE, "A2 → L2"));
+      board.appendChild(makeColumn("Top-8 Third Placed Teams", TOP8_ZONE, "auto"));
+
+      // R32
+      board.appendChild(
+        makeSeparator(
+          "Round of 32 (placeholder → generate → pick winners)",
+          { id:"generateR32Btn", text:"Generate R32" }
+        )
+      );
+      R32_MATCHES.forEach(m => board.appendChild(makeKOTile(m, "r32")));
+
+      // R16 → Final
+      KO_STAGES.forEach(stage => {
+        board.appendChild(makeSeparator(stage.label));
+        stage.matches.forEach(m => board.appendChild(makeKOTile(m, stage.key)));
+      });
+    }
+
+    /* ==============================
+       17) Render swap columns
+    ============================== */
+    function applyRankHighlight(cardEl, zone, idx, team){
+      cardEl.classList.remove("rank-strong", "rank-mild", "qualified", "eliminated");
+
+      if(isPathZone(zone)){
+        if(idx === 0) cardEl.classList.add("rank-strong");
+
+        if(editMode === "groups"){
+          if(team.isQualified) cardEl.classList.add("qualified");
+          if(team.isEliminated) cardEl.classList.add("eliminated");
+        }
+        return;
+      }
+
+      if(isGroupZone(zone)){
+        if(idx === 0 || idx === 1) cardEl.classList.add("rank-strong");
+        else if(idx === 2) cardEl.classList.add("rank-mild");
+        return;
+      }
+
+      if(zone === THIRD_RANK_ZONE){
+        if(idx < 8) cardEl.classList.add("rank-strong");
+        return;
+      }
+
+      if(zone === TOP8_ZONE){
+        cardEl.classList.add("rank-strong");
+        return;
+      }
+    }
+
+    /* ==============================
+       18) KO tile rendering
+    ============================== */
+    function renderAllKOTiles(){
+      renderKOTileSet(R32_MATCHES, true);
+
+      KO_STAGES.forEach(stage => {
+        renderKOTileSet(stage.matches, false);
+      });
+    }
+
+    function renderKOTileSet(matches, isR32){
+      matches.forEach(m => {
+        const tile = document.querySelector(`.r32-tile[data-match-id="${m.id}"]`);
+        if(!tile) return;
+
+        const L = resolveSlot(m.left, m.id);
+        const R = resolveSlot(m.right, m.id);
+
+        const winnerMap = isR32 ? state.r32Winners : state.koWinners;
+        const teamsMap  = isR32 ? state.r32Teams   : state.koTeams;
+
+        const winner = winnerMap[m.id];
+
+        tile.innerHTML = "";
+
+        const leftBtn = document.createElement("div");
+        leftBtn.className = "match-team";
+        leftBtn.textContent = L.name;
+
+        const rightBtn = document.createElement("div");
+        rightBtn.className = "match-team";
+        rightBtn.textContent = R.name;
+
+        const mid = document.createElement("div");
+        mid.className = "match-mid";
+
+        const canPick =
+          (isR32 ? state.r32Generated : true) &&
+          !L.placeholder && !R.placeholder;
+
+        // Store both teams when resolvable (this enables real loser names)
+        if(canPick){
+          teamsMap[m.id] = { L: L.name, R: R.name };
+        }
+
+        if(!canPick){
+          leftBtn.classList.add("locked");
+          rightBtn.classList.add("locked");
+          mid.textContent = "---";
+        } else {
+          leftBtn.addEventListener("click", () => {
+            const ab = teamAbbrev(L.name);
+            winnerMap[m.id] = { side:"L", name:L.name, abbrev:ab };
+            render();
+          });
+
+          rightBtn.addEventListener("click", () => {
+            const ab = teamAbbrev(R.name);
+            winnerMap[m.id] = { side:"R", name:R.name, abbrev:ab };
+            render();
+          });
+
+          mid.textContent = winner ? winner.abbrev : "---";
+        }
+
+        const meta = document.createElement("div");
+        meta.className = "match-meta";
+
+        const metaLeft = document.createElement("span");
+        metaLeft.textContent = `Match ${m.id}: ${L.label} vs ${R.label}`;
+
+        const metaRight = document.createElement("span");
+        metaRight.textContent = "";
+
+        // For R32 3SET source labels
+        if(isR32 && (m.right.type === "3SET" || m.left.type === "3SET")){
+          if(!state.r32Generated){
+            metaRight.textContent = "3rd-place: placeholder";
+          } else {
+            const src = (L.source === "table" || R.source === "table") ? "TABLE"
+                      : (L.source === "fallback" || R.source === "fallback") ? "FALLBACK"
+                      : "ALLOWED";
+            metaRight.textContent = `3rd-place: ${src}`;
+          }
+        }
+
+        meta.appendChild(metaLeft);
+        meta.appendChild(metaRight);
+
+        const info = isR32 ? R32_INFO[m.id] : KO_INFO[m.id];
+
+        const meta2 = document.createElement("div");
+        meta2.className = "match-meta secondary";
+
+        const meta2Left = document.createElement("span");
+        const meta2Right = document.createElement("span");
+
+        if(info){
+          meta2Left.innerHTML = `
+            <span class="match-chip">${info.date}</span>
+            <span class="match-chip">${info.time}</span>
+          `;
+          meta2Right.innerHTML = `
+            <span class="match-chip">${info.stadium}</span>
+            <span class="match-chip">${info.city}</span>
+          `;
+        } else {
+          meta2Left.textContent = "Date/Time TBD";
+          meta2Right.textContent = "Venue TBD";
+        }
+
+        meta2.appendChild(meta2Left);
+        meta2.appendChild(meta2Right);
+
+        tile.appendChild(leftBtn);
+        tile.appendChild(mid);
+        tile.appendChild(rightBtn);
+        tile.appendChild(meta);
+        tile.appendChild(meta2);
+      });
+    }
+
+    /* ==============================
+       19) Main render
     ============================== */
     function render(){
-      // Keep third-ranking synced with group A3..L3
       syncThirdRankingNames();
 
       zones.forEach(zone => {
@@ -929,8 +1399,6 @@ R32_MATCHES.forEach(m => {
         dz.innerHTML = "";
         const arr = getZoneArray(zone) ?? [];
 
-
-
         const gKey = isGroupZone(zone) ? groupKeyFromZone(zone) : null;
 
         arr.forEach((team, idx) => {
@@ -939,7 +1407,13 @@ R32_MATCHES.forEach(m => {
           card.dataset.id = team.id;
           card.dataset.zone = zone;
 
-          const editable = isClickSwapEnabledForZone(zone) && !team.isPlaceholder && zone !== CHAMP_ZONE && zone !== RUNNERS_ZONE && zone !== TOP8_ZONE;
+          const editable =
+            isClickSwapEnabledForZone(zone) &&
+            !team.isPlaceholder &&
+            zone !== CHAMP_ZONE &&
+            zone !== RUNNERS_ZONE &&
+            zone !== TOP8_ZONE;
+
           if(!editable) card.classList.add("locked");
 
           applyRankHighlight(card, zone, idx, team);
@@ -948,7 +1422,6 @@ R32_MATCHES.forEach(m => {
             card.classList.add("swap-armed");
           }
 
-          // Tag text
           let tagText = "";
 
           if(isPathZone(zone)){
@@ -988,482 +1461,31 @@ R32_MATCHES.forEach(m => {
           dz.appendChild(card);
         });
 
-        // Extra summary line for Top-8 Third Placed column
-                if(zone === TOP8_ZONE){
-                  const summary = document.createElement("div");
-                  summary.className = "top8-summary";
-                  summary.textContent = qualifiedThirdGroupLetters || "—";
-                  dz.appendChild(summary);
-                }
-
-
-
-
-
+        if(zone === TOP8_ZONE){
+          const summary = document.createElement("div");
+          summary.className = "top8-summary";
+          summary.textContent = qualifiedThirdGroupLetters || "—";
+          dz.appendChild(summary);
+        }
 
         const countEl = document.querySelector(`[data-count-for="${zone}"]`);
         if(countEl){
           countEl.textContent = `${arr.length} team${arr.length !== 1 ? "s" : ""}`;
         }
       });
-      
-      renderR32Tiles();
 
-      const noteZone = document.querySelector('.zone[data-zone="r32-note"]');
-            if(noteZone){
-              noteZone.innerHTML = "";
-              const p = document.createElement("div");
-              p.className = "r32-fallback-note";
-              p.textContent = !state.r32Generated
-                ? "R32 not generated yet. Third-place slots are placeholders from the FIFA mapping sets."
-                : "R32 generated. 3rd-place mapping currently uses Allowed-set ranking (until you add TABLE).";
-              noteZone.appendChild(p);
-            }
-
-
+      renderAllKOTiles();
       updateStagePillAndButtons();
     }
 
-    function applyRankHighlight(cardEl, zone, idx, team){
-      cardEl.classList.remove("rank-strong", "rank-mild", "qualified", "eliminated");
-
-      if(isPathZone(zone)){
-        // Pool topper highlight always
-        if(idx === 0) cardEl.classList.add("rank-strong");
-
-        // When in group edit mode, show qualified/eliminated styling
-        if(editMode === "groups"){
-          if(team.isQualified) cardEl.classList.add("qualified");
-          if(team.isEliminated) cardEl.classList.add("eliminated");
-        }
-        return;
-      }
-
-      if(isGroupZone(zone)){
-        if(idx === 0 || idx === 1) cardEl.classList.add("rank-strong");
-        else if(idx === 2) cardEl.classList.add("rank-mild");
-        return;
-      }
-
-      if(zone === THIRD_RANK_ZONE){
-        // Top 8 highlight like pool topper style
-        if(idx < 8) cardEl.classList.add("rank-strong");
-        return;
-      }
-
-       if(zone === TOP8_ZONE){
-                  cardEl.classList.add("rank-strong");
-                  return;
-                }
-    }
-
-    function getGroupPosTeam(g, idx){
-  const t = state.groups[g]?.[idx];
-  if(!t || t.isPlaceholder) return { name: fallbackPathNameForGroup(g), groupKey: g };
-  return { name: t.name, groupKey: g };
-}
-
-function parseAllowedThird(spec){
-  // spec like "A/B/C/D/F"
-  return spec.split("/").map(s => s.trim()).filter(Boolean);
-}
-
-
-const R32_INFO = {
-  73: { date: "June 28, 2026", time: "12:00 p.m. (UTC−7)", stadium: "SoFi Stadium", city: "Inglewood" },
-
-  74: { date: "June 29, 2026", time: "4:30 p.m. (UTC−4)", stadium: "Gillette Stadium", city: "Foxborough" },
-  75: { date: "June 29, 2026", time: "7:00 p.m. (UTC−6)", stadium: "Estadio BBVA", city: "Guadalupe" },
-  76: { date: "June 29, 2026", time: "12:00 p.m. (UTC−5)", stadium: "NRG Stadium", city: "Houston" },
-
-  77: { date: "June 30, 2026", time: "5:00 p.m. (UTC−4)", stadium: "MetLife Stadium", city: "East Rutherford" },
-  78: { date: "June 30, 2026", time: "12:00 p.m. (UTC−5)", stadium: "AT&T Stadium", city: "Arlington" },
-  79: { date: "June 30, 2026", time: "7:00 p.m. (UTC−6)", stadium: "Estadio Azteca", city: "Mexico City" },
-
-  80: { date: "July 1, 2026", time: "12:00 p.m. (UTC−4)", stadium: "Mercedes-Benz Stadium", city: "Atlanta" },
-  81: { date: "July 1, 2026", time: "5:00 p.m. (UTC−7)", stadium: "Levi's Stadium", city: "Santa Clara" },
-  82: { date: "July 1, 2026", time: "1:00 p.m. (UTC−7)", stadium: "Lumen Field", city: "Seattle" },
-
-  83: { date: "July 2, 2026", time: "7:00 p.m. (UTC−4)", stadium: "BMO Field", city: "Toronto" },
-  84: { date: "July 2, 2026", time: "12:00 p.m. (UTC−7)", stadium: "SoFi Stadium", city: "Inglewood" },
-  85: { date: "July 2, 2026", time: "8:00 p.m. (UTC−7)", stadium: "BC Place", city: "Vancouver" },
-
-  86: { date: "July 3, 2026", time: "6:00 p.m. (UTC−4)", stadium: "Hard Rock Stadium", city: "Miami Gardens" },
-  87: { date: "July 3, 2026", time: "8:30 p.m. (UTC−5)", stadium: "Arrowhead Stadium", city: "Kansas City" },
-  88: { date: "July 3, 2026", time: "1:00 p.m. (UTC−5)", stadium: "AT&T Stadium", city: "Arlington" }
-};
-    
-const R32_MATCHES = [
-  { id: 73, left: {type:"RU", g:"A"}, right:{type:"RU", g:"B"} },
-  { id: 74, left: {type:"W",  g:"E"}, right:{type:"3SET", set:"A/B/C/D/F"} },
-  { id: 75, left: {type:"W",  g:"F"}, right:{type:"RU", g:"C"} },
-  { id: 76, left: {type:"W",  g:"C"}, right:{type:"RU", g:"F"} },
-
-  { id: 77, left: {type:"W",  g:"I"}, right:{type:"3SET", set:"C/D/F/G/H"} },
-  { id: 78, left: {type:"RU", g:"E"}, right:{type:"RU", g:"I"} },
-  { id: 79, left: {type:"W",  g:"A"}, right:{type:"3SET", set:"C/E/F/H/I"} },
-  { id: 80, left: {type:"W",  g:"L"}, right:{type:"3SET", set:"E/H/I/J/K"} },
-
-  { id: 81, left: {type:"W",  g:"D"}, right:{type:"3SET", set:"B/E/F/I/J"} },
-  { id: 82, left: {type:"W",  g:"G"}, right:{type:"3SET", set:"A/E/H/I/J"} },
-  { id: 83, left: {type:"RU", g:"K"}, right:{type:"RU", g:"L"} },
-  { id: 84, left: {type:"W",  g:"H"}, right:{type:"RU", g:"J"} },
-
-  { id: 85, left: {type:"W",  g:"B"}, right:{type:"3SET", set:"E/F/G/I/J"} },
-  { id: 86, left: {type:"W",  g:"J"}, right:{type:"RU", g:"H"} },
-  { id: 87, left: {type:"W",  g:"K"}, right:{type:"3SET", set:"D/E/I/J/L"} },
-  { id: 88, left: {type:"RU", g:"D"}, right:{type:"RU", g:"G"} }
-];
-
-    // You will fill this later based on FIFA's third-place mapping table.
-const THIRD_TABLE = {};
-
-function resolveThirdForMatch(matchId, allowedLetters){
-  computeTop8ThirdPlaced();
-
-  const key = qualifiedThirdGroupLetters; // sorted letters
-  const row = THIRD_TABLE[key];
-
-  // Table has priority if you add it later
-  if(row && row[matchId]){
-    const tag = row[matchId]; // e.g. "3E"
-    const g = tag.replace("3", "");
-    const third = state.thirdRanking.find(x => x.groupKey === g);
-    const name = third ? third.name : tag;
-
-    return { groupKey: g, name, source: "table", tableKey: key, fallback: false };
-  }
-
-  // Otherwise use allowed/fallback logic
-  const res = resolveThirdFromAllowedGroups(allowedLetters);
-  return {
-    groupKey: res.groupKey,
-    name: res.name,
-    source: res.fallback ? "fallback" : "allowed",
-    tableKey: key,
-    fallback: res.fallback
-  };
-}
-
-
-function resolveSlot(slot, matchId){
-  if(slot.type === "W"){
-    const t = getGroupPosTeam(slot.g, 0);
-    return { name: t.name, label: `1${slot.g}`, groupKey: slot.g, placeholder: false };
-  }
-
-  if(slot.type === "RU"){
-    const t = getGroupPosTeam(slot.g, 1);
-    return { name: t.name, label: `2${slot.g}`, groupKey: slot.g, placeholder: false };
-  }
-
-  if(slot.type === "3SET"){
-    const allowed = parseAllowedThird(slot.set);
-
-    // BEFORE generation: show placeholder like 3C/3D/3F/3G/3H
-    if(!state.r32Generated){
-      const ph = thirdPlaceholderName(slot.set);
-      return {
-        name: ph,
-        label: ph,
-        groupKey: "?",
-        placeholder: true,
-        allowed,
-        source: "placeholder"
-      };
-    }
-
-    // AFTER generation: resolve via table (if present) else allowed/fallback
-    const res = resolveThirdForMatch(matchId, allowed);
-
-    return {
-      name: res.name,
-      label: `3${res.groupKey}`,
-      groupKey: res.groupKey,
-      placeholder: false,
-      allowed,
-      source: res.source,
-      tableKey: res.tableKey,
-      fallback: res.fallback
-    };
-  }
-
-  return { name: "TBD", label: "---", groupKey: "?", placeholder: true };
-}
-
-
-function renderR32Tiles(){
-  let anyFallback = false;
-  let anyTable = false;
-  let tableKeyUsed = "";
-
-  R32_MATCHES.forEach(m => {
-    const tile = document.querySelector(`.r32-tile[data-match-id="${m.id}"]`);
-    if(!tile) return;
-
-    const L = resolveSlot(m.left, m.id);
-    const R = resolveSlot(m.right, m.id);
-
-    const winner = state.r32Winners[m.id];
-
-    // track source summary
-    if(L.source === "fallback" || R.source === "fallback") anyFallback = true;
-    if(L.source === "table" || R.source === "table"){
-      anyTable = true;
-      tableKeyUsed = L.tableKey || R.tableKey || tableKeyUsed;
-    }
-
-    // rebuild tile content
-    tile.innerHTML = "";
-
-    const leftBtn = document.createElement("div");
-    leftBtn.className = "match-team";
-    leftBtn.textContent = L.name;
-
-    const rightBtn = document.createElement("div");
-    rightBtn.className = "match-team";
-    rightBtn.textContent = R.name;
-
-    const mid = document.createElement("div");
-    mid.className = "match-mid";
-
-    const canPick = state.r32Generated && !L.placeholder && !R.placeholder;
-
-    if(!canPick){
-      leftBtn.classList.add("locked");
-      rightBtn.classList.add("locked");
-      mid.textContent = "---";
-    } else {
-      leftBtn.addEventListener("click", () => {
-        const ab = teamAbbrev(L.name);
-        state.r32Winners[m.id] = { side:"L", name:L.name, abbrev:ab };
-        render();
-      });
-
-      rightBtn.addEventListener("click", () => {
-        const ab = teamAbbrev(R.name);
-        state.r32Winners[m.id] = { side:"R", name:R.name, abbrev:ab };
-        render();
-      });
-
-      mid.textContent = winner ? winner.abbrev : "---";
-    }
-
-    const meta = document.createElement("div");
-    meta.className = "match-meta";
-
-    const metaLeft = document.createElement("span");
-    metaLeft.textContent = `Match ${m.id}: ${L.label} vs ${R.label}`;
-
-    const metaRight = document.createElement("span");
-    if(m.right.type === "3SET" || m.left.type === "3SET"){
-      if(!state.r32Generated){
-        metaRight.textContent = "3rd-place: placeholder";
-      } else {
-        const src = (L.source === "table" || R.source === "table") ? "TABLE"
-                  : (L.source === "fallback" || R.source === "fallback") ? "FALLBACK"
-                  : "ALLOWED";
-        metaRight.textContent = `3rd-place: ${src}`;
-      }
-    }
-
-    meta.appendChild(metaLeft);
-    meta.appendChild(metaRight);
-
-    const info = R32_INFO[m.id];
-
-    const meta2 = document.createElement("div");
-    meta2.className = "match-meta secondary";
-
-    const meta2Left = document.createElement("span");
-    const meta2Right = document.createElement("span");
-
-    if(info){
-      meta2Left.innerHTML = `
-        <span class="match-chip">${info.date}</span>
-        <span class="match-chip">${info.time}</span>
-      `;
-      meta2Right.innerHTML = `
-        <span class="match-chip">${info.stadium}</span>
-        <span class="match-chip">${info.city}</span>
-      `;
-    } else {
-      meta2Left.textContent = "Date/Time TBD";
-      meta2Right.textContent = "Venue TBD";
-    }
-
-    meta2.appendChild(meta2Left);
-    meta2.appendChild(meta2Right);
-
-    tile.appendChild(leftBtn);
-    tile.appendChild(mid);
-    tile.appendChild(rightBtn);
-    tile.appendChild(meta);
-    tile.appendChild(meta2);
-  });
-
-  // Optional global summary line (if you want one)
-  // You can add this later as a separate full-width note if you prefer.
-}
-
-
-
-    function thirdPlaceholderName(setSpec){
-        // "C/D/F/G/H" -> "3C/3D/3F/3G/3H"
-        return setSpec
-          .split("/")
-          .map(s => s.trim())
-          .filter(Boolean)
-          .map(g => `3${g}`)
-          .join("/");
-      }
-
-    
-
-
-
-
     /* ==============================
-       11) Click-to-swap logic
-    ============================== */
-    function swapTeamsInArray(arr, id1, id2){
-      const i1 = arr.findIndex(t => t.id === id1);
-      const i2 = arr.findIndex(t => t.id === id2);
-      if(i1 === -1 || i2 === -1) return false;
-      [arr[i1], arr[i2]] = [arr[i2], arr[i1]];
-      return true;
-    }
-
-    function handleClickSwap(teamId, zone){
-      // Ignore clicks in locked zones
-      if(!isClickSwapEnabledForZone(zone)){
-        return;
-      }
-
-      if(!swapSelection){
-        swapSelection = { teamId, zone };
-        render();
-        return;
-      }
-
-      // Clicking same card cancels
-      if(swapSelection.teamId === teamId && swapSelection.zone === zone){
-        swapSelection = null;
-        render();
-        return;
-      }
-
-      // Different zone = re-arm within new editable zone
-      if(swapSelection.zone !== zone){
-        swapSelection = { teamId, zone };
-        render();
-        return;
-      }
-
-      // Same zone: perform swap
-      const arr = getZoneArray(zone);
-      if(!arr) return;
-
-      const ok = swapTeamsInArray(arr, swapSelection.teamId, teamId);
-      swapSelection = null;
-
-      if(ok){
-        // If swapping in groups, third-ranking names should refresh automatically
-        // If swapping in pools (pool mode), #1 changes for later Form Groups
-      }
-
-      render();
-    }
-
-    function attachClickSwap(card){
-      card.addEventListener("click", () => {
-        handleClickSwap(card.dataset.id, card.dataset.zone);
-      });
-    }
-
-    /* ==============================
-       12) Form Groups (COPY, don't move)
-       - Works both first time and re-form
-    ============================== */
-    function upsertPathTeamInGroup(groupKey, pathId, chosenTeam){
-      const arr = state.groups[groupKey];
-      if(!arr) return;
-
-      // 1) Replace placeholder if present
-      const phIndex = arr.findIndex(t => t.isPlaceholder && t.pathId === pathId);
-      if(phIndex !== -1){
-        arr.splice(phIndex, 1, {
-          id: toId(`grp-${groupKey}-${pathId}-${chosenTeam.name}`),
-          name: chosenTeam.name,
-          tag: PATH_BY_ID[pathId].label,
-          chosenFromPath: true,
-          pathId
-        });
-        return;
-      }
-
-      // 2) Otherwise, replace existing chosen-from-path entry
-      const exIndex = arr.findIndex(t => t.chosenFromPath && t.pathId === pathId);
-      if(exIndex !== -1){
-        arr.splice(exIndex, 1, {
-          id: toId(`grp-${groupKey}-${pathId}-${chosenTeam.name}`),
-          name: chosenTeam.name,
-          tag: PATH_BY_ID[pathId].label,
-          chosenFromPath: true,
-          pathId
-        });
-        return;
-      }
-
-      // 3) Fallback: append (should rarely happen)
-      arr.push({
-        id: toId(`grp-${groupKey}-${pathId}-${chosenTeam.name}`),
-        name: chosenTeam.name,
-        tag: PATH_BY_ID[pathId].label,
-        chosenFromPath: true,
-        pathId
-      });
-    }
-
-    function formGroupsFromPools(){
-      // Update groups from current #1 in each pool
-      PATHS.forEach(p => {
-        const pathArr = state.paths[p.id];
-        if(!pathArr || pathArr.length === 0) return;
-
-        const chosen = pathArr[0];
-        upsertPathTeamInGroup(p.group, p.id, chosen);
-        markQualifiedAndEliminated(p.id);
-      });
-
-      // Switch edit mode
-      editMode = "groups";
-      swapSelection = null;
-      render();
-    }
-
-    function reformPoolMode(){
-      // Lock groups, unlock pools, remove Q/E styling in visual terms
-      editMode = "pools";
-      swapSelection = null;
-      clearPoolStatus();
-      render();
-    }
-
-    /* ==============================
-       13) Buttons + stage UI
+       20) Buttons + stage UI
     ============================== */
     function updateStagePillAndButtons(){
       const pill = document.getElementById("stagePill");
       const reformBtn = document.getElementById("reformPoolBtn");
       const formBtn = document.getElementById("formGroupsBtn");
       const genR32Btn = document.getElementById("generateR32Btn");
-            if(genR32Btn){
-              // allow generation only in group mode (optional but cleaner)
-              genR32Btn.disabled = false;
-            }
-
-      
 
       if(pill){
         pill.textContent = editMode === "pools" ? "Edit: Pools" : "Edit: Groups";
@@ -1474,8 +1496,11 @@ function renderR32Tiles(){
       }
 
       if(formBtn){
-        // Form Groups is meaningful only in pool edit mode
         formBtn.disabled = (editMode !== "pools");
+      }
+
+      if(genR32Btn){
+        genR32Btn.disabled = (editMode !== "groups");
       }
     }
 
@@ -1484,7 +1509,6 @@ function renderR32Tiles(){
       const reformBtn = document.getElementById("reformPoolBtn");
       const formBtn = document.getElementById("formGroupsBtn");
       const genR32Btn = document.getElementById("generateR32Btn");
-
 
       if(formBtn){
         formBtn.addEventListener("click", () => {
@@ -1506,23 +1530,24 @@ function renderR32Tiles(){
           swapSelection = null;
           buildBoard();
           render();
-          wireButtons(); // because Form Groups button is rebuilt
+          wireButtons();
         });
       }
 
       if(genR32Btn){
-            genR32Btn.addEventListener("click", () => {
-              // reset winners, then generate
-              state.r32Winners = {};
-              state.r32Generated = true;
-              render();
-            });
-          }
-
+        genR32Btn.addEventListener("click", () => {
+          state.r32Winners = {};
+          state.r32Teams = {};
+          state.koWinners = {};
+          state.koTeams = {};
+          state.r32Generated = true;
+          render();
+        });
+      }
     }
 
     /* ==============================
-       14) Boot
+       21) Boot
     ============================== */
     document.addEventListener("DOMContentLoaded", () => {
       buildBoard();
