@@ -254,15 +254,19 @@
     }
 
     .top8-summary{
-      margin-top: 8px;
-      padding: 8px 10px;
-      font-size: 11px;
-      color: var(--muted);
-      border: 1px dashed var(--border);
-      border-radius: 10px;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-    }
+          margin-top: 10px;
+          padding: 10px 12px;
+          font-size: 14px;
+          font-weight: 800;
+          color: var(--text);
+          border: 1px dashed var(--border);
+          border-radius: 10px;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+          text-align: center;
+          background: rgba(255,255,255,0.03);
+        }
+
   </style>
 </head>
 
@@ -383,19 +387,40 @@
       });
       return paths;
     }
+    
+function fallbackPathNameForGroup(g){
+        const p = PATHS.find(x => x.group === g);
+        if(!p) return "TBD";
+      
+        if(p.id.startsWith("ufeapath-")){
+          const letter = p.id.replace("ufeapath-",""); // a/b/c/d
+          const map = { a: 1, b: 2, c: 3, d: 4 };
+          const n = map[letter] ?? letter.toUpperCase();
+          return `UEFA Path ${n}`;
+        }
+      
+        if(p.id.startsWith("fifaicpath-")){
+          const n = p.id.replace("fifaicpath-","");
+          return `FIFA IC Path ${n}`;
+        }
+      
+        return p.label;
+      }
 
-    function buildThirdRankingFromGroups(groups){
-      const base = [];
-      GROUP_KEYS.forEach(g => {
-        const third = groups[g]?.[2];
-        base.push({
-          id: toId(`third-${g}-${third?.name ?? "tbd"}`),
-          groupKey: g,
-          name: third?.name ?? "TBD"
-        });
-      });
-      return base;
-    }
+   function buildThirdRankingFromGroups(groups){
+          const base = [];
+          GROUP_KEYS.forEach(g => {
+            const third = groups[g]?.[2];
+        
+            base.push({
+              id: toId(`third-${g}-${third?.name ?? "tbd"}`),
+              groupKey: g,
+              name: third?.name ?? fallbackPathNameForGroup(g)
+            });
+          });
+          return base;
+        }
+
 
     const initialState = () => {
       const groups = buildGroupsFromDefaults();
@@ -531,11 +556,12 @@
       // Add missing groups
       GROUP_KEYS.forEach(g => {
         if(!existingByGroup.has(g)){
-          state.thirdRanking.push({
+         state.thirdRanking.push({
             id: toId(`third-${g}-tbd`),
             groupKey: g,
-            name: "TBD"
+            name: fallbackPathNameForGroup(g)
           });
+
         }
       });
 
@@ -544,32 +570,47 @@
 
       // Update names based on current group 3rd-place
       state.thirdRanking.forEach(item => {
-        const third = getThirdTeamForGroup(item.groupKey);
-        item.name = third ? third.name : "TBD";
-      });
+            const third = getThirdTeamForGroup(item.groupKey);
+            item.name = third ? third.name : fallbackPathNameForGroup(item.groupKey);
+          });
+
     }
 
     function computeChampions(){
-      return GROUP_KEYS.map(g => {
-        const t = state.groups[g]?.[0];
-        return {
-          id: toId(`champ-${g}-${t?.name ?? "tbd"}`),
-          name: t?.name ?? "TBD",
-          groupKey: g
-        };
-      });
-    }
+          return GROUP_KEYS.map(g => {
+            const t = state.groups[g]?.[0];
+        
+            const name =
+              (!t || t.isPlaceholder)
+                ? fallbackPathNameForGroup(g)
+                : t.name;
+        
+            return {
+              id: toId(`champ-${g}-${name}`),
+              name,
+              groupKey: g
+            };
+          });
+        }
 
-    function computeRunners(){
-      return GROUP_KEYS.map(g => {
-        const t = state.groups[g]?.[1];
-        return {
-          id: toId(`runner-${g}-${t?.name ?? "tbd"}`),
-          name: t?.name ?? "TBD",
-          groupKey: g
-        };
-      });
-    }
+
+   function computeRunners(){
+          return GROUP_KEYS.map(g => {
+            const t = state.groups[g]?.[1];
+        
+            const name =
+              (!t || t.isPlaceholder)
+                ? fallbackPathNameForGroup(g)
+                : t.name;
+        
+            return {
+              id: toId(`runner-${g}-${name}`),
+              name,
+              groupKey: g
+            };
+          });
+        }
+
 
    function computeTop8ThirdPlaced(){
         syncThirdRankingNames();
