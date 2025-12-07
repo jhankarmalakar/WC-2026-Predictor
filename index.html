@@ -510,16 +510,19 @@ function fallbackPathNameForGroup(g){
     const TOP8_ZONE       = "top8-third-view";
     const R32_ZONE = "r32-fixtures";
     const ABBR_ZONE = "abbr-table";
-          zones.push(ABBR_ZONE);
-
 
 
       const zones = [
-            ...pathZones,
-            ...groupZones,
-            THIRD_RANK_ZONE, CHAMP_ZONE, RUNNERS_ZONE, TOP8_ZONE,
-            R32_ZONE
-          ];
+        ...pathZones,
+        ...groupZones,
+        THIRD_RANK_ZONE,
+        CHAMP_ZONE,
+        RUNNERS_ZONE,
+        TOP8_ZONE,
+        R32_ZONE,
+        ABBR_ZONE
+      ];
+
 
     const isPathZone = (z) => z.startsWith("path-");
     const isGroupZone = (z) => z.startsWith("group-");
@@ -818,6 +821,9 @@ function fallbackPathNameForGroup(g){
       if(zoneKey === R32_ZONE){
         return []; // rendered manually
       }
+      if(zoneKey === ABBR_ZONE){
+        return []; // rendered via renderAbbrTable in render()
+}
 
       return null;
     }
