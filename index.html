@@ -45,6 +45,11 @@
       --orange-bg-1: rgba(255, 168, 64, 0.28);
       --orange-bg-2: rgba(255, 122, 64, 0.18);
       --orange-br:   rgba(255, 170, 90, 0.70);
+
+      /* Green primary action */
+      --green-bg-1: rgba(94, 230, 168, 0.26);
+      --green-bg-2: rgba(94, 230, 168, 0.12);
+      --green-br:   rgba(94, 230, 168, 0.75);
     }
 
     *{box-sizing:border-box}
@@ -60,19 +65,27 @@
       padding: 18px 20px 8px 20px;
       display:flex;
       gap:12px;
-      align-items:center;
+      align-items:flex-start;
       justify-content:space-between;
       flex-wrap: wrap;
     }
     header h1{
-      font-size: 18px;
-      font-weight: 650;
-      margin:0 0 2px 0;
+      font-size: 19px;
+      font-weight: 700;
+      margin:0 0 8px 0;
+      letter-spacing: 0.2px;
     }
     header .hint{
       color:var(--muted);
-      font-size: 11.5px;
+      font-size: 12.5px;
+      line-height: 1.45;
       max-width: 95ch;
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+    }
+    .hint-line{
+      padding-left: 2px;
     }
 
     .actions{
@@ -80,16 +93,7 @@
       gap:10px;
       align-items:center;
       flex-wrap: wrap;
-    }
-
-    .stage-pill{
-      font-size: 11.5px;
-      color: var(--text);
-      border: 1px solid var(--border);
-      padding: 9px 12px;
-      border-radius: 12px;
-      background: rgba(255,255,255,0.05);
-      letter-spacing: 0.2px;
+      padding-top: 2px;
     }
 
     /* Base buttons */
@@ -127,6 +131,18 @@
       background: linear-gradient(135deg, rgba(255, 180, 90, 0.35), rgba(255, 120, 70, 0.22));
     }
 
+    /* Green primary button */
+    .btn-green{
+      background: linear-gradient(135deg, var(--green-bg-1), var(--green-bg-2));
+      border: 1px solid var(--green-br);
+      box-shadow:
+        0 0 0 1px rgba(94,230,168,0.10) inset,
+        0 6px 16px rgba(0,0,0,0.18);
+    }
+    .btn-green:hover{
+      background: linear-gradient(135deg, rgba(94,230,168,0.34), rgba(94,230,168,0.18));
+    }
+
     /* ==========================
        R32 out-of-date badge
     ========================== */
@@ -144,7 +160,6 @@
       vertical-align: middle;
       line-height: 1.1;
 
-      /* Optional subtle pop */
       animation: badgeGlowPulse 1.8s ease-in-out infinite;
       transform-origin: left center;
     }
@@ -192,21 +207,22 @@
       align-items:center;
       justify-content: space-between;
       gap: 10px;
-      padding: 10px 6px 2px 6px;
+      padding: 14px 6px 4px 6px;
       flex-wrap: wrap;
     }
     .stage-left{
       display:flex;
       align-items:center;
-      gap: 10px;
+      gap: 12px;
       min-width: 0;
       flex: 1;
     }
     .stage-title{
-      font-size: 11px;
-      letter-spacing: 0.35px;
+      font-size: 14.5px;
+      font-weight: 800;
+      letter-spacing: 0.6px;
       text-transform: uppercase;
-      color: rgba(255,255,255,0.55);
+      color: rgba(255,255,255,0.80);
       white-space: nowrap;
     }
     .stage-line{
@@ -365,10 +381,18 @@
     }
 
     /* ==========================
-       Knockout layout (full width)
+       Knockout layout + section border
     ========================== */
-    .ko-grid{
+    .ko-section{
       grid-column: 1 / -1;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .ko-grid{
       display:grid;
       grid-template-columns: 1fr;
       gap: 12px;
@@ -489,9 +513,8 @@
     }
 
     .r32-note{
-      grid-column: 1 / -1;
-      margin-top: 2px;
-      font-size: 10.5px;
+      margin-top: 8px;
+      font-size: 10.8px;
       color: var(--muted);
       opacity: 0.9;
     }
@@ -503,17 +526,17 @@
     <div>
       <h1>Qualifier Pools → Groups → Third Ranking → Knockouts</h1>
       <div class="hint">
-        Click/tap two teams in the same editable zone to swap.
-        Use “Place qualifiers to the groups” to copy pool winners into groups.
-        R32 third-place assignments are frozen once generated — reordering the Third Ranking won’t change R32
-        until you click “Regenerate R32”.
+        <div class="hint-line">Click/tap two teams in the same editable zone to swap positions.</div>
+        <div class="hint-line">Use “Place qualifiers to the groups” to copy pool winners into groups.</div>
+        <div class="hint-line">
+          R32 third-place assignments are frozen once generated — reordering the Third Ranking won’t update R32
+          and subsequent fixtures until you click “Regenerate R32”.
+        </div>
       </div>
     </div>
 
     <div class="actions">
-      <span class="stage-pill" id="stagePill">Edit: Pools</span>
-      <button id="reformPoolBtn" disabled>Reform Pool</button>
-      <button id="resetBtn">Reset</button>
+      <button id="resetBtn">Reset ALL</button>
     </div>
   </header>
 
@@ -774,7 +797,7 @@
     let qualifiedThirdGroupLetters = "";
     let qualifiedThirdPlacedTeams = [];
 
-    // NEW: R32 out-of-date tracking for third ranking reorder
+    // R32 out-of-date tracking for third ranking reorder
     let thirdRankingDirty = false;
 
     /* ==============================
@@ -906,8 +929,6 @@
     /* ==============================
        7) KO structure
     ============================== */
-    // Store venue-time + offset so we can render LOCAL user time.
-    // offsetHours example: -7 means venue time is UTC-7.
     const R32_INFO = {
       73: { date: "June 28, 2026", time: "12:00 p.m.", offsetHours:-7, stadium: "SoFi Stadium", city: "Inglewood" },
       74: { date: "June 29, 2026", time: "4:30 p.m.",  offsetHours:-4, stadium: "Gillette Stadium", city: "Foxborough" },
@@ -1023,27 +1044,23 @@
 
     /* ==============================
        8) Third-place mapping table
-       - partial (your paste)
+       - keep ONLY TWO entries as requested
     ============================== */
     const THIRD_MATCH_ID_ORDER = [74, 77, 79, 80, 81, 82, 85, 87];
 
     const THIRD_TABLE_RAW = {
-       "EFGHIJKL ": ["3E","3J","3I","3F","3H","3G","3L","3K"],
-       "DFGHIJKL ": ["3H","3G","3I","3D","3J","3F","3L","3K"],
-
-       // (keep as you had)
-       "ABCDEFGJ": ["3C","3G","3B","3D","3A","3F","3E","3J"],
-       "ABCDEFGI": ["3C","3G","3B","3D","3A","3F","3E","3I"],
-       "ABCDEFGH": ["3H","3G","3B","3C","3A","3F","3D","3E"]
+      "EFGHIJKL": ["3E","3J","3I","3F","3H","3G","3L","3K"],
+      "DFGHIJKL": ["3H","3G","3I","3D","3J","3F","3L","3K"]
     };
 
     const THIRD_TABLE = Object.fromEntries(
       Object.entries(THIRD_TABLE_RAW).map(([key, arr]) => {
+        const cleanKey = String(key).trim();
         const matchMap = {};
         THIRD_MATCH_ID_ORDER.forEach((mid, i) => {
           matchMap[mid] = arr[i];
         });
-        return [key, matchMap];
+        return [cleanKey, matchMap];
       })
     );
 
@@ -1130,21 +1147,18 @@
 
     /* ==============================
        10) Build R32 third snapshot
-       - FREEZE until Regenerate
     ============================== */
     function buildR32ThirdSnapshot(){
-      // Uses current thirdRanking order.
-      const top8 = computeTop8ThirdPlaced(); // also fills qualifiedThirdGroupLetters / teams
+      const top8 = computeTop8ThirdPlaced();
       const letters = qualifiedThirdGroupLetters;
 
       const tableRow = THIRD_TABLE[letters];
 
-      const assignment = {}; // matchId -> { groupKey, name, source }
+      const assignment = {};
 
       if(tableRow){
-        // Use table mapping
         THIRD_MATCH_ID_ORDER.forEach(mid => {
-          const tag = tableRow[mid]; // "3E"
+          const tag = tableRow[mid];
           const g = tag.replace("3","");
           const found = state.thirdRanking.find(x => x.groupKey === g);
           assignment[mid] = {
@@ -1154,20 +1168,16 @@
           };
         });
       } else {
-        // Greedy UNIQUE fallback using allowed sets
         const rankedTop8 = state.thirdRanking.slice(0,8);
         const used = new Set();
 
         function pickAllowedUnique(allowed){
-          // 1) try highest ranked within allowed
           const cand1 = rankedTop8.find(x => allowed.includes(x.groupKey) && !used.has(x.groupKey));
           if(cand1) return cand1;
-          // 2) else highest ranked unused overall
           const cand2 = rankedTop8.find(x => !used.has(x.groupKey));
           return cand2 || null;
         }
 
-        // find matches that actually need 3SET in your R32 list
         const thirdMatches = R32_MATCHES.filter(m =>
           m.left.type === "3SET" || m.right.type === "3SET"
         );
@@ -1256,7 +1266,6 @@
           return { name: ph, label: ph, placeholder:true, source:"placeholder", allowed };
         }
 
-        // AFTER generation: USE SNAPSHOT ONLY
         const snap = state.r32ThirdSnapshot;
         const assign = snap?.assignment?.[matchId];
 
@@ -1269,7 +1278,6 @@
           };
         }
 
-        // Safety fallback
         return { name:"3rd TBD", label:"3?", placeholder:true, source:"fallback", allowed };
       }
       if(slot.type === "WM"){
@@ -1303,6 +1311,64 @@
         if(m) return m;
       }
       return null;
+    }
+
+    function getAllMatchesFlat(){
+      return [
+        ...R32_MATCHES,
+        ...R16_MATCHES,
+        ...QF_MATCHES,
+        ...SF_MATCHES,
+        ...THIRD_MATCH,
+        ...FINAL_MATCH
+      ];
+    }
+
+    function getR32ThirdDependentMatchIds(){
+      return R32_MATCHES
+        .filter(m => m.left.type === "3SET" || m.right.type === "3SET")
+        .map(m => m.id);
+    }
+
+    function buildDependencyGraph(){
+      const graph = new Map();
+      const all = getAllMatchesFlat();
+      all.forEach(m => {
+        [m.left, m.right].forEach(slot => {
+          if(slot.type === "WM" || slot.type === "LM"){
+            const src = slot.id;
+            if(!graph.has(src)) graph.set(src, []);
+            graph.get(src).push(m.id);
+          }
+        });
+      });
+      return graph;
+    }
+
+    const DEP_GRAPH = buildDependencyGraph();
+
+    function collectDownstreamMatchIds(startIds){
+      const out = new Set();
+      const q = [...startIds];
+
+      while(q.length){
+        const cur = q.shift();
+        const kids = DEP_GRAPH.get(cur) || [];
+        kids.forEach(k => {
+          if(!out.has(k)){
+            out.add(k);
+            q.push(k);
+          }
+        });
+      }
+      return out;
+    }
+
+    function getAssignedThirdNameFromSnapshot(snapshot, matchId, slot){
+      if(!snapshot) return null;
+      const assign = snapshot.assignment?.[matchId];
+      if(assign) return assign.name;
+      return thirdPlaceholderName(slot.set);
     }
 
     function resolveParticipants(match){
@@ -1341,7 +1407,6 @@
         const currentLeft = p.left.name;
         const currentRight = p.right.name;
 
-        // Clear if matchup changed since pick
         if(stored.leftAtPick !== currentLeft || stored.rightAtPick !== currentRight){
           delete state.winners[id];
           return;
@@ -1460,12 +1525,9 @@
       swapSelection = null;
 
       if(ok){
-        // Group changes can affect KO immediately.
-        // Third-order changes should NOT affect R32 until Regenerate.
         if(zone === THIRD_RANK_ZONE){
-          thirdRankingDirty = true; // NEW
+          thirdRankingDirty = true;
         }
-
         validateAllWinners();
       }
 
@@ -1542,7 +1604,7 @@
     }
 
     /* ==============================
-       18) AUTO select (partial fill)
+       18) AUTO select
     ============================== */
     function sortArrayByRank(arr){
       arr.sort((a,b) => {
@@ -1589,7 +1651,6 @@
         return ra - rb;
       });
 
-      // IMPORTANT: does NOT rebuild R32 assignment unless regenerate clicked.
       validateAllWinners();
       render();
     }
@@ -1598,7 +1659,6 @@
       validateAllWinners();
 
       matches.forEach(m => {
-        // Only fill UNFILLED matches
         if(state.winners[m.id]) return;
 
         const p = resolveParticipants(m);
@@ -1621,18 +1681,70 @@
     }
 
     /* ==============================
-       19) Regenerate R32
+       19) Regenerate R32 (SMART)
     ============================== */
     function regenerateR32(){
-      // Clear ALL knockout winners for clean consistency
-      state.winners = {};
+      const hadSnapshot = !!state.r32ThirdSnapshot;
+      const wasGenerated = !!state.r32Generated;
+
+      if(!wasGenerated || !hadSnapshot){
+        state.winners = {};
+        state.r32Generated = true;
+        buildR32ThirdSnapshot();
+        thirdRankingDirty = false;
+
+        validateAllWinners();
+        render();
+        return;
+      }
+
+      if(!thirdRankingDirty){
+        buildR32ThirdSnapshot();
+        validateAllWinners();
+        render();
+        return;
+      }
+
+      const oldSnap = state.r32ThirdSnapshot;
+
+      buildR32ThirdSnapshot();
+      const newSnap = state.r32ThirdSnapshot;
+
+      const thirdR32Ids = getR32ThirdDependentMatchIds();
+      const changedR32 = [];
+
+      thirdR32Ids.forEach(mid => {
+        const match = findMatchById(mid);
+        if(!match) return;
+
+        const thirdSlot =
+          (match.left.type === "3SET") ? match.left :
+          (match.right.type === "3SET") ? match.right :
+          null;
+
+        if(!thirdSlot) return;
+
+        const oldName = getAssignedThirdNameFromSnapshot(oldSnap, mid, thirdSlot);
+        const newName = getAssignedThirdNameFromSnapshot(newSnap, mid, thirdSlot);
+
+        if(oldName !== newName){
+          changedR32.push(mid);
+        }
+      });
+
+      if(changedR32.length === 0){
+        thirdRankingDirty = false;
+        validateAllWinners();
+        render();
+        return;
+      }
+
+      changedR32.forEach(id => { delete state.winners[id]; });
+
+      const downstream = collectDownstreamMatchIds(changedR32);
+      downstream.forEach(id => { delete state.winners[id]; });
 
       state.r32Generated = true;
-
-      // Build frozen third assignment snapshot
-      buildR32ThirdSnapshot();
-
-      // NEW: R32 now synced with third ranking
       thirdRankingDirty = false;
 
       validateAllWinners();
@@ -1640,7 +1752,7 @@
     }
 
     /* ==============================
-       20) UI build
+       20) UI helpers
     ============================== */
     function makeSeparator(text, buttonOptions=null){
       const sep = document.createElement("div");
@@ -1665,6 +1777,7 @@
           btn.textContent = opt.text;
           if(opt.mini) btn.classList.add("btn-mini");
           if(opt.orange) btn.classList.add("btn-orange");
+          if(opt.green) btn.classList.add("btn-green");
           right.appendChild(btn);
         });
 
@@ -1687,128 +1800,166 @@
       return col;
     }
 
-    function makeKoGrid(roundKey, className=""){
+    function makeKoSection(roundKey, className=""){
+      const section = document.createElement("div");
+      section.className = "ko-section";
+
       const grid = document.createElement("div");
       grid.className = `ko-grid ${className}`.trim();
       grid.dataset.koRound = roundKey;
-      return grid;
+
+      section.appendChild(grid);
+      return section;
     }
 
+    /* ==============================
+       21) Build Board (NEW ORDER)
+    ============================== */
     function buildBoard(){
       const board = document.getElementById("board");
       board.innerHTML = "";
 
-      // Pools
-      board.appendChild(
-        makeSeparator(
-          "Qualifier Pools",
-          [
-            { id:"autoPoolsBtn", text:"Auto Select Pool positions", orange:true },
-          ]
-        )
-      );
+      /* 3) Then comes the POOLS. */
+      board.appendChild(makeSeparator("Qualifier Pools"));
       PATHS.forEach(p => {
         board.appendChild(makeColumn(p.label, `path-${p.id}`, `feeds Group ${p.group}`));
       });
 
-      // Groups
+      /* 4) Buttons AFTER pool groups in the exact order */
       board.appendChild(
         makeSeparator(
-          "Groups",
+          "Pool Actions",
           [
-            { id:"placeQualifiersBtn", text:"Place qualifiers to the groups" },
-            { id:"autoGroupsBtn", text:"Auto Select Group positions", orange:true }
+            { id:"autoPoolsBtn", text:"Auto Select Pool Positions", orange:true },
+            { id:"placeQualifiersBtn", text:"Place qualifiers to the groups", green:true },
+            { id:"reformPoolBtn", text:"Reform Pool" }
           ]
         )
       );
+
+      /* 5) Then comes the groups. */
+      board.appendChild(makeSeparator("Groups"));
       GROUP_KEYS.forEach(g => {
         board.appendChild(makeColumn(`Group ${g}`, `group-${g}`));
       });
 
-      // Tools
+      /* 6) Auto Select Remaining Group Positions BELOW groups */
       board.appendChild(
         makeSeparator(
-          "Group Tools & Third-Place Ordering",
+          "Group Actions",
           [
-            { id:"autoThirdBtn", text:"Auto Select 3rd place positions", orange:true }
+            { id:"autoGroupsBtn", text:"Auto Select Remaining Group Positions", orange:true }
           ]
         )
       );
+
+      /* 7) Third place team ranking table */
+      board.appendChild(makeSeparator("Third-Place Ranking"));
       board.appendChild(makeColumn("Third Place Team Ranking", THIRD_RANK_ZONE, "A3 → L3"));
+
+      /* Auto Select Remaining Third Positions BELOW the ranking */
+      board.appendChild(
+        makeSeparator(
+          "Third-Place Actions",
+          [
+            { id:"autoThirdBtn", text:"Auto Select Remaining Third Positions", orange:true }
+          ]
+        )
+      );
+
+      /* 8) After that: champions/runners + top-8 with code */
+      board.appendChild(makeSeparator("Qualified Overview"));
       board.appendChild(makeColumn("Group Champions", CHAMP_ZONE, "A1 → L1"));
       board.appendChild(makeColumn("Group Runners", RUNNERS_ZONE, "A2 → L2"));
       board.appendChild(makeColumn("Top-8 Third Placed Teams", TOP8_ZONE, "auto"));
 
-      // R32
+      /* 9) Regenerate R32 BEFORE Round of 32 begins */
       board.appendChild(
         makeSeparator(
-          "Round of 32",
+          "R32 Sync",
           [
-            { id:"regenerateR32Btn", text:"Regenerate R32", orange:true },
-            { id:"autoR32Btn", text:"Auto Select R32 winners", orange:true }
+            { id:"regenerateR32Btn", text:"Regenerate R32", orange:true }
           ]
         )
       );
-      board.appendChild(makeKoGrid("r32"));
 
-      // R16
-      board.appendChild(
-        makeSeparator(
-          "Round of 16",
-          [
-            { id:"autoR16Btn", text:"Auto Select R16 winners", orange:true }
-          ]
-        )
-      );
-      board.appendChild(makeKoGrid("r16"));
+      /* R32 Stage */
+      board.appendChild(makeSeparator("Round of 32"));
+      board.appendChild(makeKoSection("r32"));
 
-      // QF
+      /* 10) Auto Select R32 winners AFTER fixtures and BEFORE R16 */
       board.appendChild(
         makeSeparator(
-          "Quarterfinals",
+          "Round of 32 Actions",
           [
-            { id:"autoQFBtn", text:"Auto Select QF winners", orange:true }
+            { id:"autoR32Btn", text:"Auto Select R32 Winners", orange:true }
           ]
         )
       );
-      board.appendChild(makeKoGrid("qf"));
 
-      // SF (centered)
+      /* R16 */
+      board.appendChild(makeSeparator("Round of 16"));
+      board.appendChild(makeKoSection("r16"));
       board.appendChild(
         makeSeparator(
-          "Semifinals",
+          "Round of 16 Actions",
           [
-            { id:"autoSFBtn", text:"Auto Select SF winners", orange:true }
+            { id:"autoR16Btn", text:"Auto Select R16 Winners", orange:true }
           ]
         )
       );
-      board.appendChild(makeKoGrid("sf", "centered"));
 
-      // Third place (centered)
+      /* QF */
+      board.appendChild(makeSeparator("Quarterfinals"));
+      board.appendChild(makeKoSection("qf"));
       board.appendChild(
         makeSeparator(
-          "Third Place",
+          "Quarterfinal Actions",
           [
-            { id:"autoThirdMatchBtn", text:"Auto Select 3rd Place winner", orange:true }
+            { id:"autoQFBtn", text:"Auto Select QF Winners", orange:true }
           ]
         )
       );
-      board.appendChild(makeKoGrid("third", "centered"));
 
-      // Final (centered)
+      /* SF (centered) */
+      board.appendChild(makeSeparator("Semifinals"));
+      board.appendChild(makeKoSection("sf", "centered"));
       board.appendChild(
         makeSeparator(
-          "Final",
+          "Semifinal Actions",
           [
-            { id:"autoFinalBtn", text:"Auto Select Final winner", orange:true }
+            { id:"autoSFBtn", text:"Auto Select SF Winners", orange:true }
           ]
         )
       );
-      board.appendChild(makeKoGrid("final", "centered"));
+
+      /* Third Place match */
+      board.appendChild(makeSeparator("Third Place Match"));
+      board.appendChild(makeKoSection("third", "centered"));
+      board.appendChild(
+        makeSeparator(
+          "Third Place Match Actions",
+          [
+            { id:"autoThirdMatchBtn", text:"Auto Select 3rd Place Winner", orange:true }
+          ]
+        )
+      );
+
+      /* Final */
+      board.appendChild(makeSeparator("Final"));
+      board.appendChild(makeKoSection("final", "centered"));
+      board.appendChild(
+        makeSeparator(
+          "Final Actions",
+          [
+            { id:"autoFinalBtn", text:"Auto Select Final Winner", orange:true }
+          ]
+        )
+      );
     }
 
     /* ==============================
-       21) Render standard zones
+       22) Render standard zones
     ============================== */
     function applyRankHighlight(cardEl, zone, idx, team){
       cardEl.classList.remove("rank-strong", "rank-mild", "qualified", "eliminated");
@@ -1919,7 +2070,7 @@
     }
 
     /* ==============================
-       22) Local time rendering helpers
+       23) Local time rendering helpers
     ============================== */
     const MONTHS = {
       january:0, february:1, march:2, april:3, may:4, june:5,
@@ -1927,7 +2078,6 @@
     };
 
     function parseDateStr(dateStr){
-      // "June 28, 2026"
       const m = String(dateStr).match(/^([A-Za-z]+)\s+(\d{1,2}),\s+(\d{4})$/);
       if(!m) return null;
       const month = MONTHS[m[1].toLowerCase()];
@@ -1938,7 +2088,6 @@
     }
 
     function parseTime12h(timeStr){
-      // "4:30 p.m." or "12:00 p.m."
       const s = String(timeStr).toLowerCase().replace(/\s+/g," ").trim();
       const m = s.match(/^(\d{1,2}):(\d{2})\s*(a\.m\.|p\.m\.)$/);
       if(!m) return null;
@@ -1956,10 +2105,7 @@
       const t = parseTime12h(info.time);
       if(!d || !t) return null;
 
-      // venue local time = UTC + offsetHours
-      // => UTC = venueLocal - offsetHours
       const utcHour = t.h - info.offsetHours;
-
       return Date.UTC(d.year, d.month, d.day, utcHour, t.min, 0);
     }
 
@@ -1968,8 +2114,6 @@
       if(ms == null) return info?.time ? info.time : "Time TBD";
 
       const dt = new Date(ms);
-
-      // Display in viewer's local timezone
       const fmt = new Intl.DateTimeFormat(undefined, {
         dateStyle: "medium",
         timeStyle: "short"
@@ -1978,7 +2122,7 @@
     }
 
     /* ==============================
-       23) Render KO rounds
+       24) Render KO rounds
     ============================== */
     function buildMatchCard(match){
       const p = resolveParticipants(match);
@@ -1992,28 +2136,23 @@
       card.className = "match-card";
       card.dataset.matchId = match.id;
 
-      // Match index top-left
       const idx = document.createElement("div");
       idx.className = "match-index";
       idx.textContent = `Match ${match.id}`;
       card.appendChild(idx);
 
-      // Center "XX vs XX" label above mid box (uses slot labels)
       const vs = document.createElement("div");
       vs.className = "match-vs";
       vs.textContent = `${L.label} vs ${R.label}`;
       card.appendChild(vs);
 
-      // Left team
       const leftBtn = document.createElement("div");
       leftBtn.className = "match-team";
       leftBtn.innerHTML = nameWithFlagHTML(L.name);
 
-      // Mid abbrev
       const mid = document.createElement("div");
       mid.className = "match-mid";
 
-      // Right team
       const rightBtn = document.createElement("div");
       rightBtn.className = "match-team";
       rightBtn.innerHTML = nameWithFlagHTML(R.name);
@@ -2043,7 +2182,6 @@
       card.appendChild(mid);
       card.appendChild(rightBtn);
 
-      // Bottom meta
       const bottom = document.createElement("div");
       bottom.className = "match-bottom";
 
@@ -2066,7 +2204,6 @@
 
       bottom.appendChild(leftMeta);
       bottom.appendChild(rightMeta);
-
       card.appendChild(bottom);
 
       return card;
@@ -2087,22 +2224,15 @@
       if(roundKey === "r32"){
         const note = document.createElement("div");
         note.className = "r32-note";
-
-        if(!state.r32Generated){
-          note.textContent =
-            "R32 not generated yet. Third-place slots are placeholders from the mapping sets.";
-        } else {
-          note.textContent =
-            "R32 3rd-place teams are frozen from your last Regenerate click.";
-        }
-
-        grid.appendChild(note);
+        note.textContent = (!state.r32Generated)
+          ? "R32 not generated yet. Third-place slots are placeholders from the mapping sets."
+          : "R32 3rd-place teams are frozen from your last Regenerate click.";
+        grid.parentElement.appendChild(note);
       }
     }
 
     function renderAllKo(){
       validateAllWinners();
-
       renderKoRound("r32");
       renderKoRound("r16");
       renderKoRound("qf");
@@ -2112,14 +2242,13 @@
     }
 
     /* ==============================
-       24) R32 badge updater
+       25) R32 badge updater
     ============================== */
     function updateRegenerateR32Badge(){
       const btn = document.getElementById("regenerateR32Btn");
       if(!btn) return;
 
       const base = "Regenerate R32";
-
       if(thirdRankingDirty){
         btn.innerHTML = `${base}<span class="outofdate-badge">R32 out-of-date</span>`;
       } else {
@@ -2128,33 +2257,15 @@
     }
 
     /* ==============================
-       25) Stage pill + buttons
+       26) Wire Buttons (NEW IDS/ORDER)
     ============================== */
-    function updateStagePillAndButtons(){
-      const pill = document.getElementById("stagePill");
-      const reformBtn = document.getElementById("reformPoolBtn");
-      const placeBtn = document.getElementById("placeQualifiersBtn");
-
-      if(pill){
-        pill.textContent = editMode === "pools" ? "Edit: Pools" : "Edit: Groups";
-      }
-      if(reformBtn){
-        reformBtn.disabled = (editMode === "pools");
-      }
-      if(placeBtn){
-        placeBtn.disabled = (editMode !== "pools");
-      }
-
-      // NEW
-      updateRegenerateR32Badge();
-    }
-
     function wireButtons(){
       const resetBtn = document.getElementById("resetBtn");
-      const reformBtn = document.getElementById("reformPoolBtn");
 
+      const reformBtn = document.getElementById("reformPoolBtn");
       const placeBtn = document.getElementById("placeQualifiersBtn");
       const autoPoolsBtn = document.getElementById("autoPoolsBtn");
+
       const autoGroupsBtn = document.getElementById("autoGroupsBtn");
       const autoThirdBtn = document.getElementById("autoThirdBtn");
 
@@ -2182,8 +2293,6 @@
           state = initialState();
           editMode = "pools";
           swapSelection = null;
-
-          // NEW
           thirdRankingDirty = false;
 
           buildBoard();
@@ -2197,9 +2306,7 @@
       if(autoThirdBtn) autoThirdBtn.addEventListener("click", autoThirdRanking);
 
       if(regenerateR32Btn){
-        regenerateR32Btn.addEventListener("click", () => {
-          regenerateR32();
-        });
+        regenerateR32Btn.addEventListener("click", regenerateR32);
       }
 
       if(autoR32Btn){
@@ -2217,17 +2324,24 @@
     }
 
     /* ==============================
-       26) Render orchestrator
+       27) Render orchestrator
     ============================== */
     function render(){
       syncThirdRankingNames();
       renderStandardZones();
       renderAllKo();
-      updateStagePillAndButtons();
+      updateRegenerateR32Badge();
+
+      // Button enablement rules
+      const reformBtn = document.getElementById("reformPoolBtn");
+      const placeBtn  = document.getElementById("placeQualifiersBtn");
+
+      if(reformBtn) reformBtn.disabled = (editMode === "pools");
+      if(placeBtn)  placeBtn.disabled  = (editMode !== "pools");
     }
 
     /* ==============================
-       27) Boot
+       28) Boot
     ============================== */
     document.addEventListener("DOMContentLoaded", () => {
       buildBoard();
