@@ -535,7 +535,7 @@ function fallbackPathNameForGroup(g){
         groups,
         qualifiedByPath,
         thirdRanking: buildThirdRankingFromGroups(groups),
-        r32Winners: {} // NEW
+        r32Winners: {}, // NEW
         r32Generated: false
       };
 
@@ -1102,6 +1102,37 @@ const R32_MATCHES = [
   { id: 88, left: {type:"RU", g:"D"}, right:{type:"RU", g:"G"} }
 ];
 
+    // You will fill this later based on FIFA's third-place mapping table.
+const THIRD_TABLE = {};
+
+function resolveThirdForMatch(matchId, allowedLetters){
+  computeTop8ThirdPlaced();
+
+  const key = qualifiedThirdGroupLetters; // sorted letters
+  const row = THIRD_TABLE[key];
+
+  // Table has priority if you add it later
+  if(row && row[matchId]){
+    const tag = row[matchId]; // e.g. "3E"
+    const g = tag.replace("3", "");
+    const third = state.thirdRanking.find(x => x.groupKey === g);
+    const name = third ? third.name : tag;
+
+    return { groupKey: g, name, source: "table", tableKey: key, fallback: false };
+  }
+
+  // Otherwise use allowed/fallback logic
+  const res = resolveThirdFromAllowedGroups(allowedLetters);
+  return {
+    groupKey: res.groupKey,
+    name: res.name,
+    source: res.fallback ? "fallback" : "allowed",
+    tableKey: key,
+    fallback: res.fallback
+  };
+}
+
+
 function resolveSlot(slot, matchId){
   if(slot.type === "W"){
     const t = getGroupPosTeam(slot.g, 0);
@@ -1160,7 +1191,7 @@ function renderR32(dz){
     const L = resolveSlot(m.left, m.id);
     const R = resolveSlot(m.right, m.id);
 
-    if(L.fallback || R.fallback) anyFallback = true;
+
 
     const winner = state.r32Winners[m.id];
 
@@ -1179,17 +1210,7 @@ function renderR32(dz){
     mid.className = "match-mid";
     mid.textContent = winner ? winner.abbrev : "---";
 
-    // Winner selection by click
-    leftBtn.addEventListener("click", () => {
-      const ab = teamAbbrev(L.name);
-      state.r32Winners[m.id] = { side:"L", name:L.name, abbrev:ab };
-      render();
-    });
-    rightBtn.addEventListener("click", () => {
-      const ab = teamAbbrev(R.name);
-      state.r32Winners[m.id] = { side:"R", name:R.name, abbrev:ab };
-      render();
-    });
+   
     if(L.source === "fallback" || R.source === "fallback") anyFallback = true;
     if(L.source === "table" || R.source === "table"){
       anyTable = true;
@@ -1284,31 +1305,22 @@ if(!canPick){
     dz.appendChild(card);
   });
 
-  if(anyFallback){
-    const note = document.createElement("div");
-    note.className = "r32-fallback-note";
-    note.textContent = "Fallback used for at least one 3rd-place slot (default assumptions ABCDEFGH).";
-    dz.appendChild(note);
-  }
+const note = document.createElement("div");
+note.className = "r32-fallback-note";
 
-  if(!state.r32Generated){
-  const note = document.createElement("div");
-  note.className = "r32-fallback-note";
-  note.textContent = "R32 not generated yet. Third-place slots are placeholders from the FIFA mapping sets.";
-  dz.appendChild(note);
+if(!state.r32Generated){
+  note.textContent =
+    "R32 not generated yet. Third-place slots are placeholders from the FIFA mapping sets.";
+} else if(anyTable){
+  note.textContent = `3rd-place mapping source: TABLE (${tableKeyUsed || "key"})`;
+} else if(anyFallback){
+  note.textContent = "3rd-place mapping source: FALLBACK ABCDEFGH";
 } else {
-  const note = document.createElement("div");
-  note.className = "r32-fallback-note";
+  note.textContent = "3rd-place mapping source: Allowed-set ranking";
+}
 
-  if(anyTable){
-    note.textContent = `3rd-place mapping source: TABLE (${tableKeyUsed || "key"})`;
-  } else if(anyFallback){
-    note.textContent = "3rd-place mapping source: FALLBACK ABCDEFGH";
-  } else {
-    note.textContent = "3rd-place mapping source: Allowed-set ranking";
-  }
+dz.appendChild(note);
 
-  dz.appendChild(note);
 }
 
 }
