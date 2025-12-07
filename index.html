@@ -30,6 +30,10 @@
       /* Eliminated styling token */
       --elim-bg: rgba(255, 107, 122, 0.08);
       --elim-br: rgba(255, 107, 122, 0.35);
+
+      /* Swap armed styling */
+      --swap-bg: rgba(255, 184, 107, 0.14);
+      --swap-br: rgba(255, 184, 107, 0.55);
     }
 
     *{box-sizing:border-box}
@@ -83,9 +87,9 @@
       background: rgba(122,162,255,0.12);
       color: var(--text);
       border: 1px solid rgba(122,162,255,0.35);
-      padding: 11px 14px;              /* bigger */
+      padding: 11px 14px;
       border-radius: 12px;
-      font-size: 12.5px;               /* bigger */
+      font-size: 12.5px;
       cursor: pointer;
       white-space: nowrap;
     }
@@ -207,10 +211,7 @@
       gap: 10px;
       cursor: grab;
       user-select: none;
-
-      /* ✅ critical mobile drag fix */
       touch-action: none;
-
       transition: background 120ms ease, border-color 120ms ease, transform 80ms ease, box-shadow 120ms ease;
     }
     .card:active{ cursor: grabbing; }
@@ -268,6 +269,13 @@
       border-color: var(--elim-br);
     }
 
+    /* Swap armed */
+    .swap-armed{
+      background: var(--swap-bg);
+      border-color: var(--swap-br);
+      box-shadow: 0 0 0 1px rgba(255,184,107,0.18) inset;
+    }
+
     .footer{
       padding: 0 16px 24px 16px;
       color: var(--muted);
@@ -295,15 +303,12 @@
   <main class="board" id="board"></main>
 
   <div class="footer">
-    Highlights: pool #1 strong; group #1-2 strong; group #3 mild.
-    After forming groups, pool #1 shows “Qualified” and others show “Eliminated”.
-    Group tags show A1–A4, B1–B4, etc.
+    Drag reorder uses a 50% drop rule. Tap/click two teams in the same zone to swap.
   </div>
 
   <script>
     /* ==============================
        1) GROUPS with renamed placeholders
-       (Must match PATH labels exactly)
     ============================== */
     const DEFAULT_GROUPS = {
       A: ["Mexico","South Africa","South Korea","UFEA Path D"],
@@ -324,42 +329,18 @@
        2) QUALIFIER PATHS (Pools)
     ============================== */
     const PATHS = [
-      {
-        id: "ufeapath-a",
-        label: "UFEA Path A",
-        candidates: ["Wales", "Bosnia and Herzegovina", "Italy", "Northern Ireland"],
-        group: "B"
-      },
-      {
-        id: "ufeapath-b",
-        label: "UFEA Path B",
-        candidates: ["Ukraine", "Sweden", "Poland", "Albania"],
-        group: "F"
-      },
-      {
-        id: "ufeapath-c",
-        label: "UFEA Path C",
-        candidates: ["Slovakia", "Kosovo", "Turkey", "Romania"],
-        group: "D"
-      },
-      {
-        id: "ufeapath-d",
-        label: "UFEA Path D",
-        candidates: ["Czech Republic", "Republic of Ireland", "Denmark", "North Macedonia"],
-        group: "A"
-      },
-      {
-        id: "fifaicpath-1",
-        label: "FIFA IC Path 1",
-        candidates: ["New Caledonia", "Jamaica", "DR Congo"],
-        group: "K"
-      },
-      {
-        id: "fifaicpath-2",
-        label: "FIFA IC Path 2",
-        candidates: ["Bolivia", "Suriname", "Iraq"],
-        group: "I"
-      }
+      { id: "ufeapath-a", label: "UFEA Path A",
+        candidates: ["Wales", "Bosnia and Herzegovina", "Italy", "Northern Ireland"], group: "B" },
+      { id: "ufeapath-b", label: "UFEA Path B",
+        candidates: ["Ukraine", "Sweden", "Poland", "Albania"], group: "F" },
+      { id: "ufeapath-c", label: "UFEA Path C",
+        candidates: ["Slovakia", "Kosovo", "Turkey", "Romania"], group: "D" },
+      { id: "ufeapath-d", label: "UFEA Path D",
+        candidates: ["Czech Republic", "Republic of Ireland", "Denmark", "North Macedonia"], group: "A" },
+      { id: "fifaicpath-1", label: "FIFA IC Path 1",
+        candidates: ["New Caledonia", "Jamaica", "DR Congo"], group: "K" },
+      { id: "fifaicpath-2", label: "FIFA IC Path 2",
+        candidates: ["Bolivia", "Suriname", "Iraq"], group: "I" }
     ];
 
     const PATH_BY_ID = Object.fromEntries(PATHS.map(p => [p.id, p]));
@@ -375,7 +356,12 @@
     let stage = "pools"; // "pools" -> "groups"
 
     /* ==============================
-       4) State
+       4) Swap selection state (tap-to-swap)
+    ============================== */
+    let swapSelection = null; // { teamId, zone }
+
+    /* ==============================
+       5) State
     ============================== */
     const initialState = () => {
       const paths = {};
@@ -433,8 +419,7 @@
     };
 
     /* ==============================
-       5) UI Builder
-       - Form button at top of group stage
+       6) UI Builder
     ============================== */
     function makeSeparator(text, withFormButton=false){
       const sep = document.createElement("div");
@@ -446,7 +431,6 @@
         <span class="stage-title">${text}</span>
         <span class="stage-line"></span>
       `;
-
       sep.appendChild(left);
 
       if(withFormButton){
@@ -476,23 +460,19 @@
       const board = document.getElementById("board");
       board.innerHTML = "";
 
-      // Pools region
       board.appendChild(makeSeparator("Qualifier Pools (rank by dragging)"));
-
       PATHS.forEach(p => {
         board.appendChild(makeColumn(p.label, `path-${p.id}`, `feeds Group ${p.group}`));
       });
 
-      // Groups region
       board.appendChild(makeSeparator("Groups (unlock after Form Groups)", true));
-
       GROUP_KEYS.forEach(g => {
         board.appendChild(makeColumn(`Group ${g}`, `group-${g}`));
       });
     }
 
     /* ==============================
-       6) Data access + Render
+       7) Data access + Render
     ============================== */
     function getZoneArray(zoneKey){
       if(isPathZone(zoneKey)){
@@ -523,7 +503,6 @@
 
         dz.innerHTML = "";
         const arr = getZoneArray(zone) ?? [];
-
         const gKey = isGroupZone(zone) ? groupKeyFromZone(zone) : null;
 
         arr.forEach((team, idx) => {
@@ -534,21 +513,18 @@
 
           applyRankHighlight(card, zone, idx, team);
 
-          // Tag text rules:
-          // Pools:
-          //  - after form: Qualified for top, Eliminated for others
-          //  - before form: show path label
-          // Groups:
-          //  - non-placeholder: A1/A2/A3/A4 (dynamic)
-          //  - placeholder: Placeholder
+          // swap-armed visual
+          if(swapSelection && swapSelection.teamId === team.id && swapSelection.zone === zone){
+            card.classList.add("swap-armed");
+          }
+
+          // Tag text rules
           let tagText = team.tag ?? "";
 
           if(isPathZone(zone)){
-            if(stage === "groups"){
-              tagText = team.isQualified ? "Qualified" : "Eliminated";
-            } else {
-              tagText = team.tag ?? "";
-            }
+            tagText = (stage === "groups")
+              ? (idx === 0 ? "Qualified" : "Eliminated")
+              : (team.tag ?? "");
           }
 
           if(isGroupZone(zone)){
@@ -564,8 +540,16 @@
             <span class="tag">${tagText}</span>
           `;
 
+          // Attach behavior:
+          // - If zone is draggable in this stage, attach drag (tap-to-swap handled via drag system for tap)
+          // - Else attach tap-only swap
           const canDrag = !team.isPlaceholder && isDragEnabledForZone(zone);
-          if(canDrag) attachPointerDrag(card);
+
+          if(canDrag){
+            attachPointerDrag(card);
+          } else if(!team.isPlaceholder) {
+            attachTapOnly(card);
+          }
 
           dz.appendChild(card);
         });
@@ -584,13 +568,6 @@
       updateStagePill();
     }
 
-    /* Highlight rules:
-       - Pools: rank #1 strong.
-         After form:
-           - top also gets .qualified
-           - others get .eliminated
-       - Groups: rank #1-2 strong, #3 mild
-    */
     function applyRankHighlight(cardEl, zone, idx, team){
       cardEl.classList.remove("rank-strong", "rank-mild", "qualified", "eliminated");
 
@@ -598,8 +575,8 @@
         if(idx === 0) cardEl.classList.add("rank-strong");
 
         if(stage === "groups"){
-          if(idx === 0 && team.isQualified) cardEl.classList.add("qualified");
-          if(idx !== 0 && team.isEliminated) cardEl.classList.add("eliminated");
+          if(idx === 0) cardEl.classList.add("qualified");
+          else cardEl.classList.add("eliminated");
         }
         return;
       }
@@ -611,8 +588,59 @@
     }
 
     /* ==============================
-       7) Reorder within same zone only
-       - Improved "drop on card" 50% behavior
+       8) Swap logic (tap/click)
+    ============================== */
+    function handleTapSwap(teamId, zone){
+      // If nothing selected yet
+      if(!swapSelection){
+        swapSelection = { teamId, zone };
+        render();
+        return;
+      }
+
+      // If tapping the same team again -> clear
+      if(swapSelection.teamId === teamId && swapSelection.zone === zone){
+        swapSelection = null;
+        render();
+        return;
+      }
+
+      // If different zone -> switch "first click" to new team
+      if(swapSelection.zone !== zone){
+        swapSelection = { teamId, zone };
+        render();
+        return;
+      }
+
+      // Same zone -> swap
+      swapTeamsInZone(zone, swapSelection.teamId, teamId);
+      swapSelection = null;
+      render();
+    }
+
+    function swapTeamsInZone(zoneKey, id1, id2){
+      const arr = getZoneArray(zoneKey);
+      if(!arr) return;
+
+      const i1 = arr.findIndex(t => t.id === id1);
+      const i2 = arr.findIndex(t => t.id === id2);
+      if(i1 === -1 || i2 === -1) return;
+
+      [arr[i1], arr[i2]] = [arr[i2], arr[i1]];
+    }
+
+    function attachTapOnly(card){
+      card.addEventListener("click", () => {
+        handleTapSwap(card.dataset.id, card.dataset.zone);
+      });
+    }
+
+    /* ==============================
+       9) Reorder logic (50% drop rule)
+       FIX:
+       - Removed the old "insertIndex adjustment" entirely.
+       - The index from DOM excluding dragging already matches
+         the array after removal.
     ============================== */
     function findTeamAndZone(teamId){
       for(const z of zones){
@@ -624,7 +652,6 @@
       return null;
     }
 
-    // NEW: get insertion index by detecting which card you released over
     function getInsertIndexByDrop(zoneEl, clientY){
       const cards = [...zoneEl.querySelectorAll(".card:not(.dragging)")];
 
@@ -632,12 +659,11 @@
         const r = cards[i].getBoundingClientRect();
         if(clientY >= r.top && clientY <= r.bottom){
           const mid = r.top + r.height / 2;
-          // upper half -> before; lower half -> after
           return clientY > mid ? i + 1 : i;
         }
       }
 
-      // fallback: classic midpoint scan
+      // fallback scan
       for(let i = 0; i < cards.length; i++){
         const r = cards[i].getBoundingClientRect();
         const mid = r.top + r.height / 2;
@@ -657,22 +683,14 @@
 
       const [team] = arr.splice(found.index, 1);
 
-      let insertIndex = getInsertIndexByDrop(zoneEl, clientY);
+      const insertIndex = getInsertIndexByDrop(zoneEl, clientY);
 
-      // adjust if removal shifts indices
-      if(insertIndex > found.index) insertIndex -= 1;
-
+      // IMPORTANT FIX: no index-shift correction here
       arr.splice(insertIndex, 0, team);
-
-      render();
     }
 
     /* ==============================
-       8) Feeding logic (COPY, don't move)
-       - Takes #1 team from each path
-       - Replaces placeholder in group
-       - Marks pool top Qualified and others Eliminated
-       - Leaves pool order intact
+       10) Feeding logic (COPY, don't move)
     ============================== */
     function groupHasPlaceholder(groupKey, pathId){
       return state.groups[groupKey].some(t => t.isPlaceholder && t.pathId === pathId);
@@ -680,13 +698,11 @@
 
     function replacePlaceholderWithTeam(groupKey, pathId, chosenTeam){
       const arr = state.groups[groupKey];
-
       const idx = arr.findIndex(t => t.isPlaceholder && t.pathId === pathId);
       const insertionIndex = (idx === -1) ? arr.length : idx;
 
       if(idx !== -1) arr.splice(idx, 1);
 
-      // Insert a COPY for the group
       arr.splice(insertionIndex, 0, {
         id: toId(`grp-${groupKey}-${pathId}-${chosenTeam.name}`),
         name: chosenTeam.name,
@@ -721,11 +737,15 @@
       });
 
       stage = "groups";
+      swapSelection = null;
       render();
     }
 
     /* ==============================
-       9) Pointer drag engine (mobile-safe)
+       11) Pointer drag engine
+       - Adds "tap detection":
+         if you don't move beyond threshold,
+         it behaves as a tap for swap-selection.
     ============================== */
     function zoneFromPoint(x, y){
       const all = [...document.querySelectorAll(".dropzone")];
@@ -736,6 +756,7 @@
     }
 
     let dragging = null;
+    const TAP_MOVE_PX = 6;
 
     function attachPointerDrag(card){
       card.addEventListener("pointerdown", (e) => {
@@ -764,7 +785,10 @@
           fromZone,
           offsetX: e.clientX - (rect.left + rect.width / 2),
           offsetY: e.clientY - (rect.top + rect.height / 2),
-          lastZoneEl: null
+          lastZoneEl: null,
+          startX: e.clientX,
+          startY: e.clientY,
+          moved: false
         };
 
         card.setPointerCapture(e.pointerId);
@@ -777,15 +801,23 @@
         e.preventDefault();
         positionClone(e.clientX, e.clientY);
 
-        const zoneEl = zoneFromPoint(e.clientX, e.clientY);
+        const dx = Math.abs(e.clientX - dragging.startX);
+        const dy = Math.abs(e.clientY - dragging.startY);
+        if(dx > TAP_MOVE_PX || dy > TAP_MOVE_PX){
+          dragging.moved = true;
+        }
 
-        if(zoneEl !== dragging.lastZoneEl){
-          document.querySelectorAll(".dropzone")
-            .forEach(z => z.classList.remove("over"));
+        if(dragging.moved){
+          const zoneEl = zoneFromPoint(e.clientX, e.clientY);
 
-          if(zoneEl) zoneEl.classList.add("over");
+          if(zoneEl !== dragging.lastZoneEl){
+            document.querySelectorAll(".dropzone")
+              .forEach(z => z.classList.remove("over"));
 
-          dragging.lastZoneEl = zoneEl;
+            if(zoneEl) zoneEl.classList.add("over");
+
+            dragging.lastZoneEl = zoneEl;
+          }
         }
       });
 
@@ -808,7 +840,7 @@
     }
 
     function finishDrag(x, y, cancelled=false){
-      const { teamId, originCard, clone, fromZone } = dragging;
+      const { teamId, originCard, clone, fromZone, moved } = dragging;
 
       document.querySelectorAll(".dropzone")
         .forEach(z => z.classList.remove("over"));
@@ -816,14 +848,23 @@
       originCard.classList.remove("dragging");
       clone.remove();
 
-      if(!cancelled && x !== null && y !== null){
-        const zoneEl = zoneFromPoint(x, y);
-        if(zoneEl){
-          const toZone = zoneEl.dataset.zone;
+      if(!cancelled){
+        // Tap-without-move -> treat as swap tap
+        if(!moved){
+          handleTapSwap(teamId, fromZone);
+          dragging = null;
+          return;
+        }
 
-          // Only reorder within same zone
-          if(toZone === fromZone){
-            reorderWithinZone(teamId, zoneEl, y);
+        if(x !== null && y !== null){
+          const zoneEl = zoneFromPoint(x, y);
+          if(zoneEl){
+            const toZone = zoneEl.dataset.zone;
+
+            if(toZone === fromZone){
+              reorderWithinZone(teamId, zoneEl, y);
+              render();
+            }
           }
         }
       }
@@ -832,9 +873,7 @@
     }
 
     /* ==============================
-       10) Buttons + Boot
-       - Form button is built inside buildBoard()
-         so bind after building
+       12) Buttons + Boot
     ============================== */
     function wireButtons(){
       const formBtn = document.getElementById("formGroupsBtn");
@@ -850,9 +889,10 @@
         resetBtn.addEventListener("click", () => {
           state = initialState();
           stage = "pools";
+          swapSelection = null;
           buildBoard();
           render();
-          wireButtons(); // re-bind because Form button is rebuilt
+          wireButtons();
         });
       }
     }
