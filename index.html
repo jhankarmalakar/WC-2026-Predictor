@@ -634,4 +634,285 @@
         const arr = getZoneArray(zone) ?? [];
         const gKey = isGroupZone(zone) ? groupKeyFromZone(zone) : null;
 
-        arr.fo
+        arr.forEach((team, idx) => {
+          const card = document.createElement("div");
+          card.className = "card";
+          card.dataset.id = team.id;
+          card.dataset.zone = zone;
+
+          const editable = isClickSwapEnabledForZone(zone) && !team.isPlaceholder && zone !== CHAMP_ZONE && zone !== RUNNERS_ZONE && zone !== TOP8_ZONE;
+          if(!editable) card.classList.add("locked");
+
+          applyRankHighlight(card, zone, idx, team);
+
+          if(swapSelection && swapSelection.teamId === team.id && swapSelection.zone === zone){
+            card.classList.add("swap-armed");
+          }
+
+          // Tag text
+          let tagText = "";
+
+          if(isPathZone(zone)){
+            tagText = (editMode === "groups")
+              ? (team.isQualified ? "Qualified" : "Eliminated")
+              : (team.tag ?? PATH_BY_ID[pathIdFromZone(zone)]?.label ?? "");
+          }
+          else if(isGroupZone(zone)){
+            if(team.isPlaceholder){
+              tagText = "Placeholder";
+            } else {
+              tagText = `${gKey}${idx + 1}`;
+            }
+          }
+          else if(zone === THIRD_RANK_ZONE){
+            tagText = `${team.groupKey}3`;
+          }
+          else if(zone === CHAMP_ZONE){
+            tagText = `${team.groupKey}1`;
+          }
+          else if(zone === RUNNERS_ZONE){
+            tagText = `${team.groupKey}2`;
+          }
+          else if(zone === TOP8_ZONE){
+            tagText = `${team.groupKey}3`;
+          }
+
+          card.innerHTML = `
+            <span class="name">${team.name}</span>
+            <span class="tag">${tagText}</span>
+          `;
+
+          if(!team.isPlaceholder && ![CHAMP_ZONE, RUNNERS_ZONE, TOP8_ZONE].includes(zone)){
+            attachClickSwap(card);
+          }
+
+          dz.appendChild(card);
+        });
+
+        const countEl = document.querySelector(`[data-count-for="${zone}"]`);
+        if(countEl){
+          countEl.textContent = `${arr.length} team${arr.length !== 1 ? "s" : ""}`;
+        }
+      });
+
+      updateStagePillAndButtons();
+    }
+
+    function applyRankHighlight(cardEl, zone, idx, team){
+      cardEl.classList.remove("rank-strong", "rank-mild", "qualified", "eliminated");
+
+      if(isPathZone(zone)){
+        // Pool topper highlight always
+        if(idx === 0) cardEl.classList.add("rank-strong");
+
+        // When in group edit mode, show qualified/eliminated styling
+        if(editMode === "groups"){
+          if(team.isQualified) cardEl.classList.add("qualified");
+          if(team.isEliminated) cardEl.classList.add("eliminated");
+        }
+        return;
+      }
+
+      if(isGroupZone(zone)){
+        if(idx === 0 || idx === 1) cardEl.classList.add("rank-strong");
+        else if(idx === 2) cardEl.classList.add("rank-mild");
+        return;
+      }
+
+      if(zone === THIRD_RANK_ZONE){
+        // Top 8 highlight like pool topper style
+        if(idx < 8) cardEl.classList.add("rank-strong");
+        return;
+      }
+    }
+
+    /* ==============================
+       11) Click-to-swap logic
+    ============================== */
+    function swapTeamsInArray(arr, id1, id2){
+      const i1 = arr.findIndex(t => t.id === id1);
+      const i2 = arr.findIndex(t => t.id === id2);
+      if(i1 === -1 || i2 === -1) return false;
+      [arr[i1], arr[i2]] = [arr[i2], arr[i1]];
+      return true;
+    }
+
+    function handleClickSwap(teamId, zone){
+      // Ignore clicks in locked zones
+      if(!isClickSwapEnabledForZone(zone)){
+        return;
+      }
+
+      if(!swapSelection){
+        swapSelection = { teamId, zone };
+        render();
+        return;
+      }
+
+      // Clicking same card cancels
+      if(swapSelection.teamId === teamId && swapSelection.zone === zone){
+        swapSelection = null;
+        render();
+        return;
+      }
+
+      // Different zone = re-arm within new editable zone
+      if(swapSelection.zone !== zone){
+        swapSelection = { teamId, zone };
+        render();
+        return;
+      }
+
+      // Same zone: perform swap
+      const arr = getZoneArray(zone);
+      if(!arr) return;
+
+      const ok = swapTeamsInArray(arr, swapSelection.teamId, teamId);
+      swapSelection = null;
+
+      if(ok){
+        // If swapping in groups, third-ranking names should refresh automatically
+        // If swapping in pools (pool mode), #1 changes for later Form Groups
+      }
+
+      render();
+    }
+
+    function attachClickSwap(card){
+      card.addEventListener("click", () => {
+        handleClickSwap(card.dataset.id, card.dataset.zone);
+      });
+    }
+
+    /* ==============================
+       12) Form Groups (COPY, don't move)
+       - Works both first time and re-form
+    ============================== */
+    function upsertPathTeamInGroup(groupKey, pathId, chosenTeam){
+      const arr = state.groups[groupKey];
+      if(!arr) return;
+
+      // 1) Replace placeholder if present
+      const phIndex = arr.findIndex(t => t.isPlaceholder && t.pathId === pathId);
+      if(phIndex !== -1){
+        arr.splice(phIndex, 1, {
+          id: toId(`grp-${groupKey}-${pathId}-${chosenTeam.name}`),
+          name: chosenTeam.name,
+          tag: PATH_BY_ID[pathId].label,
+          chosenFromPath: true,
+          pathId
+        });
+        return;
+      }
+
+      // 2) Otherwise, replace existing chosen-from-path entry
+      const exIndex = arr.findIndex(t => t.chosenFromPath && t.pathId === pathId);
+      if(exIndex !== -1){
+        arr.splice(exIndex, 1, {
+          id: toId(`grp-${groupKey}-${pathId}-${chosenTeam.name}`),
+          name: chosenTeam.name,
+          tag: PATH_BY_ID[pathId].label,
+          chosenFromPath: true,
+          pathId
+        });
+        return;
+      }
+
+      // 3) Fallback: append (should rarely happen)
+      arr.push({
+        id: toId(`grp-${groupKey}-${pathId}-${chosenTeam.name}`),
+        name: chosenTeam.name,
+        tag: PATH_BY_ID[pathId].label,
+        chosenFromPath: true,
+        pathId
+      });
+    }
+
+    function formGroupsFromPools(){
+      // Update groups from current #1 in each pool
+      PATHS.forEach(p => {
+        const pathArr = state.paths[p.id];
+        if(!pathArr || pathArr.length === 0) return;
+
+        const chosen = pathArr[0];
+        upsertPathTeamInGroup(p.group, p.id, chosen);
+        markQualifiedAndEliminated(p.id);
+      });
+
+      // Switch edit mode
+      editMode = "groups";
+      swapSelection = null;
+      render();
+    }
+
+    function reformPoolMode(){
+      // Lock groups, unlock pools, remove Q/E styling in visual terms
+      editMode = "pools";
+      swapSelection = null;
+      clearPoolStatus();
+      render();
+    }
+
+    /* ==============================
+       13) Buttons + stage UI
+    ============================== */
+    function updateStagePillAndButtons(){
+      const pill = document.getElementById("stagePill");
+      const reformBtn = document.getElementById("reformPoolBtn");
+      const formBtn = document.getElementById("formGroupsBtn");
+
+      if(pill){
+        pill.textContent = editMode === "pools" ? "Edit: Pools" : "Edit: Groups";
+      }
+
+      if(reformBtn){
+        reformBtn.disabled = (editMode === "pools");
+      }
+
+      if(formBtn){
+        // Form Groups is meaningful only in pool edit mode
+        formBtn.disabled = (editMode !== "pools");
+      }
+    }
+
+    function wireButtons(){
+      const resetBtn = document.getElementById("resetBtn");
+      const reformBtn = document.getElementById("reformPoolBtn");
+      const formBtn = document.getElementById("formGroupsBtn");
+
+      if(formBtn){
+        formBtn.addEventListener("click", () => {
+          if(editMode !== "pools") return;
+          formGroupsFromPools();
+        });
+      }
+
+      if(reformBtn){
+        reformBtn.addEventListener("click", () => {
+          reformPoolMode();
+        });
+      }
+
+      if(resetBtn){
+        resetBtn.addEventListener("click", () => {
+          state = initialState();
+          editMode = "pools";
+          swapSelection = null;
+          buildBoard();
+          render();
+          wireButtons(); // because Form Groups button is rebuilt
+        });
+      }
+    }
+
+    /* ==============================
+       14) Boot
+    ============================== */
+    document.addEventListener("DOMContentLoaded", () => {
+      buildBoard();
+      render();
+      wireButtons();
+    });
+  </script>
+</body>
+</html>
