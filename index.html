@@ -16,6 +16,12 @@
       --border:rgba(255,255,255,0.08);
       --shadow: 0 10px 30px rgba(0,0,0,0.35);
       --radius: 14px;
+
+      /* Highlight tokens */
+      --hl-strong-bg: rgba(94, 230, 168, 0.14);
+      --hl-strong-br: rgba(94, 230, 168, 0.45);
+      --hl-mild-bg:   rgba(122, 162, 255, 0.10);
+      --hl-mild-br:   rgba(122, 162, 255, 0.35);
     }
 
     *{box-sizing:border-box}
@@ -70,6 +76,7 @@
       border-radius: 10px;
       font-size: 11px;
       cursor: pointer;
+      white-space: nowrap;
     }
     button:hover{
       background: rgba(122,162,255,0.18);
@@ -99,19 +106,31 @@
     /* Stage separators */
     .stage-separator{
       grid-column: 1 / -1;
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
       padding: 10px 6px 2px 6px;
+    }
+    .stage-left{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      min-width: 0;
+      flex: 1;
+    }
+    .stage-title{
       font-size: 11px;
       letter-spacing: 0.35px;
       text-transform: uppercase;
       color: rgba(255,255,255,0.55);
-      display:flex;
-      align-items:center;
-      gap: 10px;
+      white-space: nowrap;
     }
-    .stage-separator .line{
+    .stage-line{
       height: 1px;
       background: var(--border);
       flex: 1;
+      min-width: 30px;
     }
 
     /* Column containers */
@@ -180,6 +199,8 @@
 
       /* ✅ critical mobile drag fix */
       touch-action: none;
+
+      transition: background 120ms ease, border-color 120ms ease, transform 80ms ease;
     }
     .card:active{ cursor: grabbing; }
 
@@ -214,6 +235,20 @@
       backdrop-filter: blur(8px);
     }
 
+    /* ==============================
+       Highlights
+       - Pools: rank 1 strong
+       - Groups: rank 1-2 strong, rank 3 mild
+    ============================== */
+    .rank-strong{
+      background: var(--hl-strong-bg);
+      border-color: var(--hl-strong-br);
+    }
+    .rank-mild{
+      background: var(--hl-mild-bg);
+      border-color: var(--hl-mild-br);
+    }
+
     .footer{
       padding: 0 16px 24px 16px;
       color: var(--muted);
@@ -226,12 +261,11 @@
   <header>
     <div>
       <h1>Qualifier Pools → Form Groups → Group Stage</h1>
-      <div class="hint">Reorder within pools first. Click “Form Groups” to lock pools and unlock groups.</div>
+      <div class="hint">Rank teams inside pools first. “Form Groups” selects the #1 team from each path.</div>
     </div>
 
     <div class="actions">
       <span class="stage-pill" id="stagePill">Stage: Pools</span>
-      <button id="formGroupsBtn">Form Groups</button>
       <button id="resetBtn">Reset</button>
     </div>
   </header>
@@ -239,7 +273,7 @@
   <main class="board" id="board"></main>
 
   <div class="footer">
-    Rule: the top team in each Path (rank #1) replaces its placeholder in the assigned Group when you click <b>Form Groups</b>.
+    Highlights: top-ranked team in each pool; top two teams in each group; 3rd team gets a mild highlight.
   </div>
 
   <script>
@@ -338,7 +372,7 @@
           if(pathId){
             return {
               id: `ph-${pathId}-${g}`,
-              name: entryName,       // must equal label string
+              name: entryName,
               tag: "Placeholder",
               isPlaceholder: true,
               pathId
@@ -372,11 +406,28 @@
 
     /* =========================================================
        5) UI Builder
+       - "Form Groups" button now sits at top of Group Stage
     ========================================================== */
-    function makeSeparator(text){
+    function makeSeparator(text, withFormButton=false){
       const sep = document.createElement("div");
       sep.className = "stage-separator";
-      sep.innerHTML = `<span>${text}</span><span class="line"></span>`;
+
+      const left = document.createElement("div");
+      left.className = "stage-left";
+      left.innerHTML = `
+        <span class="stage-title">${text}</span>
+        <span class="stage-line"></span>
+      `;
+
+      sep.appendChild(left);
+
+      if(withFormButton){
+        const btn = document.createElement("button");
+        btn.id = "formGroupsBtn";
+        btn.textContent = "Form Groups";
+        sep.appendChild(btn);
+      }
+
       return sep;
     }
 
@@ -397,13 +448,15 @@
       const board = document.getElementById("board");
       board.innerHTML = "";
 
+      // Pools region
       board.appendChild(makeSeparator("Qualifier Pools (rank by dragging)"));
 
       PATHS.forEach(p => {
         board.appendChild(makeColumn(p.label, `path-${p.id}`, `feeds Group ${p.group}`));
       });
 
-      board.appendChild(makeSeparator("Groups (unlock after Form Groups)"));
+      // Groups region (Form Groups button here)
+      board.appendChild(makeSeparator("Groups (unlock after Form Groups)", true));
 
       GROUP_KEYS.forEach(g => {
         board.appendChild(makeColumn(`Group ${g}`, `group-${g}`));
@@ -443,11 +496,14 @@
         dz.innerHTML = "";
         const arr = getZoneArray(zone) ?? [];
 
-        arr.forEach(team => {
+        arr.forEach((team, idx) => {
           const card = document.createElement("div");
           card.className = "card";
           card.dataset.id = team.id;
           card.dataset.zone = zone;
+
+          // Apply rank highlights
+          applyRankHighlight(card, zone, idx);
 
           card.innerHTML = `
             <span class="name">${team.name}</span>
@@ -466,12 +522,31 @@
         }
       });
 
+      // Disable Form button once groups formed
       const formBtn = document.getElementById("formGroupsBtn");
       if(formBtn){
         formBtn.disabled = (stage === "groups");
       }
 
       updateStagePill();
+    }
+
+    /* Highlight rules:
+       - Pools: rank #1 strong (during pools stage, and still ok after)
+       - Groups: rank #1-2 strong, #3 mild
+    */
+    function applyRankHighlight(cardEl, zone, idx){
+      cardEl.classList.remove("rank-strong", "rank-mild");
+
+      if(isPathZone(zone)){
+        if(idx === 0) cardEl.classList.add("rank-strong");
+        return;
+      }
+
+      if(isGroupZone(zone)){
+        if(idx === 0 || idx === 1) cardEl.classList.add("rank-strong");
+        else if(idx === 2) cardEl.classList.add("rank-mild");
+      }
     }
 
     /* =========================================================
@@ -505,7 +580,6 @@
       const found = findTeamAndZone(teamId);
       if(!found) return;
 
-      // Only reorder in the SAME zone
       if(found.zone !== toZone) return;
 
       const [team] = arr.splice(found.index, 1);
@@ -521,7 +595,7 @@
     /* =========================================================
        8) Feeding logic (on button click)
        - Takes #1 team from each Path list
-       - Replaces the matching placeholder in target group
+       - Replaces matching placeholder
     ========================================================== */
     function groupHasPlaceholder(groupKey, pathId){
       return state.groups[groupKey].some(t => t.isPlaceholder && t.pathId === pathId);
@@ -547,22 +621,15 @@
         const pathArr = state.paths[p.id];
         if(!pathArr || pathArr.length === 0) return;
 
-        // Top-ranked team
         const chosen = pathArr[0];
 
-        // Only proceed if placeholder exists
         if(!groupHasPlaceholder(p.group, p.id)) return;
 
-        // Remove from path
         pathArr.shift();
-
-        // Replace placeholder
         replacePlaceholderWithTeam(p.group, p.id, chosen);
       });
 
-      // Switch stage
       stage = "groups";
-
       render();
     }
 
@@ -588,7 +655,6 @@
         const teamId = card.dataset.id;
         const fromZone = card.dataset.zone;
 
-        // Stage lock guard
         if(!isDragEnabledForZone(fromZone)) return;
 
         const rect = card.getBoundingClientRect();
@@ -664,7 +730,7 @@
         if(zoneEl){
           const toZone = zoneEl.dataset.zone;
 
-          // Only reorder within the same zone
+          // Only reorder within same zone
           if(toZone === fromZone){
             reorderWithinZone(teamId, zoneEl, y);
           }
@@ -676,6 +742,8 @@
 
     /* =========================================================
        10) Buttons + Boot
+       - Form button is created dynamically in buildBoard()
+         so we bind after buildBoard() runs.
     ========================================================== */
     function wireButtons(){
       const formBtn = document.getElementById("formGroupsBtn");
@@ -693,6 +761,7 @@
           stage = "pools";
           buildBoard();
           render();
+          wireButtons(); // re-bind because Form button is rebuilt
         });
       }
     }
