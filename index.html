@@ -249,6 +249,21 @@
       justify-content: space-between;
       gap: 8px;
     }
+
+    .match-meta.secondary{
+      margin-top: 2px;
+      opacity: 0.9;
+    }
+    .match-chip{
+      display:inline-block;
+      padding: 2px 6px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.04);
+      font-size: 9.5px;
+      white-space: nowrap;
+    }
+
     
     .r32-fallback-note{
       margin-top: 8px;
@@ -511,7 +526,6 @@ function fallbackPathNameForGroup(g){
     const R32_ZONE = "r32-fixtures";
     const ABBR_ZONE = "abbr-table";
 
-
       const zones = [
         ...pathZones,
         ...groupZones,
@@ -520,7 +534,6 @@ function fallbackPathNameForGroup(g){
         RUNNERS_ZONE,
         TOP8_ZONE,
         R32_ZONE,
-        ABBR_ZONE
       ];
 
 
@@ -596,7 +609,7 @@ function fallbackPathNameForGroup(g){
       board.appendChild(makeColumn("Top-8 Third Placed Teams", TOP8_ZONE, "auto"));
       board.appendChild(makeSeparator("Round of 32 (auto + pick winners)"));
       board.appendChild(makeColumn("R32 Fixtures", R32_ZONE, "winners by click"));
-      board.appendChild(makeColumn("Team Abbreviations", ABBR_ZONE, "auto"));
+    //  board.appendChild(makeColumn("Team Abbreviations", ABBR_ZONE, "auto"));
 
     }
 
@@ -821,8 +834,6 @@ function fallbackPathNameForGroup(g){
       if(zoneKey === R32_ZONE){
         return []; // rendered manually
       }
-      if(zoneKey === ABBR_ZONE){
-        return []; // rendered via renderAbbrTable in render()
 }
 
       return null;
@@ -940,14 +951,9 @@ function fallbackPathNameForGroup(g){
                   dz.appendChild(summary);
                 }
 
-        if(zone === ABBR_ZONE){
-                  renderAbbrTable(dz);
-                  const countEl = document.querySelector(`[data-count-for="${zone}"]`);
-                  if(countEl){
-                    countEl.textContent = `${collectAllTeamNames().length} teams`;
-                  }
-                  return;
-                }
+
+
+
 
 
         const countEl = document.querySelector(`[data-count-for="${zone}"]`);
@@ -985,6 +991,11 @@ function fallbackPathNameForGroup(g){
         if(idx < 8) cardEl.classList.add("rank-strong");
         return;
       }
+
+       if(zone === TOP8_ZONE){
+                  cardEl.classList.add("rank-strong");
+                  return;
+                }
     }
 
     function getGroupPosTeam(g, idx){
@@ -998,6 +1009,31 @@ function parseAllowedThird(spec){
   return spec.split("/").map(s => s.trim()).filter(Boolean);
 }
 
+
+const R32_INFO = {
+  73: { date: "June 28, 2026", time: "12:00 p.m. (UTC−7)", stadium: "SoFi Stadium", city: "Inglewood" },
+
+  74: { date: "June 29, 2026", time: "4:30 p.m. (UTC−4)", stadium: "Gillette Stadium", city: "Foxborough" },
+  75: { date: "June 29, 2026", time: "7:00 p.m. (UTC−6)", stadium: "Estadio BBVA", city: "Guadalupe" },
+  76: { date: "June 29, 2026", time: "12:00 p.m. (UTC−5)", stadium: "NRG Stadium", city: "Houston" },
+
+  77: { date: "June 30, 2026", time: "5:00 p.m. (UTC−4)", stadium: "MetLife Stadium", city: "East Rutherford" },
+  78: { date: "June 30, 2026", time: "12:00 p.m. (UTC−5)", stadium: "AT&T Stadium", city: "Arlington" },
+  79: { date: "June 30, 2026", time: "7:00 p.m. (UTC−6)", stadium: "Estadio Azteca", city: "Mexico City" },
+
+  80: { date: "July 1, 2026", time: "12:00 p.m. (UTC−4)", stadium: "Mercedes-Benz Stadium", city: "Atlanta" },
+  81: { date: "July 1, 2026", time: "5:00 p.m. (UTC−7)", stadium: "Levi's Stadium", city: "Santa Clara" },
+  82: { date: "July 1, 2026", time: "1:00 p.m. (UTC−7)", stadium: "Lumen Field", city: "Seattle" },
+
+  83: { date: "July 2, 2026", time: "7:00 p.m. (UTC−4)", stadium: "BMO Field", city: "Toronto" },
+  84: { date: "July 2, 2026", time: "12:00 p.m. (UTC−7)", stadium: "SoFi Stadium", city: "Inglewood" },
+  85: { date: "July 2, 2026", time: "8:00 p.m. (UTC−7)", stadium: "BC Place", city: "Vancouver" },
+
+  86: { date: "July 3, 2026", time: "6:00 p.m. (UTC−4)", stadium: "Hard Rock Stadium", city: "Miami Gardens" },
+  87: { date: "July 3, 2026", time: "8:30 p.m. (UTC−5)", stadium: "Arrowhead Stadium", city: "Kansas City" },
+  88: { date: "July 3, 2026", time: "1:00 p.m. (UTC−5)", stadium: "AT&T Stadium", city: "Arlington" }
+};
+    
 const R32_MATCHES = [
   { id: 73, left: {type:"RU", g:"A"}, right:{type:"RU", g:"B"} },
   { id: 74, left: {type:"W",  g:"E"}, right:{type:"3SET", set:"A/B/C/D/F"} },
@@ -1078,6 +1114,8 @@ function renderR32(dz){
 
     const meta = document.createElement("div");
     meta.className = "match-meta";
+
+    
     const metaLeft = document.createElement("span");
     metaLeft.textContent = `Match ${m.id}: ${L.label} vs ${R.label}`;
     const metaRight = document.createElement("span");
@@ -1087,10 +1125,41 @@ function renderR32(dz){
     meta.appendChild(metaLeft);
     meta.appendChild(metaRight);
 
+    const info = R32_INFO[m.id];
+
+    const meta2 = document.createElement("div");
+    meta2.className = "match-meta secondary";
+    
+    const meta2Left = document.createElement("span");
+    const meta2Right = document.createElement("span");
+    
+    if(info){
+      meta2Left.innerHTML = `
+        <span class="match-chip">${info.date}</span>
+        <span class="match-chip">${info.time}</span>
+      `;
+      meta2Right.innerHTML = `
+        <span class="match-chip">${info.stadium}</span>
+        <span class="match-chip">${info.city}</span>
+      `;
+    } else {
+      meta2Left.textContent = "Date/Time TBD";
+      meta2Right.textContent = "Venue TBD";
+    }
+    
+    meta2.appendChild(meta2Left);
+    meta2.appendChild(meta2Right);
+
+
+
+    
+
     card.appendChild(leftBtn);
     card.appendChild(mid);
     card.appendChild(rightBtn);
     card.appendChild(meta);
+    card.appendChild(meta2);
+
 
     dz.appendChild(card);
   });
@@ -1103,45 +1172,6 @@ function renderR32(dz){
   }
 }
 
-    function collectAllTeamNames(){
-            const names = new Set();
-          
-            // Groups
-            GROUP_KEYS.forEach(g => {
-              (state.groups[g] || []).forEach(t => {
-                if(t?.name) names.add(t.name);
-              });
-            });
-          
-            // Pools
-            PATHS.forEach(p => {
-              (state.paths[p.id] || []).forEach(t => {
-                if(t?.name) names.add(t.name);
-              });
-            });
-          
-            // Third ranking
-            (state.thirdRanking || []).forEach(t => {
-              if(t?.name) names.add(t.name);
-            });
-          
-            return [...names].filter(n => !n.includes("Path")).sort((a,b)=>a.localeCompare(b));
-          }
-          
-          function renderAbbrTable(dz){
-            const names = collectAllTeamNames();
-            dz.innerHTML = "";
-          
-            names.forEach(n => {
-              const row = document.createElement("div");
-              row.className = "card locked";
-              row.innerHTML = `
-                <span class="name">${n}</span>
-                <span class="tag">${teamAbbrev(n)}</span>
-              `;
-              dz.appendChild(row);
-            });
-          }
 
 
 
