@@ -55,6 +55,13 @@
         touch-action: none;
         }
 
+    html, body{
+  overscroll-behavior: none;
+}
+
+
+    
+
   /* Helps on modern mobile browsers */
     .container, .panel{
       overscroll-behavior: contain;
@@ -172,18 +179,19 @@
       display: grid;
       gap: 8px;
     }
-    {
-      display:flex;
-      align-items:center;
-      gap: 8px;
-      padding: 8px 8px;
-      border-radius: 10px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      cursor: grab;
-      overflow: hidden;   /* add */
-      min-width: 0;       /* add */
-    }
+   .team-item{
+  display:flex;
+  align-items:center;
+  gap: 8px;
+  padding: 8px 8px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  cursor: grab;
+  overflow: hidden;
+  min-width: 0;
+}
+
     .dragging{
       opacity: 0.5;
       background: rgba(122,162,255,0.12);
@@ -941,7 +949,7 @@
 </head>
 <body>
 <header>
-  <h1>2026 hello World Cup Mini Predictor</h1>
+  <h1>2026 hello1 World Cup Mini Predictor</h1>
   <div class="sub">
     Drag to set group rankings, rank all 3rd-place teams, generate R32,
     then <strong>drag winners through every knockout round</strong>.
@@ -1151,6 +1159,12 @@ function applySkyHighlights(){
     el.classList.toggle("sky-highlight", picked === tcode);
   });
 }
+const IS_COARSE = window.matchMedia("(pointer: coarse)").matches;
+document.addEventListener("touchmove", e => {
+  if(document.body.classList.contains("no-scroll")){
+    e.preventDefault();
+  }
+}, { passive: false });
 
 
 /* =========================================================
@@ -2064,6 +2078,9 @@ function enableSortableList(listEl, onUpdate){
   let pointerActive = false;
   let activePointerId = null;
 
+  // make sure browser won't interpret touch as scroll/zoom on this list
+  listEl.style.touchAction = "none";
+
   /* -----------------------------
      Desktop HTML5 drag
   ------------------------------ */
@@ -2095,8 +2112,8 @@ function enableSortableList(listEl, onUpdate){
   });
 
   /* -----------------------------
-     Mobile / Pointer fallback
-  ------------------------------ */
+     Mobile / Pointer drag
+ ------------------------------ */
   listEl.addEventListener("pointerdown", e => {
     if(e.pointerType === "mouse") return;
 
@@ -2110,7 +2127,7 @@ function enableSortableList(listEl, onUpdate){
     li.classList.add("dragging");
     li.draggable = false;
 
-    // ✅ hard lock page scroll while dragging
+    // hard lock page scroll while dragging
     document.body.classList.add("no-scroll");
 
     try { li.setPointerCapture(activePointerId); } catch(_){}
@@ -2133,32 +2150,15 @@ function enableSortableList(listEl, onUpdate){
     if(!pointerActive) return;
 
     pointerActive = false;
+    const pid = activePointerId;
     activePointerId = null;
 
     document.body.classList.remove("no-scroll");
 
     if(dragged){
       dragged.classList.remove("dragging");
-      dragged.draggable = !IS_COARSE; // keep consistent
-      try { dragged.releasePointerCapture(e.pointerId); } catch(_){}
-    }
-
-    if(typeof onUpdate === "function") onUpdate(listEl);
-    dragged = null;
-  }
-
-  listEl.addEventListener("pointerup", endPointerDrag);
-  listEl.addEventListener("pointercancel", endPointerDrag);
-}
-
-
-  function endPointerDrag(e){
-    if(!pointerActive) return;
-    pointerActive = false;
-
-    if(dragged){
-      dragged.classList.remove("dragging");
-      dragged.draggable = true;
+      dragged.draggable = !IS_COARSE;
+      try { dragged.releasePointerCapture(pid ?? e.pointerId); } catch(_){}
     }
 
     if(typeof onUpdate === "function") onUpdate(listEl);
