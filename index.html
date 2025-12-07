@@ -31,7 +31,7 @@
       --elim-bg: rgba(255, 107, 122, 0.08);
       --elim-br: rgba(255, 107, 122, 0.35);
 
-      /* Swap/preview styling (amber) */
+      /* Click-swap armed styling (amber) */
       --swap-bg: rgba(255, 184, 107, 0.14);
       --swap-br: rgba(255, 184, 107, 0.55);
     }
@@ -81,6 +81,7 @@
       letter-spacing: 0.2px;
     }
 
+    /* Bigger buttons */
     button{
       background: rgba(122,162,255,0.12);
       color: var(--text);
@@ -94,6 +95,7 @@
     button:hover{ background: rgba(122,162,255,0.18); }
     button:disabled{ opacity: 0.6; cursor: not-allowed; }
 
+    /* Board grid */
     .board{
       display:grid;
       grid-template-columns: 1fr;
@@ -110,6 +112,7 @@
       .board{ grid-template-columns: 1fr 1fr 1fr 1fr; }
     }
 
+    /* Stage separators */
     .stage-separator{
       grid-column: 1 / -1;
       display:flex;
@@ -139,6 +142,7 @@
       min-width: 30px;
     }
 
+    /* Column */
     .column{
       background: linear-gradient(180deg, var(--panel), var(--panel-2));
       border:1px solid var(--border);
@@ -174,20 +178,15 @@
       white-space: nowrap;
     }
 
-    .dropzone{
+    .zone{
       padding: 10px;
       display:flex;
       flex-direction:column;
       gap: 8px;
       flex: 1;
-      transition: background 120ms ease, outline 120ms ease;
-    }
-    .dropzone.over{
-      background: rgba(122,162,255,0.08);
-      outline: 1px dashed rgba(122,162,255,0.5);
-      outline-offset: -6px;
     }
 
+    /* Card */
     .card{
       background: rgba(255,255,255,0.04);
       border:1px solid var(--border);
@@ -197,15 +196,10 @@
       align-items:center;
       justify-content:space-between;
       gap: 10px;
-      cursor: grab;
       user-select: none;
-
-      /* Allow scroll unless a real drag is detected */
-      touch-action: pan-y;
-
-      transition: background 120ms ease, border-color 120ms ease, transform 80ms ease, box-shadow 120ms ease;
+      cursor: pointer;
+      transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
     }
-    .card:active{ cursor: grabbing; }
 
     .name{
       font-size: 13.8px;
@@ -224,20 +218,7 @@
       white-space: nowrap;
     }
 
-    .dragging{ opacity: 0.35; }
-
-    .drag-clone{
-      position: fixed;
-      z-index: 9999;
-      pointer-events: none;
-      width: min(340px, 88vw);
-      transform: translate(-50%, -50%);
-      box-shadow: 0 18px 45px rgba(0,0,0,0.5);
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.18);
-      backdrop-filter: blur(8px);
-    }
-
+    /* Rank highlights */
     .rank-strong{
       background: var(--hl-strong-bg);
       border-color: var(--hl-strong-br);
@@ -247,37 +228,21 @@
       border-color: var(--hl-mild-br);
     }
 
+    /* Qualified/Eliminated */
     .qualified{
       border-color: var(--qualified-br);
       box-shadow: 0 0 0 1px var(--qualified-glow) inset;
     }
-
     .eliminated{
       background: var(--elim-bg);
       border-color: var(--elim-br);
     }
 
+    /* First-click armed swap */
     .swap-armed{
       background: var(--swap-bg);
       border-color: var(--swap-br);
       box-shadow: 0 0 0 1px rgba(255,184,107,0.18) inset;
-    }
-
-    /* Live drag “touched team” highlight */
-    .drag-target{
-      background: var(--swap-bg);
-      border-color: var(--swap-br);
-      box-shadow: 0 0 0 1px rgba(255,184,107,0.18) inset;
-    }
-
-    /* Tiny snap animation on reorder */
-    @keyframes snap-pop{
-      0%   { transform: scale(1); }
-      50%  { transform: scale(1.035); }
-      100% { transform: scale(1); }
-    }
-    .snap-pop{
-      animation: snap-pop 180ms ease-out;
     }
 
     .footer{
@@ -293,8 +258,7 @@
     <div>
       <h1>Qualifier Pools → Form Groups → Group Stage</h1>
       <div class="hint">
-        Drag inside pools first. “Form Groups” copies each pool #1 into its linked group.
-        Qualified stays visible in the pool.
+        Use click/tap-to-swap to rank teams. “Form Groups” uses the current #1 from each path.
       </div>
     </div>
 
@@ -307,8 +271,7 @@
   <main class="board" id="board"></main>
 
   <div class="footer">
-    Drag target is whichever team you currently touch/overlap. Release moves dragged team into that team’s slot.
-    Tap/click two teams in the same zone to swap.
+    No drag. Click/tap two teams in the same pool/group to swap. First click arms (amber).
   </div>
 
   <script>
@@ -356,13 +319,10 @@
       name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
     /* ==============================
-       3) Stage + swap state
+       3) Stage + click-swap state
     ============================== */
-    let stage = "pools";
+    let stage = "pools"; // "pools" -> "groups"
     let swapSelection = null; // { teamId, zone }
-
-    /* Snap animation marker */
-    let lastReorder = null; // { zone, movedId, targetId }
 
     /* ==============================
        4) State
@@ -448,7 +408,7 @@
       return sep;
     }
 
-    function makeColumn(title, zoneKey, subtitle=""){
+    function makeColumn(title, zoneKey, subtitle = ""){
       const col = document.createElement("section");
       col.className = "column";
       col.innerHTML = `
@@ -456,7 +416,7 @@
           <div class="column-title">${title}${subtitle ? ` • ${subtitle}` : ""}</div>
           <div class="count" data-count-for="${zoneKey}"></div>
         </div>
-        <div class="dropzone" data-zone="${zoneKey}"></div>
+        <div class="zone" data-zone="${zoneKey}"></div>
       `;
       return col;
     }
@@ -465,7 +425,7 @@
       const board = document.getElementById("board");
       board.innerHTML = "";
 
-      board.appendChild(makeSeparator("Qualifier Pools (rank by dragging)"));
+      board.appendChild(makeSeparator("Qualifier Pools (rank by click-swap)"));
       PATHS.forEach(p => {
         board.appendChild(makeColumn(p.label, `path-${p.id}`, `feeds Group ${p.group}`));
       });
@@ -477,15 +437,19 @@
     }
 
     /* ==============================
-       7) Data access
+       7) Data access + stage rules
     ============================== */
     function getZoneArray(zoneKey){
-      if(isPathZone(zoneKey)) return state.paths[pathIdFromZone(zoneKey)];
-      if(isGroupZone(zoneKey)) return state.groups[groupKeyFromZone(zoneKey)];
+      if(isPathZone(zoneKey)){
+        return state.paths[pathIdFromZone(zoneKey)];
+      }
+      if(isGroupZone(zoneKey)){
+        return state.groups[groupKeyFromZone(zoneKey)];
+      }
       return null;
     }
 
-    function isDragEnabledForZone(zoneKey){
+    function isClickSwapEnabledForZone(zoneKey){
       if(stage === "pools") return isPathZone(zoneKey);
       if(stage === "groups") return isGroupZone(zoneKey);
       return false;
@@ -498,11 +462,33 @@
     }
 
     /* ==============================
-       8) Render
+       8) Rank/Status refresh
+       - Ensures pool #1 is always the one
+         that will be qualified after Form Groups.
+    ============================== */
+    function refreshPoolStatusForStage(){
+      // Only show/update qualified/eliminated flags after Form Groups stage
+      if(stage !== "groups") return;
+
+      PATHS.forEach(p => {
+        const arr = state.paths[p.id];
+        if(!arr) return;
+        arr.forEach((t, i) => {
+          t.isQualified = (i === 0);
+          t.isEliminated = (i !== 0);
+        });
+        state.qualifiedByPath[p.id] = true;
+      });
+    }
+
+    /* ==============================
+       9) Render
     ============================== */
     function render(){
+      refreshPoolStatusForStage();
+
       zones.forEach(zone => {
-        const dz = document.querySelector(`.dropzone[data-zone="${zone}"]`);
+        const dz = document.querySelector(`.zone[data-zone="${zone}"]`);
         if(!dz) return;
 
         dz.innerHTML = "";
@@ -524,13 +510,19 @@
           let tagText = team.tag ?? "";
 
           if(isPathZone(zone)){
-            tagText = (stage === "groups")
-              ? (team.isQualified ? "Qualified" : "Eliminated")
-              : (team.tag ?? "");
+            if(stage === "groups"){
+              tagText = team.isQualified ? "Qualified" : "Eliminated";
+            } else {
+              tagText = team.tag ?? "";
+            }
           }
 
           if(isGroupZone(zone)){
-            tagText = team.isPlaceholder ? "Placeholder" : `${gKey}${idx + 1}`;
+            if(team.isPlaceholder){
+              tagText = "Placeholder";
+            } else {
+              tagText = `${gKey}${idx + 1}`;
+            }
           }
 
           card.innerHTML = `
@@ -538,12 +530,10 @@
             <span class="tag">${tagText}</span>
           `;
 
-          const canDrag = !team.isPlaceholder && isDragEnabledForZone(zone);
-
-          if(canDrag){
-            attachPointerDrag(card);
-          } else if(!team.isPlaceholder){
-            attachTapOnly(card);
+          // Attach click-swap for all real teams,
+          // but enforce stage gating inside handler.
+          if(!team.isPlaceholder){
+            attachClickSwap(card);
           }
 
           dz.appendChild(card);
@@ -556,19 +546,21 @@
       });
 
       const formBtn = document.getElementById("formGroupsBtn");
-      if(formBtn) formBtn.disabled = (stage === "groups");
+      if(formBtn){
+        formBtn.disabled = (stage === "groups");
+      }
 
       updateStagePill();
-
-      // After DOM is in place, apply snap animation if needed
-      applySnapAnimation();
     }
 
     function applyRankHighlight(cardEl, zone, idx, team){
       cardEl.classList.remove("rank-strong", "rank-mild", "qualified", "eliminated");
 
       if(isPathZone(zone)){
+        // Pool topper always strong highlight
         if(idx === 0) cardEl.classList.add("rank-strong");
+
+        // After Form Groups, status classes apply
         if(stage === "groups"){
           if(team.isQualified) cardEl.classList.add("qualified");
           if(team.isEliminated) cardEl.classList.add("eliminated");
@@ -583,138 +575,62 @@
     }
 
     /* ==============================
-       9) Snap animation on reorder
+       10) Click-to-swap logic
     ============================== */
-    function applySnapAnimation(){
-      if(!lastReorder) return;
+    function swapTeamsInZone(zoneKey, id1, id2){
+      const arr = getZoneArray(zoneKey);
+      if(!arr) return;
 
-      const { zone, movedId, targetId } = lastReorder;
-      lastReorder = null;
+      const i1 = arr.findIndex(t => t.id === id1);
+      const i2 = arr.findIndex(t => t.id === id2);
+      if(i1 === -1 || i2 === -1) return;
 
-      const selBase = `.dropzone[data-zone="${zone}"] .card[data-id="`;
-      const ids = [movedId, targetId].filter(Boolean);
-
-      // Use rAF to ensure styles apply reliably
-      requestAnimationFrame(() => {
-        ids.forEach(id => {
-          const el = document.querySelector(`${selBase}${id}"]`);
-          if(!el) return;
-          el.classList.add("snap-pop");
-          el.addEventListener("animationend", () => {
-            el.classList.remove("snap-pop");
-          }, { once: true });
-        });
-      });
+      [arr[i1], arr[i2]] = [arr[i2], arr[i1]];
     }
 
-    /* ==============================
-       10) Tap-to-swap
-    ============================== */
-    function handleTapSwap(teamId, zone){
+    function handleClickSwap(teamId, zone){
+      // Enforce stage rules
+      if(!isClickSwapEnabledForZone(zone)){
+        // If user clicks in locked zone, just move selection there (optional UX)
+        swapSelection = { teamId, zone };
+        render();
+        return;
+      }
+
       if(!swapSelection){
         swapSelection = { teamId, zone };
         render();
         return;
       }
 
+      // Clicking same card cancels
       if(swapSelection.teamId === teamId && swapSelection.zone === zone){
         swapSelection = null;
         render();
         return;
       }
 
+      // Different zone = re-arm selection there
       if(swapSelection.zone !== zone){
         swapSelection = { teamId, zone };
         render();
         return;
       }
 
+      // Same zone = swap
       swapTeamsInZone(zone, swapSelection.teamId, teamId);
       swapSelection = null;
-
-      // tiny snap for tap swaps too
-      lastReorder = { zone, movedId: teamId, targetId: swapSelection?.teamId };
-
       render();
     }
 
-    function swapTeamsInZone(zoneKey, id1, id2){
-      const arr = getZoneArray(zoneKey);
-      if(!arr) return;
-      const i1 = arr.findIndex(t => t.id === id1);
-      const i2 = arr.findIndex(t => t.id === id2);
-      if(i1 === -1 || i2 === -1) return;
-      [arr[i1], arr[i2]] = [arr[i2], arr[i1]];
-    }
-
-    function attachTapOnly(card){
+    function attachClickSwap(card){
       card.addEventListener("click", () => {
-        handleTapSwap(card.dataset.id, card.dataset.zone);
+        handleClickSwap(card.dataset.id, card.dataset.zone);
       });
     }
 
     /* ==============================
-       11) Drag target highlight (TOUCH RULE)
-    ============================== */
-    function clearDragTargets(){
-      document.querySelectorAll(".drag-target")
-        .forEach(el => el.classList.remove("drag-target"));
-    }
-
-    function getCardUnderPointer(x, y){
-      const el = document.elementFromPoint(x, y);
-      if(!el) return null;
-      return el.closest(".card");
-    }
-
-    function updateTouchedTarget(x, y){
-      if(!dragging) return;
-
-      clearDragTargets();
-
-      const cardEl = getCardUnderPointer(x, y);
-
-      if(!cardEl) {
-        dragging.targetId = null;
-        return;
-      }
-
-      const targetId = cardEl.dataset.id;
-      const targetZone = cardEl.dataset.zone;
-
-      if(targetZone !== dragging.fromZone || targetId === dragging.teamId){
-        dragging.targetId = null;
-        return;
-      }
-
-      dragging.targetId = targetId;
-      cardEl.classList.add("drag-target");
-    }
-
-    /* ==============================
-       12) Reorder on release to “touched team”
-    ============================== */
-    function reorderToTarget(teamId, zoneKey, targetId){
-      const arr = getZoneArray(zoneKey);
-      if(!arr) return;
-
-      const fromIndex = arr.findIndex(t => t.id === teamId);
-      const targetIndexOrig = arr.findIndex(t => t.id === targetId);
-
-      if(fromIndex === -1 || targetIndexOrig === -1) return;
-      if(fromIndex === targetIndexOrig) return;
-
-      const [team] = arr.splice(fromIndex, 1);
-
-      // Adjust target index after removal
-      const targetIndex =
-        fromIndex < targetIndexOrig ? targetIndexOrig - 1 : targetIndexOrig;
-
-      arr.splice(targetIndex, 0, team);
-    }
-
-    /* ==============================
-       13) Form Groups
+       11) Form Groups (COPY, don't move)
     ============================== */
     function groupHasPlaceholder(groupKey, pathId){
       return state.groups[groupKey].some(t => t.isPlaceholder && t.pathId === pathId);
@@ -722,14 +638,16 @@
 
     function replacePlaceholderWithTeam(groupKey, pathId, chosenTeam){
       const arr = state.groups[groupKey];
+
       const idx = arr.findIndex(t => t.isPlaceholder && t.pathId === pathId);
       const insertionIndex = (idx === -1) ? arr.length : idx;
+
       if(idx !== -1) arr.splice(idx, 1);
 
       arr.splice(insertionIndex, 0, {
         id: toId(`grp-${groupKey}-${pathId}-${chosenTeam.name}`),
         name: chosenTeam.name,
-        tag: PATHS.find(p => p.id === pathId)?.label ?? "Path",
+        tag: PATH_BY_ID[pathId].label,
         chosenFromPath: true
       });
     }
@@ -737,17 +655,21 @@
     function markQualifiedAndEliminated(pathId){
       const pathArr = state.paths[pathId];
       if(!pathArr || pathArr.length === 0) return;
+
       pathArr.forEach((t, i) => {
         t.isQualified = (i === 0);
         t.isEliminated = (i !== 0);
       });
+
       state.qualifiedByPath[pathId] = true;
     }
 
     function formGroupsFromPools(){
+      // Uses current #1 in each pool
       PATHS.forEach(p => {
         const pathArr = state.paths[p.id];
         if(!pathArr || pathArr.length === 0) return;
+
         const chosen = pathArr[0];
         if(!groupHasPlaceholder(p.group, p.id)) return;
 
@@ -761,134 +683,7 @@
     }
 
     /* ==============================
-       14) Pointer drag engine
-       - Allows scroll unless real drag detected
-    ============================== */
-    function zoneFromPoint(x, y){
-      const all = [...document.querySelectorAll(".dropzone")];
-      return all.find(dz => {
-        const r = dz.getBoundingClientRect();
-        return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
-      });
-    }
-
-    let dragging = null;
-    const TAP_MOVE_PX = 6;
-
-    function attachPointerDrag(card){
-      card.addEventListener("pointerdown", (e) => {
-        if(e.button !== undefined && e.button !== 0) return;
-
-        const teamId = card.dataset.id;
-        const fromZone = card.dataset.zone;
-        if(!isDragEnabledForZone(fromZone)) return;
-
-        const rect = card.getBoundingClientRect();
-
-        const clone = card.cloneNode(true);
-        clone.classList.add("drag-clone");
-        document.body.appendChild(clone);
-
-        card.classList.add("dragging");
-
-        dragging = {
-          teamId,
-          originCard: card,
-          clone,
-          pointerId: e.pointerId,
-          fromZone,
-          offsetX: e.clientX - (rect.left + rect.width / 2),
-          offsetY: e.clientY - (rect.top + rect.height / 2),
-          startX: e.clientX,
-          startY: e.clientY,
-          moved: false,
-          targetId: null
-        };
-
-        card.setPointerCapture(e.pointerId);
-        positionClone(e.clientX, e.clientY);
-      });
-
-      card.addEventListener("pointermove", (e) => {
-        if(!dragging || dragging.pointerId !== e.pointerId) return;
-
-        positionClone(e.clientX, e.clientY);
-
-        const dx = Math.abs(e.clientX - dragging.startX);
-        const dy = Math.abs(e.clientY - dragging.startY);
-        if(dx > TAP_MOVE_PX || dy > TAP_MOVE_PX){
-          dragging.moved = true;
-        }
-
-        if(dragging.moved){
-          e.preventDefault();
-
-          const zoneEl = zoneFromPoint(e.clientX, e.clientY);
-          document.querySelectorAll(".dropzone").forEach(z => z.classList.remove("over"));
-
-          if(zoneEl && zoneEl.dataset.zone === dragging.fromZone){
-            zoneEl.classList.add("over");
-          }
-
-          updateTouchedTarget(e.clientX, e.clientY);
-          console.log("dragging", dragging.teamId, "target", dragging.targetId);
-
-        }
-      });
-
-      card.addEventListener("pointerup", (e) => {
-        if(!dragging || dragging.pointerId !== e.pointerId) return;
-        finishDrag(e.clientX, e.clientY);
-      });
-
-      card.addEventListener("pointercancel", (e) => {
-        if(!dragging || dragging.pointerId !== e.pointerId) return;
-        finishDrag(null, null, true);
-      });
-    }
-
-    function positionClone(x, y){
-      if(!dragging) return;
-      dragging.clone.style.left = `${x - dragging.offsetX}px`;
-      dragging.clone.style.top  = `${y - dragging.offsetY}px`;
-    }
-
-    function finishDrag(x, y, cancelled=false){
-      const { teamId, originCard, clone, fromZone, moved, targetId } = dragging;
-
-      clearDragTargets();
-      document.querySelectorAll(".dropzone").forEach(z => z.classList.remove("over"));
-
-      originCard.classList.remove("dragging");
-      clone.remove();
-
-      if(!cancelled){
-        if(!moved){
-          handleTapSwap(teamId, fromZone);
-          dragging = null;
-          return;
-        }
-
-        if(targetId){
-          reorderToTarget(teamId, fromZone, targetId);
-
-          // Mark for snap animation after render
-          lastReorder = { zone: fromZone, movedId: teamId, targetId };
-
-          render();
-        } else {
-          render();
-        }
-      }
-
-      dragging = null;
-
-      console.log("DROP reorder", teamId, "->", targetId);
-
-    }
-
-    /* ==============================
-       15) Buttons + boot
+       12) Buttons + boot
     ============================== */
     function wireButtons(){
       const formBtn = document.getElementById("formGroupsBtn");
@@ -905,10 +700,9 @@
           state = initialState();
           stage = "pools";
           swapSelection = null;
-          lastReorder = null;
           buildBoard();
           render();
-          wireButtons();
+          wireButtons(); // because Form Groups button is rebuilt
         });
       }
     }
