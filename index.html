@@ -1,31 +1,11 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <!-- =========================================================
-       HEAD
-       - Meta
-       - Title
-       - Viewport
-       - Styles (theme + layout + drag UX)
-  ========================================================== -->
   <meta charset="utf-8" />
-  <title>World Cup 2026 Groups Drag-Drop (Mobile Safe Base)</title>
+  <title>World Cup 2026 – Qualifier Pools → Form Groups</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
-    /* =========================================================
-       CSS MAP
-       1) Theme variables
-       2) Global/base
-       3) Header
-       4) Board grid
-       5) Column + dropzone
-       6) Cards
-       7) Drag states
-       8) Buttons + footer
-    ========================================================== */
-
-    /* 1) Theme variables */
     :root{
       --bg:#0f1220;
       --panel:#151a2e;
@@ -38,7 +18,6 @@
       --radius: 14px;
     }
 
-    /* 2) Global/base */
     *{box-sizing:border-box}
     body{
       margin:0;
@@ -48,9 +27,8 @@
       min-height:100vh;
     }
 
-    /* 3) Header */
     header{
-      padding: 18px 20px 0 20px;
+      padding: 18px 20px 8px 20px;
       display:flex;
       gap:12px;
       align-items:center;
@@ -67,18 +45,46 @@
       color:var(--muted);
       font-size: 11.5px;
     }
+
     .actions{
       display:flex;
       gap:8px;
       align-items:center;
+      flex-wrap: wrap;
     }
 
-    /* 4) Board grid */
+    .stage-pill{
+      font-size: 10px;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 6px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.04);
+    }
+
+    button{
+      background: rgba(122,162,255,0.12);
+      color: var(--text);
+      border: 1px solid rgba(122,162,255,0.35);
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    button:hover{
+      background: rgba(122,162,255,0.18);
+    }
+    button:disabled{
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Board grid */
     .board{
       display:grid;
       grid-template-columns: 1fr;
       gap: 14px;
-      padding: 14px 16px 30px 16px;
+      padding: 8px 16px 30px 16px;
     }
     @media (min-width: 780px){
       .board{ grid-template-columns: 1fr 1fr; }
@@ -90,17 +96,36 @@
       .board{ grid-template-columns: 1fr 1fr 1fr 1fr; }
     }
 
-    /* 5) Column + dropzone */
+    /* Stage separators */
+    .stage-separator{
+      grid-column: 1 / -1;
+      padding: 10px 6px 2px 6px;
+      font-size: 11px;
+      letter-spacing: 0.35px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.55);
+      display:flex;
+      align-items:center;
+      gap: 10px;
+    }
+    .stage-separator .line{
+      height: 1px;
+      background: var(--border);
+      flex: 1;
+    }
+
+    /* Column containers */
     .column{
       background: linear-gradient(180deg, var(--panel), var(--panel-2));
       border:1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       overflow: hidden;
-      min-height: 180px;
+      min-height: 160px;
       display:flex;
       flex-direction:column;
     }
+
     .column-header{
       padding: 12px 14px;
       display:flex;
@@ -110,14 +135,14 @@
       gap: 10px;
     }
     .column-title{
-      font-size: 12.5px;
+      font-size: 12.2px;
       letter-spacing: 0.35px;
       text-transform: uppercase;
       color: var(--muted);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 70%;
+      max-width: 75%;
     }
     .count{
       font-size: 10.5px;
@@ -140,7 +165,7 @@
       outline-offset: -6px;
     }
 
-    /* 6) Cards */
+    /* Cards */
     .card{
       background: rgba(255,255,255,0.04);
       border:1px solid var(--border);
@@ -153,10 +178,8 @@
       cursor: grab;
       user-select: none;
 
-      /* ✅ Critical mobile fix */
+      /* ✅ critical mobile drag fix */
       touch-action: none;
-
-      transition: transform 80ms ease, background 120ms ease, border-color 120ms ease;
     }
     .card:active{ cursor: grabbing; }
 
@@ -177,7 +200,6 @@
       white-space: nowrap;
     }
 
-    /* 7) Drag states */
     .dragging{ opacity: 0.35; }
 
     .drag-clone{
@@ -192,19 +214,6 @@
       backdrop-filter: blur(8px);
     }
 
-    /* 8) Buttons + footer */
-    button{
-      background: rgba(122,162,255,0.12);
-      color: var(--text);
-      border: 1px solid rgba(122,162,255,0.35);
-      padding: 8px 10px;
-      border-radius: 10px;
-      font-size: 11px;
-      cursor: pointer;
-    }
-    button:hover{
-      background: rgba(122,162,255,0.18);
-    }
     .footer{
       padding: 0 16px 24px 16px;
       color: var(--muted);
@@ -214,604 +223,485 @@
 </head>
 
 <body>
-  <!-- =========================================================
-       BODY / HTML STRUCTURE
-       1) Header + actions
-       2) Dynamic board container
-       3) Footer
-  ========================================================== -->
-
   <header>
     <div>
-      <h1>World Cup 2026 Groups – Drag & Drop Base</h1>
-      <div class="hint">Uses Pointer Events for reliable mobile dragging.</div>
+      <h1>Qualifier Pools → Form Groups → Group Stage</h1>
+      <div class="hint">Reorder within pools first. Click “Form Groups” to lock pools and unlock groups.</div>
     </div>
+
     <div class="actions">
-      <button id="resetBtn">Reset Groups</button>
-      <button id="clearPoolBtn">Clear Pool</button>
+      <span class="stage-pill" id="stagePill">Stage: Pools</span>
+      <button id="formGroupsBtn">Form Groups</button>
+      <button id="resetBtn">Reset</button>
     </div>
   </header>
 
-  <!-- Board will be built dynamically from DEFAULT_GROUPS -->
   <main class="board" id="board"></main>
 
   <div class="footer">
-    This is a stable foundation. Next upgrades: group capacity rules (max 4), pool auto-fill, standings, and 3rd-place ranking.
+    Rule: the top team in each Path (rank #1) replaces its placeholder in the assigned Group when you click <b>Form Groups</b>.
   </div>
 
   <script>
- /* =========================================================
-   World Cup 2026 Predictor – Qualifier Pools → Form Groups → Group Dragging
-   COMPLETE JS (no pool column)
-
-   What this version does (per your update):
-   1) You can drag/reorder teams INSIDE qualifier pools (Paths).
-   2) You can NOT drag from pools to groups.
-   3) Groups are shown but "locked" during pool selection.
-   4) When you click a button with id="formGroupsBtn",
-      the TOP team of each Path list is selected and replaces
-      its placeholder in the assigned group.
-   5) After that, pool stage ends and group stage begins:
-      - Pools become locked (no dragging)
-      - Groups become draggable (reorder within each group)
-
-   Required HTML:
-     <main class="board" id="board"></main>
-     <button id="formGroupsBtn">Form Groups</button>
-   Optional:
-     <button id="resetBtn">Reset</button>
-
-   Notes:
-   - Uses Pointer Events for mobile reliability.
-   - Your CSS must include:
-       .card { touch-action: none; }
-     to prevent scroll during drag.
-========================================================= */
-
-
-/* ---------------------------------------------------------
-   1) GROUPS with UPDATED placeholder names
---------------------------------------------------------- */
-const DEFAULT_GROUPS = {
-  A: ["Mexico","South Africa","South Korea","UFEA Path D"],
-  B: ["Canada","UFEA Path A","Qatar","Switzerland"],
-  C: ["Brazil","Morocco","Haiti","Scotland"],
-  D: ["United States","Paraguay","Australia","UFEA Path C"],
-  E: ["Germany","Curaçao","Ivory Coast","Ecuador"],
-  F: ["Netherlands","Japan","UFEA Path B","Tunisia"],
-  G: ["Belgium","Egypt","Iran","New Zealand"],
-  H: ["Spain","Cape Verde","Saudi Arabia","Uruguay"],
-  I: ["France","Senegal","FIFA IC Path 2","Norway"],
-  J: ["Argentina","Algeria","Austria","Jordan"],
-  K: ["Portugal","FIFA IC Path 1","Uzbekistan","Colombia"],
-  L: ["England","Croatia","Ghana","Panama"]
-};
-
-
-/* ---------------------------------------------------------
-   2) QUALIFIER POOLS (Paths) + where they feed
---------------------------------------------------------- */
-const PATHS = [
-  {
-    id: "ufeapath-a",
-    label: "UFEA Path A",
-    candidates: ["Wales", "Bosnia and Herzegovina", "Italy", "Northern Ireland"],
-    group: "B"
-  },
-  {
-    id: "ufeapath-b",
-    label: "UFEA Path B",
-    candidates: ["Ukraine", "Sweden", "Poland", "Albania"],
-    group: "F"
-  },
-  {
-    id: "ufeapath-c",
-    label: "UFEA Path C",
-    candidates: ["Slovakia", "Kosovo", "Turkey", "Romania"],
-    group: "D"
-  },
-  {
-    id: "ufeapath-d",
-    label: "UFEA Path D",
-    candidates: ["Czech Republic", "Republic of Ireland", "Denmark", "North Macedonia"],
-    group: "A"
-  },
-  {
-    id: "fifaicpath-1",
-    label: "FIFA IC Path 1",
-    candidates: ["New Caledonia", "Jamaica", "DR Congo"],
-    group: "K"
-  },
-  {
-    id: "fifaicpath-2",
-    label: "FIFA IC Path 2",
-    candidates: ["Bolivia", "Suriname", "Iraq"],
-    group: "I"
-  }
-];
-
-const PATH_BY_ID = Object.fromEntries(PATHS.map(p => [p.id, p]));
-const PATH_ID_BY_LABEL = Object.fromEntries(PATHS.map(p => [p.label, p.id]));
-
-
-/* ---------------------------------------------------------
-   3) Utilities
---------------------------------------------------------- */
-const GROUP_KEYS = Object.keys(DEFAULT_GROUPS);
-
-const toId = (name) =>
-  name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-
-
-/* ---------------------------------------------------------
-   4) App stage control
-     - "pools": only Path columns draggable
-     - "groups": only Group columns draggable
---------------------------------------------------------- */
-let stage = "pools";
-
-
-/* ---------------------------------------------------------
-   5) State constructor
---------------------------------------------------------- */
-const initialState = () => {
-  // Build path candidate arrays
-  const paths = {};
-  PATHS.forEach(p => {
-    paths[p.id] = p.candidates.map(name => ({
-      id: toId(`${p.id}-${name}`),
-      name,
-      tag: p.label,
-      originPathId: p.id
-    }));
-  });
-
-  // Build groups with placeholder objects
-  const groups = {};
-  GROUP_KEYS.forEach(g => {
-    groups[g] = DEFAULT_GROUPS[g].map(entryName => {
-      const pathId = PATH_ID_BY_LABEL[entryName];
-
-      if (pathId) {
-        return {
-          id: `ph-${pathId}-${g}`,
-          name: entryName,
-          tag: "Placeholder",
-          isPlaceholder: true,
-          pathId
-        };
-      }
-
-      return {
-        id: toId(`${g}-${entryName}`),
-        name: entryName,
-        tag: `Group ${g}`
-      };
-    });
-  });
-
-  return { paths, groups };
-};
-
-let state = initialState();
-
-
-/* ---------------------------------------------------------
-   6) Zones
-     - Path zones first
-     - Group zones next
---------------------------------------------------------- */
-const pathZones = PATHS.map(p => `path-${p.id}`);
-const groupZones = GROUP_KEYS.map(g => `group-${g}`);
-const zones = [...pathZones, ...groupZones];
-
-const isPathZone = (zoneKey) => zoneKey.startsWith("path-");
-const isGroupZone = (zoneKey) => zoneKey.startsWith("group-");
-const pathIdFromZone = (zoneKey) => zoneKey.replace("path-", "");
-const groupKeyFromZone = (zoneKey) => {
-  const m = zoneKey.match(/^group-([A-L])$/);
-  return m ? m[1] : null;
-};
-
-
-/* ---------------------------------------------------------
-   7) Board builder with clear separation
-     - Adds visual separators using simple elements
-     - If your CSS doesn't style these classes, it's still fine
---------------------------------------------------------- */
-function makeSeparator(text){
-  const sep = document.createElement("div");
-  sep.className = "stage-separator";
-  // Inline style to force spanning across grid without needing extra CSS
-  sep.style.gridColumn = "1 / -1";
-  sep.style.padding = "10px 6px 2px 6px";
-  sep.style.fontSize = "11px";
-  sep.style.letterSpacing = "0.35px";
-  sep.style.textTransform = "uppercase";
-  sep.style.color = "rgba(255,255,255,0.55)";
-  sep.textContent = text;
-  return sep;
-}
-
-function makeColumn(title, zoneKey, subtitle = ""){
-  const col = document.createElement("section");
-  col.className = "column";
-  col.dataset.zoneOwner = zoneKey;
-
-  col.innerHTML = `
-    <div class="column-header">
-      <div class="column-title">${title}${subtitle ? ` • ${subtitle}` : ""}</div>
-      <div class="count" data-count-for="${zoneKey}"></div>
-    </div>
-    <div class="dropzone" data-zone="${zoneKey}"></div>
-  `;
-  return col;
-}
-
-function buildBoard(){
-  const board = document.getElementById("board");
-  if(!board) return;
-
-  board.innerHTML = "";
-
-  // ---- Pool selection stage region ----
-  board.appendChild(makeSeparator("Qualifier Pools (reorder to rank)"));
-
-  PATHS.forEach(p => {
-    board.appendChild(
-      makeColumn(p.label, `path-${p.id}`, `feeds Group ${p.group}`)
-    );
-  });
-
-  // ---- Group stage region ----
-  board.appendChild(makeSeparator("Group Stage (unlocks after 'Form Groups')"));
-
-  GROUP_KEYS.forEach(g => {
-    board.appendChild(
-      makeColumn(`Group ${g}`, `group-${g}`)
-    );
-  });
-}
-
-
-/* ---------------------------------------------------------
-   8) Zone data access
---------------------------------------------------------- */
-function getZoneArray(zoneKey){
-  if (isPathZone(zoneKey)) {
-    const id = pathIdFromZone(zoneKey);
-    return state.paths[id];
-  }
-  if (isGroupZone(zoneKey)) {
-    const g = groupKeyFromZone(zoneKey);
-    return state.groups[g];
-  }
-  return null;
-}
-
-
-/* ---------------------------------------------------------
-   9) Render
-     - Creates cards for each zone
-     - Attaches drag only if allowed by stage
-     - Placeholders are never draggable
---------------------------------------------------------- */
-function isDragEnabledForZone(zoneKey){
-  if(stage === "pools") return isPathZone(zoneKey);
-  if(stage === "groups") return isGroupZone(zoneKey);
-  return false;
-}
-
-function render(){
-  zones.forEach(zone => {
-    const dz = document.querySelector(`.dropzone[data-zone="${zone}"]`);
-    if(!dz) return;
-
-    dz.innerHTML = "";
-
-    const arr = getZoneArray(zone) ?? [];
-
-    arr.forEach(team => {
-      const card = document.createElement("div");
-      card.className = "card";
-      card.dataset.id = team.id;
-      card.dataset.zone = zone;
-
-      card.innerHTML = `
-        <span class="name">${team.name}</span>
-        <span class="tag">${team.tag ?? ""}</span>
-      `;
-
-      const canDrag =
-        !team.isPlaceholder &&
-        isDragEnabledForZone(zone);
-
-      if(canDrag){
-        attachPointerDrag(card);
-      }
-
-      dz.appendChild(card);
-    });
-
-    const countEl = document.querySelector(`[data-count-for="${zone}"]`);
-    if(countEl){
-      countEl.textContent = `${arr.length} item${arr.length !== 1 ? "s" : ""}`;
-    }
-  });
-
-  // Optionally disable the form button after use
-  const formBtn = document.getElementById("formGroupsBtn");
-  if(formBtn){
-    formBtn.disabled = (stage === "groups");
-    formBtn.style.opacity = formBtn.disabled ? "0.6" : "1";
-    formBtn.style.cursor = formBtn.disabled ? "not-allowed" : "pointer";
-  }
-}
-
-
-/* ---------------------------------------------------------
-   10) Reorder helper
-     - Compute insertion index inside a dropzone based on Y
---------------------------------------------------------- */
-function getInsertIndex(zoneEl, clientY){
-  const cards = [...zoneEl.querySelectorAll(".card:not(.dragging)")];
-
-  for(let i = 0; i < cards.length; i++){
-    const r = cards[i].getBoundingClientRect();
-    const mid = r.top + r.height / 2;
-    if(clientY < mid) return i;
-  }
-  return cards.length;
-}
-
-
-/* ---------------------------------------------------------
-   11) Find + drop logic
-     - We only allow REORDER within the same zone.
-     - No drag across pools/groups.
---------------------------------------------------------- */
-function findTeamAndZone(teamId){
-  for(const z of zones){
-    const arr = getZoneArray(z);
-    if(!arr) continue;
-
-    const idx = arr.findIndex(t => t.id === teamId);
-    if(idx !== -1) return { zone: z, index: idx, team: arr[idx] };
-  }
-  return null;
-}
-
-/**
- * Drop/reorder in the same zone.
- */
-function reorderWithinZone(teamId, zoneEl, clientY){
-  const toZone = zoneEl.dataset.zone;
-  const arr = getZoneArray(toZone);
-  if(!arr) return;
-
-  const found = findTeamAndZone(teamId);
-  if(!found) return;
-
-  // Only reorder inside same zone
-  if(found.zone !== toZone) return;
-
-  // Remove team from array
-  const [team] = arr.splice(found.index, 1);
-
-  // Compute new insertion index
-  let insertIndex = getInsertIndex(zoneEl, clientY);
-
-  // If removing earlier element shifts index, adjust
-  if(insertIndex > found.index) insertIndex -= 1;
-
-  // Insert back
-  arr.splice(insertIndex, 0, team);
-
-  render();
-}
-
-
-/* ---------------------------------------------------------
-   12) "Form Groups" button logic
-     Rule:
-       The TOP team of each Path list (index 0)
-       replaces its placeholder in the assigned group.
-     After forming:
-       stage flips to "groups".
---------------------------------------------------------- */
-function groupHasPlaceholder(groupKey, pathId){
-  return state.groups[groupKey].some(t => t.isPlaceholder && t.pathId === pathId);
-}
-
-function replacePlaceholderWithTeam(groupKey, pathId, chosenTeam){
-  const arr = state.groups[groupKey];
-  const idx = arr.findIndex(t => t.isPlaceholder && t.pathId === pathId);
-
-  // If placeholder not found, just append as safe fallback
-  const insertionIndex = (idx === -1) ? arr.length : idx;
-
-  // Remove placeholder if present
-  if(idx !== -1) arr.splice(idx, 1);
-
-  // Insert chosen team at that slot
-  arr.splice(insertionIndex, 0, {
-    ...chosenTeam,
-    tag: PATH_BY_ID[pathId].label,
-    chosenFromPath: true
-  });
-}
-
-function formGroupsFromPools(){
-  // For each path, pick the top-ranked team
-  PATHS.forEach(p => {
-    const pathArr = state.paths[p.id];
-    if(!pathArr || pathArr.length === 0) return;
-
-    const chosen = pathArr[0];
-
-    // Only replace if placeholder exists (keeps logic clean)
-    if(!groupHasPlaceholder(p.group, p.id)) return;
-
-    // Remove chosen from path candidates
-    pathArr.shift();
-
-    // Replace placeholder in assigned group
-    replacePlaceholderWithTeam(p.group, p.id, chosen);
-  });
-
-  // Pool stage ends here
-  stage = "groups";
-
-  render();
-}
-
-
-/* ---------------------------------------------------------
-   13) Pointer drag engine (mobile-safe)
---------------------------------------------------------- */
-function zoneFromPoint(x, y){
-  const all = [...document.querySelectorAll(".dropzone")];
-  return all.find(dz => {
-    const r = dz.getBoundingClientRect();
-    return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
-  });
-}
-
-let dragging = null;
-
-function attachPointerDrag(card){
-  card.addEventListener("pointerdown", (e) => {
-    if(e.button !== undefined && e.button !== 0) return;
-
-    e.preventDefault();
-
-    const teamId = card.dataset.id;
-    const fromZone = card.dataset.zone;
-
-    // Hard gate: only allow drag if zone is enabled for this stage
-    if(!isDragEnabledForZone(fromZone)) return;
-
-    const rect = card.getBoundingClientRect();
-
-    const clone = card.cloneNode(true);
-    clone.classList.add("drag-clone");
-    document.body.appendChild(clone);
-
-    card.classList.add("dragging");
-
-    dragging = {
-      teamId,
-      originCard: card,
-      clone,
-      pointerId: e.pointerId,
-      fromZone,
-      offsetX: e.clientX - (rect.left + rect.width / 2),
-      offsetY: e.clientY - (rect.top + rect.height / 2),
-      lastZoneEl: null
+    /* =========================================================
+       1) GROUPS with renamed placeholders
+       (Must match PATH labels exactly)
+    ========================================================== */
+    const DEFAULT_GROUPS = {
+      A: ["Mexico","South Africa","South Korea","UFEA Path D"],
+      B: ["Canada","UFEA Path A","Qatar","Switzerland"],
+      C: ["Brazil","Morocco","Haiti","Scotland"],
+      D: ["United States","Paraguay","Australia","UFEA Path C"],
+      E: ["Germany","Curaçao","Ivory Coast","Ecuador"],
+      F: ["Netherlands","Japan","UFEA Path B","Tunisia"],
+      G: ["Belgium","Egypt","Iran","New Zealand"],
+      H: ["Spain","Cape Verde","Saudi Arabia","Uruguay"],
+      I: ["France","Senegal","FIFA IC Path 2","Norway"],
+      J: ["Argentina","Algeria","Austria","Jordan"],
+      K: ["Portugal","FIFA IC Path 1","Uzbekistan","Colombia"],
+      L: ["England","Croatia","Ghana","Panama"]
     };
 
-    card.setPointerCapture(e.pointerId);
-    positionClone(e.clientX, e.clientY);
-  });
+    /* =========================================================
+       2) QUALIFIER PATHS (Pools)
+    ========================================================== */
+    const PATHS = [
+      {
+        id: "ufeapath-a",
+        label: "UFEA Path A",
+        candidates: ["Wales", "Bosnia and Herzegovina", "Italy", "Northern Ireland"],
+        group: "B"
+      },
+      {
+        id: "ufeapath-b",
+        label: "UFEA Path B",
+        candidates: ["Ukraine", "Sweden", "Poland", "Albania"],
+        group: "F"
+      },
+      {
+        id: "ufeapath-c",
+        label: "UFEA Path C",
+        candidates: ["Slovakia", "Kosovo", "Turkey", "Romania"],
+        group: "D"
+      },
+      {
+        id: "ufeapath-d",
+        label: "UFEA Path D",
+        candidates: ["Czech Republic", "Republic of Ireland", "Denmark", "North Macedonia"],
+        group: "A"
+      },
+      {
+        id: "fifaicpath-1",
+        label: "FIFA IC Path 1",
+        candidates: ["New Caledonia", "Jamaica", "DR Congo"],
+        group: "K"
+      },
+      {
+        id: "fifaicpath-2",
+        label: "FIFA IC Path 2",
+        candidates: ["Bolivia", "Suriname", "Iraq"],
+        group: "I"
+      }
+    ];
 
-  card.addEventListener("pointermove", (e) => {
-    if(!dragging || dragging.pointerId !== e.pointerId) return;
+    const PATH_BY_ID = Object.fromEntries(PATHS.map(p => [p.id, p]));
+    const PATH_ID_BY_LABEL = Object.fromEntries(PATHS.map(p => [p.label, p.id]));
 
-    e.preventDefault();
+    const GROUP_KEYS = Object.keys(DEFAULT_GROUPS);
 
-    positionClone(e.clientX, e.clientY);
+    const toId = (name) =>
+      name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
-    const zoneEl = zoneFromPoint(e.clientX, e.clientY);
+    /* =========================================================
+       3) Stage control
+    ========================================================== */
+    let stage = "pools"; // "pools" -> "groups"
 
-    if(zoneEl !== dragging.lastZoneEl){
+    /* =========================================================
+       4) State
+    ========================================================== */
+    const initialState = () => {
+      const paths = {};
+      PATHS.forEach(p => {
+        paths[p.id] = p.candidates.map(name => ({
+          id: toId(`${p.id}-${name}`),
+          name,
+          tag: p.label,
+          originPathId: p.id
+        }));
+      });
+
+      const groups = {};
+      GROUP_KEYS.forEach(g => {
+        groups[g] = DEFAULT_GROUPS[g].map(entryName => {
+          const pathId = PATH_ID_BY_LABEL[entryName];
+          if(pathId){
+            return {
+              id: `ph-${pathId}-${g}`,
+              name: entryName,       // must equal label string
+              tag: "Placeholder",
+              isPlaceholder: true,
+              pathId
+            };
+          }
+          return {
+            id: toId(`${g}-${entryName}`),
+            name: entryName,
+            tag: `Group ${g}`
+          };
+        });
+      });
+
+      return { paths, groups };
+    };
+
+    let state = initialState();
+
+    /* Zones */
+    const pathZones = PATHS.map(p => `path-${p.id}`);
+    const groupZones = GROUP_KEYS.map(g => `group-${g}`);
+    const zones = [...pathZones, ...groupZones];
+
+    const isPathZone = (z) => z.startsWith("path-");
+    const isGroupZone = (z) => z.startsWith("group-");
+    const pathIdFromZone = (z) => z.replace("path-","");
+    const groupKeyFromZone = (z) => {
+      const m = z.match(/^group-([A-L])$/);
+      return m ? m[1] : null;
+    };
+
+    /* =========================================================
+       5) UI Builder
+    ========================================================== */
+    function makeSeparator(text){
+      const sep = document.createElement("div");
+      sep.className = "stage-separator";
+      sep.innerHTML = `<span>${text}</span><span class="line"></span>`;
+      return sep;
+    }
+
+    function makeColumn(title, zoneKey, subtitle = ""){
+      const col = document.createElement("section");
+      col.className = "column";
+      col.innerHTML = `
+        <div class="column-header">
+          <div class="column-title">${title}${subtitle ? ` • ${subtitle}` : ""}</div>
+          <div class="count" data-count-for="${zoneKey}"></div>
+        </div>
+        <div class="dropzone" data-zone="${zoneKey}"></div>
+      `;
+      return col;
+    }
+
+    function buildBoard(){
+      const board = document.getElementById("board");
+      board.innerHTML = "";
+
+      board.appendChild(makeSeparator("Qualifier Pools (rank by dragging)"));
+
+      PATHS.forEach(p => {
+        board.appendChild(makeColumn(p.label, `path-${p.id}`, `feeds Group ${p.group}`));
+      });
+
+      board.appendChild(makeSeparator("Groups (unlock after Form Groups)"));
+
+      GROUP_KEYS.forEach(g => {
+        board.appendChild(makeColumn(`Group ${g}`, `group-${g}`));
+      });
+    }
+
+    /* =========================================================
+       6) Data access + Render
+    ========================================================== */
+    function getZoneArray(zoneKey){
+      if(isPathZone(zoneKey)){
+        return state.paths[pathIdFromZone(zoneKey)];
+      }
+      if(isGroupZone(zoneKey)){
+        return state.groups[groupKeyFromZone(zoneKey)];
+      }
+      return null;
+    }
+
+    function isDragEnabledForZone(zoneKey){
+      if(stage === "pools") return isPathZone(zoneKey);
+      if(stage === "groups") return isGroupZone(zoneKey);
+      return false;
+    }
+
+    function updateStagePill(){
+      const pill = document.getElementById("stagePill");
+      if(!pill) return;
+      pill.textContent = stage === "pools" ? "Stage: Pools" : "Stage: Groups";
+    }
+
+    function render(){
+      zones.forEach(zone => {
+        const dz = document.querySelector(`.dropzone[data-zone="${zone}"]`);
+        if(!dz) return;
+
+        dz.innerHTML = "";
+        const arr = getZoneArray(zone) ?? [];
+
+        arr.forEach(team => {
+          const card = document.createElement("div");
+          card.className = "card";
+          card.dataset.id = team.id;
+          card.dataset.zone = zone;
+
+          card.innerHTML = `
+            <span class="name">${team.name}</span>
+            <span class="tag">${team.tag ?? ""}</span>
+          `;
+
+          const canDrag = !team.isPlaceholder && isDragEnabledForZone(zone);
+          if(canDrag) attachPointerDrag(card);
+
+          dz.appendChild(card);
+        });
+
+        const countEl = document.querySelector(`[data-count-for="${zone}"]`);
+        if(countEl){
+          countEl.textContent = `${arr.length} team${arr.length !== 1 ? "s" : ""}`;
+        }
+      });
+
+      const formBtn = document.getElementById("formGroupsBtn");
+      if(formBtn){
+        formBtn.disabled = (stage === "groups");
+      }
+
+      updateStagePill();
+    }
+
+    /* =========================================================
+       7) Reorder math (within same zone only)
+    ========================================================== */
+    function getInsertIndex(zoneEl, clientY){
+      const cards = [...zoneEl.querySelectorAll(".card:not(.dragging)")];
+      for(let i = 0; i < cards.length; i++){
+        const r = cards[i].getBoundingClientRect();
+        const mid = r.top + r.height / 2;
+        if(clientY < mid) return i;
+      }
+      return cards.length;
+    }
+
+    function findTeamAndZone(teamId){
+      for(const z of zones){
+        const arr = getZoneArray(z);
+        if(!arr) continue;
+        const idx = arr.findIndex(t => t.id === teamId);
+        if(idx !== -1) return { zone: z, index: idx, team: arr[idx] };
+      }
+      return null;
+    }
+
+    function reorderWithinZone(teamId, zoneEl, clientY){
+      const toZone = zoneEl.dataset.zone;
+      const arr = getZoneArray(toZone);
+      if(!arr) return;
+
+      const found = findTeamAndZone(teamId);
+      if(!found) return;
+
+      // Only reorder in the SAME zone
+      if(found.zone !== toZone) return;
+
+      const [team] = arr.splice(found.index, 1);
+
+      let insertIndex = getInsertIndex(zoneEl, clientY);
+      if(insertIndex > found.index) insertIndex -= 1;
+
+      arr.splice(insertIndex, 0, team);
+
+      render();
+    }
+
+    /* =========================================================
+       8) Feeding logic (on button click)
+       - Takes #1 team from each Path list
+       - Replaces the matching placeholder in target group
+    ========================================================== */
+    function groupHasPlaceholder(groupKey, pathId){
+      return state.groups[groupKey].some(t => t.isPlaceholder && t.pathId === pathId);
+    }
+
+    function replacePlaceholderWithTeam(groupKey, pathId, chosenTeam){
+      const arr = state.groups[groupKey];
+
+      const idx = arr.findIndex(t => t.isPlaceholder && t.pathId === pathId);
+      const insertionIndex = (idx === -1) ? arr.length : idx;
+
+      if(idx !== -1) arr.splice(idx, 1);
+
+      arr.splice(insertionIndex, 0, {
+        ...chosenTeam,
+        tag: PATH_BY_ID[pathId].label,
+        chosenFromPath: true
+      });
+    }
+
+    function formGroupsFromPools(){
+      PATHS.forEach(p => {
+        const pathArr = state.paths[p.id];
+        if(!pathArr || pathArr.length === 0) return;
+
+        // Top-ranked team
+        const chosen = pathArr[0];
+
+        // Only proceed if placeholder exists
+        if(!groupHasPlaceholder(p.group, p.id)) return;
+
+        // Remove from path
+        pathArr.shift();
+
+        // Replace placeholder
+        replacePlaceholderWithTeam(p.group, p.id, chosen);
+      });
+
+      // Switch stage
+      stage = "groups";
+
+      render();
+    }
+
+    /* =========================================================
+       9) Pointer drag engine (mobile-safe)
+    ========================================================== */
+    function zoneFromPoint(x, y){
+      const all = [...document.querySelectorAll(".dropzone")];
+      return all.find(dz => {
+        const r = dz.getBoundingClientRect();
+        return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+      });
+    }
+
+    let dragging = null;
+
+    function attachPointerDrag(card){
+      card.addEventListener("pointerdown", (e) => {
+        if(e.button !== undefined && e.button !== 0) return;
+
+        e.preventDefault();
+
+        const teamId = card.dataset.id;
+        const fromZone = card.dataset.zone;
+
+        // Stage lock guard
+        if(!isDragEnabledForZone(fromZone)) return;
+
+        const rect = card.getBoundingClientRect();
+
+        const clone = card.cloneNode(true);
+        clone.classList.add("drag-clone");
+        document.body.appendChild(clone);
+
+        card.classList.add("dragging");
+
+        dragging = {
+          teamId,
+          originCard: card,
+          clone,
+          pointerId: e.pointerId,
+          fromZone,
+          offsetX: e.clientX - (rect.left + rect.width / 2),
+          offsetY: e.clientY - (rect.top + rect.height / 2),
+          lastZoneEl: null
+        };
+
+        card.setPointerCapture(e.pointerId);
+        positionClone(e.clientX, e.clientY);
+      });
+
+      card.addEventListener("pointermove", (e) => {
+        if(!dragging || dragging.pointerId !== e.pointerId) return;
+
+        e.preventDefault();
+        positionClone(e.clientX, e.clientY);
+
+        const zoneEl = zoneFromPoint(e.clientX, e.clientY);
+
+        if(zoneEl !== dragging.lastZoneEl){
+          document.querySelectorAll(".dropzone")
+            .forEach(z => z.classList.remove("over"));
+
+          if(zoneEl) zoneEl.classList.add("over");
+
+          dragging.lastZoneEl = zoneEl;
+        }
+      });
+
+      card.addEventListener("pointerup", (e) => {
+        if(!dragging || dragging.pointerId !== e.pointerId) return;
+        e.preventDefault();
+        finishDrag(e.clientX, e.clientY);
+      });
+
+      card.addEventListener("pointercancel", (e) => {
+        if(!dragging || dragging.pointerId !== e.pointerId) return;
+        finishDrag(null, null, true);
+      });
+    }
+
+    function positionClone(x, y){
+      if(!dragging) return;
+      dragging.clone.style.left = `${x - dragging.offsetX}px`;
+      dragging.clone.style.top  = `${y - dragging.offsetY}px`;
+    }
+
+    function finishDrag(x, y, cancelled=false){
+      const { teamId, originCard, clone, fromZone } = dragging;
+
       document.querySelectorAll(".dropzone")
         .forEach(z => z.classList.remove("over"));
 
-      if(zoneEl) zoneEl.classList.add("over");
+      originCard.classList.remove("dragging");
+      clone.remove();
 
-      dragging.lastZoneEl = zoneEl;
-    }
-  });
+      if(!cancelled && x !== null && y !== null){
+        const zoneEl = zoneFromPoint(x, y);
+        if(zoneEl){
+          const toZone = zoneEl.dataset.zone;
 
-  card.addEventListener("pointerup", (e) => {
-    if(!dragging || dragging.pointerId !== e.pointerId) return;
-    e.preventDefault();
-    finishDrag(e.clientX, e.clientY);
-  });
-
-  card.addEventListener("pointercancel", (e) => {
-    if(!dragging || dragging.pointerId !== e.pointerId) return;
-    finishDrag(null, null, true);
-  });
-}
-
-function positionClone(x, y){
-  if(!dragging) return;
-  dragging.clone.style.left = `${x - dragging.offsetX}px`;
-  dragging.clone.style.top  = `${y - dragging.offsetY}px`;
-}
-
-function finishDrag(x, y, cancelled=false){
-  const { teamId, originCard, clone, fromZone } = dragging;
-
-  document.querySelectorAll(".dropzone")
-    .forEach(z => z.classList.remove("over"));
-
-  originCard.classList.remove("dragging");
-  clone.remove();
-
-  if(!cancelled && x !== null && y !== null){
-    const zoneEl = zoneFromPoint(x, y);
-    if(zoneEl){
-      const toZone = zoneEl.dataset.zone;
-
-      // Only allow reorder within same zone
-      if(toZone === fromZone){
-        reorderWithinZone(teamId, zoneEl, y);
+          // Only reorder within the same zone
+          if(toZone === fromZone){
+            reorderWithinZone(teamId, zoneEl, y);
+          }
+        }
       }
-      // Otherwise ignore (no cross-zone dragging)
+
+      dragging = null;
     }
-  }
 
-  dragging = null;
-}
+    /* =========================================================
+       10) Buttons + Boot
+    ========================================================== */
+    function wireButtons(){
+      const formBtn = document.getElementById("formGroupsBtn");
+      if(formBtn){
+        formBtn.addEventListener("click", () => {
+          if(stage === "groups") return;
+          formGroupsFromPools();
+        });
+      }
 
+      const resetBtn = document.getElementById("resetBtn");
+      if(resetBtn){
+        resetBtn.addEventListener("click", () => {
+          state = initialState();
+          stage = "pools";
+          buildBoard();
+          render();
+        });
+      }
+    }
 
-/* ---------------------------------------------------------
-   14) Buttons wiring
---------------------------------------------------------- */
-function wireButtons(){
-  const formBtn = document.getElementById("formGroupsBtn");
-  if(formBtn){
-    formBtn.addEventListener("click", () => {
-      if(stage === "groups") return;
-      formGroupsFromPools();
-    });
-  }
-
-  const resetBtn = document.getElementById("resetBtn");
-  if(resetBtn){
-    resetBtn.addEventListener("click", () => {
-      state = initialState();
-      stage = "pools";
+    document.addEventListener("DOMContentLoaded", () => {
       buildBoard();
       render();
+      wireButtons();
     });
-  }
-}
-
-
-/* ---------------------------------------------------------
-   15) Boot
---------------------------------------------------------- */
-document.addEventListener("DOMContentLoaded", () => {
-  buildBoard();
-  render();
-  wireButtons();
-});
-
-
-
   </script>
 </body>
 </html>
