@@ -22,6 +22,9 @@
       --hl-strong-br: rgba(94, 230, 168, 0.45);
       --hl-mild-bg:   rgba(122, 162, 255, 0.10);
       --hl-mild-br:   rgba(122, 162, 255, 0.35);
+
+      --qualified-bg: rgba(255,255,255,0.06);
+      --qualified-br: rgba(94, 230, 168, 0.30);
     }
 
     *{box-sizing:border-box}
@@ -235,11 +238,7 @@
       backdrop-filter: blur(8px);
     }
 
-    /* ==============================
-       Highlights
-       - Pools: rank 1 strong
-       - Groups: rank 1-2 strong, rank 3 mild
-    ============================== */
+    /* Highlights */
     .rank-strong{
       background: var(--hl-strong-bg);
       border-color: var(--hl-strong-br);
@@ -247,6 +246,12 @@
     .rank-mild{
       background: var(--hl-mild-bg);
       border-color: var(--hl-mild-br);
+    }
+
+    /* Qualified styling for pool #1 after Form Groups */
+    .qualified{
+      background: var(--qualified-bg);
+      border-color: var(--qualified-br);
     }
 
     .footer{
@@ -261,7 +266,10 @@
   <header>
     <div>
       <h1>Qualifier Pools → Form Groups → Group Stage</h1>
-      <div class="hint">Rank teams inside pools first. “Form Groups” selects the #1 team from each path.</div>
+      <div class="hint">
+        Rank teams inside pools first. “Form Groups” copies the #1 from each path into the linked group.
+        The qualified team stays in the pool.
+      </div>
     </div>
 
     <div class="actions">
@@ -273,14 +281,18 @@
   <main class="board" id="board"></main>
 
   <div class="footer">
-    Highlights: top-ranked team in each pool; top two teams in each group; 3rd team gets a mild highlight.
+    Highlights:
+    top-ranked team in each pool;
+    top two teams in each group;
+    3rd team mild.
+    After forming groups, pool #1 also shows as “Qualified”.
   </div>
 
   <script>
-    /* =========================================================
+    /* ==============================
        1) GROUPS with renamed placeholders
        (Must match PATH labels exactly)
-    ========================================================== */
+    ============================== */
     const DEFAULT_GROUPS = {
       A: ["Mexico","South Africa","South Korea","UFEA Path D"],
       B: ["Canada","UFEA Path A","Qatar","Switzerland"],
@@ -296,9 +308,9 @@
       L: ["England","Croatia","Ghana","Panama"]
     };
 
-    /* =========================================================
+    /* ==============================
        2) QUALIFIER PATHS (Pools)
-    ========================================================== */
+    ============================== */
     const PATHS = [
       {
         id: "ufeapath-a",
@@ -340,20 +352,22 @@
 
     const PATH_BY_ID = Object.fromEntries(PATHS.map(p => [p.id, p]));
     const PATH_ID_BY_LABEL = Object.fromEntries(PATHS.map(p => [p.label, p.id]));
-
     const GROUP_KEYS = Object.keys(DEFAULT_GROUPS);
 
     const toId = (name) =>
       name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
-    /* =========================================================
+    /* ==============================
        3) Stage control
-    ========================================================== */
+    ============================== */
     let stage = "pools"; // "pools" -> "groups"
 
-    /* =========================================================
+    /* ==============================
        4) State
-    ========================================================== */
+       - We track qualification per path so we can:
+         * keep pool order intact
+         * mark top team as qualified after forming
+    ============================== */
     const initialState = () => {
       const paths = {};
       PATHS.forEach(p => {
@@ -361,7 +375,8 @@
           id: toId(`${p.id}-${name}`),
           name,
           tag: p.label,
-          originPathId: p.id
+          originPathId: p.id,
+          isQualified: false
         }));
       });
 
@@ -386,7 +401,11 @@
         });
       });
 
-      return { paths, groups };
+      // Tracks which path has been used to form groups
+      const qualifiedByPath = {};
+      PATHS.forEach(p => { qualifiedByPath[p.id] = false; });
+
+      return { paths, groups, qualifiedByPath };
     };
 
     let state = initialState();
@@ -404,10 +423,10 @@
       return m ? m[1] : null;
     };
 
-    /* =========================================================
+    /* ==============================
        5) UI Builder
-       - "Form Groups" button now sits at top of Group Stage
-    ========================================================== */
+       - Form button at top of group stage
+    ============================== */
     function makeSeparator(text, withFormButton=false){
       const sep = document.createElement("div");
       sep.className = "stage-separator";
@@ -455,7 +474,7 @@
         board.appendChild(makeColumn(p.label, `path-${p.id}`, `feeds Group ${p.group}`));
       });
 
-      // Groups region (Form Groups button here)
+      // Groups region
       board.appendChild(makeSeparator("Groups (unlock after Form Groups)", true));
 
       GROUP_KEYS.forEach(g => {
@@ -463,9 +482,9 @@
       });
     }
 
-    /* =========================================================
+    /* ==============================
        6) Data access + Render
-    ========================================================== */
+    ============================== */
     function getZoneArray(zoneKey){
       if(isPathZone(zoneKey)){
         return state.paths[pathIdFromZone(zoneKey)];
@@ -502,12 +521,16 @@
           card.dataset.id = team.id;
           card.dataset.zone = zone;
 
-          // Apply rank highlights
-          applyRankHighlight(card, zone, idx);
+          applyRankHighlight(card, zone, idx, team);
+
+          // Tag tweaks for qualified pool top team
+          const tagText = team.isQualified && isPathZone(zone)
+            ? "Qualified"
+            : (team.tag ?? "");
 
           card.innerHTML = `
             <span class="name">${team.name}</span>
-            <span class="tag">${team.tag ?? ""}</span>
+            <span class="tag">${tagText}</span>
           `;
 
           const canDrag = !team.isPlaceholder && isDragEnabledForZone(zone);
@@ -522,7 +545,6 @@
         }
       });
 
-      // Disable Form button once groups formed
       const formBtn = document.getElementById("formGroupsBtn");
       if(formBtn){
         formBtn.disabled = (stage === "groups");
@@ -532,14 +554,16 @@
     }
 
     /* Highlight rules:
-       - Pools: rank #1 strong (during pools stage, and still ok after)
+       - Pools: rank #1 strong
+         + if qualified, add .qualified class
        - Groups: rank #1-2 strong, #3 mild
     */
-    function applyRankHighlight(cardEl, zone, idx){
-      cardEl.classList.remove("rank-strong", "rank-mild");
+    function applyRankHighlight(cardEl, zone, idx, team){
+      cardEl.classList.remove("rank-strong", "rank-mild", "qualified");
 
       if(isPathZone(zone)){
         if(idx === 0) cardEl.classList.add("rank-strong");
+        if(team && team.isQualified) cardEl.classList.add("qualified");
         return;
       }
 
@@ -549,9 +573,9 @@
       }
     }
 
-    /* =========================================================
-       7) Reorder math (within same zone only)
-    ========================================================== */
+    /* ==============================
+       7) Reorder within same zone only
+    ============================== */
     function getInsertIndex(zoneEl, clientY){
       const cards = [...zoneEl.querySelectorAll(".card:not(.dragging)")];
       for(let i = 0; i < cards.length; i++){
@@ -592,11 +616,13 @@
       render();
     }
 
-    /* =========================================================
-       8) Feeding logic (on button click)
-       - Takes #1 team from each Path list
-       - Replaces matching placeholder
-    ========================================================== */
+    /* ==============================
+       8) Feeding logic (COPY, don't move)
+       - Takes #1 team from each path
+       - Replaces placeholder in group
+       - Marks that pool team as Qualified
+       - Leaves pool list intact
+    ============================== */
     function groupHasPlaceholder(groupKey, pathId){
       return state.groups[groupKey].some(t => t.isPlaceholder && t.pathId === pathId);
     }
@@ -609,11 +635,26 @@
 
       if(idx !== -1) arr.splice(idx, 1);
 
+      // Insert a COPY for the group (new id)
       arr.splice(insertionIndex, 0, {
-        ...chosenTeam,
+        id: toId(`grp-${groupKey}-${pathId}-${chosenTeam.name}`),
+        name: chosenTeam.name,
         tag: PATH_BY_ID[pathId].label,
         chosenFromPath: true
       });
+    }
+
+    function markTopAsQualified(pathId){
+      const pathArr = state.paths[pathId];
+      if(!pathArr || pathArr.length === 0) return;
+
+      // Clear previous qualification flags in this path
+      pathArr.forEach(t => t.isQualified = false);
+
+      // Mark current top team
+      pathArr[0].isQualified = true;
+
+      state.qualifiedByPath[pathId] = true;
     }
 
     function formGroupsFromPools(){
@@ -625,17 +666,17 @@
 
         if(!groupHasPlaceholder(p.group, p.id)) return;
 
-        pathArr.shift();
         replacePlaceholderWithTeam(p.group, p.id, chosen);
+        markTopAsQualified(p.id);
       });
 
       stage = "groups";
       render();
     }
 
-    /* =========================================================
+    /* ==============================
        9) Pointer drag engine (mobile-safe)
-    ========================================================== */
+    ============================== */
     function zoneFromPoint(x, y){
       const all = [...document.querySelectorAll(".dropzone")];
       return all.find(dz => {
@@ -740,11 +781,11 @@
       dragging = null;
     }
 
-    /* =========================================================
+    /* ==============================
        10) Buttons + Boot
-       - Form button is created dynamically in buildBoard()
-         so we bind after buildBoard() runs.
-    ========================================================== */
+       - Form button is built inside buildBoard()
+         so bind after building
+    ============================== */
     function wireButtons(){
       const formBtn = document.getElementById("formGroupsBtn");
       if(formBtn){
