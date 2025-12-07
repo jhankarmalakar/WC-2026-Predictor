@@ -478,7 +478,6 @@ function fallbackPathNameForGroup(g){
           return base;
         }
     
-    state.r32Winners = state.r32Winners || {}; 
 
 
     const initialState = () => {
@@ -515,11 +514,12 @@ function fallbackPathNameForGroup(g){
 
 
 
-    const zones = [
-      ...pathZones,
-      ...groupZones,
-      THIRD_RANK_ZONE, CHAMP_ZONE, RUNNERS_ZONE, TOP8_ZONE
-    ];
+      const zones = [
+            ...pathZones,
+            ...groupZones,
+            THIRD_RANK_ZONE, CHAMP_ZONE, RUNNERS_ZONE, TOP8_ZONE,
+            R32_ZONE
+          ];
 
     const isPathZone = (z) => z.startsWith("path-");
     const isGroupZone = (z) => z.startsWith("group-");
@@ -791,12 +791,7 @@ function fallbackPathNameForGroup(g){
     /* ==============================
        8) Zone arrays
     ============================== */
-    const zones = [
-            ...pathZones,
-            ...groupZones,
-            THIRD_RANK_ZONE, CHAMP_ZONE, RUNNERS_ZONE, TOP8_ZONE,
-            R32_ZONE
-          ];
+  
 
     
     
