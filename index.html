@@ -1,11 +1,38 @@
-
 <!doctype html>
 <html lang="en">
 <head>
+  <!-- =========================================
+       HTML <head>
+       - Metadata
+       - Title
+       - Viewport for mobile
+       - CSS styles for theme + layout + drag UI
+  ========================================== -->
+
   <meta charset="utf-8" />
-  <title>World Cup 2026 Mini Predictor (Groups + 3rd Rank + Knockouts)</title>
+  <title>Drag-Drop Starter (Mobile Safe)</title>
+
+  <!-- Critical for mobile layout + correct scaling -->
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <style>
+    /* =========================================
+       CSS SECTION MAP
+       1) Theme variables
+       2) Global resets + body
+       3) Layout containers (header/board/column)
+       4) Dropzone styling (normal + "over")
+       5) Card styling (including mobile drag fix)
+       6) Dragging states (ghost + floating clone)
+       7) Buttons + footer
+    ========================================== */
+
+
+    /* =========================================
+       1) Theme variables (colors, sizes)
+       - Easy customization point
+       - Change these without touching logic
+    ========================================== */
     :root{
       --bg:#0f1220;
       --panel:#151a2e;
@@ -13,3545 +40,529 @@
       --text:#f5f7ff;
       --muted:#b9c0e6;
       --accent:#7aa2ff;
-      --good:#5ee6a8;
-      --warn:#ffb86b;
-      --bad:#ff6b7a;
       --border:rgba(255,255,255,0.08);
+      --radius:14px;
       --shadow: 0 10px 30px rgba(0,0,0,0.35);
-      --radius: 14px;
-       --sky-select: rgba(135, 206, 235, 0.28); /* skyblue shade */
-      --sky-border: rgba(135, 206, 235, 0.75);
-      --sky-glow: rgba(135, 206, 235, 0.35);
     }
+
+    /* =========================================
+       2) Global resets
+       - Consistent box sizing
+    ========================================== */
     *{box-sizing:border-box}
+
+    /* =========================================
+       Body styling
+       - Background ambience
+       - Base typography
+    ========================================== */
     body{
       margin:0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      background: radial-gradient(1200px 600px at 10% -10%, #1b2350 0%, transparent 55%),
-                  radial-gradient(900px 700px at 110% 10%, #1a3a4d 0%, transparent 50%),
-                  var(--bg);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       color:var(--text);
+      background: radial-gradient(1200px 800px at 10% 10%, #1c2342 0%, var(--bg) 40%, #070912 100%);
+      min-height:100vh;
     }
 
-    
+    /* =========================================
+       3) Header layout
+       - Title + hint + reset button
+    ========================================== */
     header{
-      padding: 28px 22px 10px;
-      max-width: 1280px;
-      margin: 0 auto;
+      padding: 18px 20px 0 20px;
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
     }
-    h1{
-      font-size: 28px;
-      margin: 0 0 6px 0;
-      letter-spacing: 0.2px;
+    header h1{
+      font-size: 18px;
+      font-weight: 650;
+      margin:0;
+      letter-spacing:0.2px;
     }
-    .sub{
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.4;
+    header .hint{
+      color:var(--muted);
+      font-size: 12px;
     }
-/* Add near your globals */
-      body.no-scroll{
-        overflow: hidden;
-        touch-action: none;
-        }
 
-    html, body{
-  overscroll-behavior: none;
-}
+    /* =========================================
+       3) Main board grid
+       - 1 column on small screens
+       - 3 columns on large screens
+    ========================================== */
+    .board{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      padding: 14px 16px 30px 16px;
+    }
 
-
-    
-
-  /* Helps on modern mobile browsers */
-    .container, .panel{
-      overscroll-behavior: contain;
+    @media (min-width: 900px){
+      .board{
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 16px;
       }
-
-    
-    .container{
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 14px 22px 70px;
-      display: grid;
-      gap: 18px;
     }
-    .panel{
-      background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
-      border: 1px solid var(--border);
+
+    /* =========================================
+       3) Column container
+       - Visual "panel" for each zone
+    ========================================== */
+    .column{
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border:1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
-      padding: 16px 16px 12px;
-    }
-    .row{
+      overflow: hidden;
+      min-height: 180px;
       display:flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items:center;
-      justify-content: space-between;
-    }
-    .btn{
-      appearance:none;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.06);
-      color: var(--text);
-      padding: 9px 12px;
-      border-radius: 10px;
-      font-weight: 600;
-      font-size: 12.5px;
-      cursor:pointer;
-      transition: 0.15s ease;
+      flex-direction:column;
     }
 
-    .btn.tiny{
-      padding: 5px 8px;
-      font-size: 10.5px;
-      border-radius: 8px;
-    }
-
-    .sky-highlight{
-  background: var(--sky-select) !important;
-  border-color: var(--sky-border) !important;
-  box-shadow: 0 0 0 1px var(--sky-border), 0 6px 16px -8px var(--sky-glow);
-}
-
-/* Optional: if your team tabs use a specific class */
-.team-tab.sky-highlight,
-.team-chip.sky-highlight,
-.match-team.sky-highlight{
-  background: var(--sky-select) !important;
-}
-
-    .btn:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,0.18); }
-    .btn:active{ transform: translateY(0px); }
-    .btn.accent{
-      background: linear-gradient(90deg, rgba(122,162,255,0.18), rgba(122,162,255,0.05));
-      border-color: rgba(122,162,255,0.35);
-    }
-    .btn.good{
-      background: linear-gradient(90deg, rgba(94,230,168,0.18), rgba(94,230,168,0.05));
-      border-color: rgba(94,230,168,0.35);
-    }
-    .badge{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding: 3px 8px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 600;
-      border: 1px solid var(--border);
-      color: var(--muted);
-      background: rgba(255,255,255,0.04);
-    }
-    .badge.warn{ color: #ffd3a6; border-color: rgba(255,184,107,0.35); }
-    .badge.good{ color: #c9ffe6; border-color: rgba(94,230,168,0.35); }
-
-    .divider{
-      height: 1px;
-      background: var(--border);
-      margin: 10px 0 8px;
-    }
-
-    /* GROUPS */
-    .groups-grid{
-      display:grid;
-      grid-template-columns: repeat(4, minmax(240px, 1fr));
-      gap: 14px;
-    }
-    @media (max-width: 1100px){
-      .groups-grid{ grid-template-columns: repeat(3, minmax(240px, 1fr)); }
-    }
-    @media (max-width: 820px){
-      .groups-grid{ grid-template-columns: repeat(2, minmax(240px, 1fr)); }
-    }
-    @media (max-width: 520px){
-      .groups-grid{ grid-template-columns: 1fr; }
-    }
-    .group-card h3{
-      margin: 2px 0 10px;
-      font-size: 16px;
-      letter-spacing: 0.3px;
-    }
-    .team-list{
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: grid;
-      gap: 8px;
-    }
-   .team-item{
-  display:flex;
-  align-items:center;
-  gap: 8px;
-  padding: 8px 8px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--border);
-  cursor: grab;
-  overflow: hidden;
-  min-width: 0;
-}
-
-    .dragging{
-      opacity: 0.5;
-      background: rgba(122,162,255,0.12);
-      border-color: rgba(122,162,255,0.5);
-    }
-
-   .team-item, .third-item, .team-chip,
-.team-list, .third-list{
-  touch-action: none;
-}
-
-    .handle{
-      width: 14px;
-      height: 14px;
-      border-radius: 3px;
-      background:
-        linear-gradient(90deg, rgba(255,255,255,0.25) 0 30%, transparent 30% 40%, rgba(255,255,255,0.25) 40% 70%, transparent 70% 80%, rgba(255,255,255,0.25) 80% 100%);
-      opacity: 0.6;
-      flex: 0 0 auto;
-    }
-    /* Existing */
-.flag{
-    font-size: 18px;
-    width: 22px;
-    text-align:center;
-    flex: 0 0 auto;
-  }
-
-/* NEW: image flag style */
-.flag-img{
-    width: 18px;
-    height: 12px;
-    object-fit: cover;
-    border-radius: 2px;
-    flex: 0 0 auto;
-    display: inline-block;
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.12);
-  }
-
-    .team-name{
-      flex: 1 1 auto;
-      min-width: 0;
-      overflow: hidden; /* needed for clamp */
-    }
-
- .team-text{
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    overflow: hidden;
-  
-    font-size: 12.8px;   /* normal size for most teams */
-    font-weight: 600;
-    line-height: 1.15;
-    max-height: 2.3em;
-    white-space: normal;
-  }
-
-/* Only long/overflow-prone names get smaller font */
-.team-text.is-long{
-    font-size: 11.5px;
-  }
-
-
-    .team-name input{
-      width: 100%;
-      background: transparent;
-      border: 1px solid transparent;
-      color: var(--text);
-      font-size: 13.5px;
-      padding: 4px 6px;
-      border-radius: 6px;
-    }
-    .team-name input:focus{
-      outline:none;
-      border-color: rgba(122,162,255,0.5);
-      background: rgba(255,255,255,0.05);
-    }
-    .pos-tag{
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      color: var(--muted);
-      background: rgba(255,255,255,0.04);
-      flex: 0 0 auto;
-    }
-
-    /* THIRD */
-    .third-grid{
-      display:grid;
-      grid-template-columns: 1.2fr 1fr;
-      gap: 14px;
-    }
-    @media (max-width: 900px){
-      .third-grid{ grid-template-columns: 1fr; }
-    }
-    .third-list{
-      list-style:none;
-      padding:0;
-      margin:0;
-      display:grid;
-      gap: 8px;
-    }
-    .third-item{
+    /* Column top header inside each panel */
+    .column-header{
+      padding: 12px 14px;
       display:flex;
       align-items:center;
-      gap: 8px;
-      padding: 8px 8px;
-      border-radius: 10px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      cursor: grab;
+      justify-content:space-between;
+      border-bottom:1px solid var(--border);
     }
-    .third-item.dragging{
-      opacity: 0.5;
-      background: rgba(122,162,255,0.12);
-      border-color: rgba(122,162,255,0.5);
-    }
-    .third-code{
-      font-weight: 700;
-      font-size: 11.5px;
-      color: var(--accent);
-      min-width: 32px;
-    }
-    .third-name{
-      flex:1;
-      font-size: 13.5px;
-    }
-    .third-meta{
-      font-size: 10px;
-      color: var(--muted);
-      padding-left: 6px;
-    }
-/* ✅ This makes 3 COLUMNS */
-.qual-grid{
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  align-items: start;
-}
-
-/* each column */
-.qual-col{
-  min-width: 0;
-}
-
-/* ✅ This keeps ONE name per ROW inside each column */
-.qual-col ul{
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.qual-col li{
-  display: block;
-  width: 100%;
-}
-
-
-
-    @media (max-width: 900px){
-      .qual-grid{ grid-template-columns: 1fr; }
-    }
-    .qual-box{
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 10px 6px;
-      background: rgba(255,255,255,0.03);
-    }
-    .qual-box h4{
-      margin: 0 0 8px 0;
-      font-size: 13.5px;
-      color: var(--muted);
-      font-weight: 650;
-      letter-spacing: 0.2px;
-    }
-   .pill{
-  display:inline-flex;
-  align-items:center;
-  gap: 6px;
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,0.04);
-  padding: 5px 8px;
-  border-radius: 999px;
-  margin: 0 6px 6px 0;
-  font-size: 11.5px;
-
-  /* allow wrapping inside */
-  white-space: normal;
-  min-width: 0;
-}
-
-.pill .flag{
-  font-size: 14px;
-  width: auto;
-}
-
-.pill-text{
-  display:flex;
-  align-items:center;
-  gap: 6px;
-  min-width: 0;
-}
-
-/* code part */
-.pill-code{
-  font-weight: 800;
-  flex: 0 0 auto;
-}
-
-/* normal name */
-.pill-name{
-  font-weight: 600;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 160px;
-}
-
-/* long name: smaller font + 2 lines */
-.pill-name.long{
-  font-size: 10.3px;
-  line-height: 1.1;
-  white-space: normal;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  max-width: 180px;
-}
-
-    .pill.good{ border-color: rgba(94,230,168,0.5); }
-    .pill.warn{ border-color: rgba(255,184,107,0.5); }
-
-/* ===== Step 4 Round headers, progress, collapse ===== */
-
-.round-head{
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 6px 4px 10px;
-}
-
-.round-head-left{
-  display:flex;
-  align-items:center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.round-title-text{
-  font-size: 16px;
-  margin: 0;
-  letter-spacing: .2px;
-}
-
-.round-meta{
-  font-size: 11px;
-  color: var(--muted);
-}
-
-.round-progress-pill{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding: 3px 8px;
-  border-radius: 999px;
-  font-size: 10.5px;
-  font-weight: 700;
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,0.04);
-  color: var(--muted);
-}
-
-.round-progress-pill.good{
-  border-color: rgba(94,230,168,0.45);
-  color: #c9ffe6;
-}
-
-.round-lock-pill{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding: 3px 8px;
-  border-radius: 999px;
-  font-size: 10.5px;
-  font-weight: 700;
-  border: 1px solid rgba(255,184,107,0.35);
-  background: rgba(255,184,107,0.08);
-  color: #ffd3a6;
-}
-
-.round-body{
-  margin-top: 6px;
-}
-
-.round-body.collapsed{
-  display:none;
-}
-
-/* Visual hint when locked */
-.round-row.locked{
-  opacity: 0.65;
-}
-
-/* Match-level meta for date + venue */
-.match-meta{
-  text-align: right;
-  font-size: 10.5px;
-  color: var(--muted);
-  line-height: 1.25;
-}
-
-/* On small screens, let meta drop under title */
-@media (max-width: 600px){
-  .round-head{
-    align-items:flex-start;
-  }
-  .match-meta{
-    text-align:left;
-  }
-}
-
-    .note{
-      color: var(--muted);
-      font-size: 11.5px;
-      line-height: 1.4;
-    }
-    .note strong{ color: var(--text); }
-
-    /* KNOCKOUTS */
-    /* ===== KNOCKOUTS - STACKED ROUNDS (NO ADJACENT ROUND COLUMNS) ===== */
-
-.ko-stack{
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 14px;
-}
-
-/* Each round becomes a full-width row */
-.round-row{
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px;
-  background: rgba(255,255,255,0.03);
-}
-
-/* Matches inside a round can be in a responsive grid */
-.matches-grid{
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-@media (max-width: 900px){
-  .matches-grid{
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Prevent match internals from forcing horizontal overflow */
-.match-card{
-  min-width: 0;
-}
-
-.match-body{
-  display:grid;
-  grid-template-columns: minmax(0,1fr) 120px minmax(0,1fr);
-  gap: 8px;
-  align-items: center;
-}
-
-@media (max-width: 420px){
-  .match-body{
-    grid-template-columns: 1fr;
-  }
-}
-/* ================================
-   WIKI-STYLE BRACKET (two-sided)
-   ================================ */
-
-#wikiBracket{
-  margin-top: 18px;
-}
-
-/* Make bracket an overlay container for SVG lines */
-.wiki-bracket{
-  position: relative;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 14px;
-  background: rgba(255,255,255,0.03);
-  overflow: hidden;
-}
-
-/* Winner banner */
-.wiki-winner-banner{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap: 14px;
-  padding: 12px 14px;
-  margin-bottom: 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(94,230,168,0.45);
-  background: rgba(94,230,168,0.08);
-  font-weight: 800;
-  letter-spacing: .2px;
-}
-
-/* HUGE flag (roughly 20x vs tiny flags) */
-.wiki-winner-flag{
-  font-size: clamp(90px, 14vw, 220px);
-  line-height: 1;
-}
-
-.wiki-winner-text{
-  font-size: 20px;
-}
-
-/* Layout: 4 left + center + 4 right */
-.wiki-grid{
-  display:grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr 0.95fr 1fr 1fr 1fr 1fr;
-  gap: 10px;
-  align-items: stretch;
-}
-
-@media (max-width: 1100px){
-  .wiki-grid{
-    grid-template-columns: 1fr 1fr 1fr 0.95fr 1fr 1fr 1fr;
-  }
-}
-
-@media (max-width: 820px){
-  .wiki-grid{
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Each round column */
-.wiki-round-col{
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 8px 8px 2px;
-  background: rgba(255,255,255,0.02);
-  min-width: 0;
-
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-/* container that holds the match boxes */
-.wiki-round-body{
-  flex: 1;                       /* KEY: let body take remaining height */
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  justify-content: center;       /* KEY: vertical centering */
-  /* keep left alignment visually consistent */
-  align-items: stretch;
-}
-
-/* Optional: if your final col needs same behavior */
-.wiki-final-col .wiki-round-body{
-  justify-content: center;
-}
-.wiki-round-title{
-  font-size: 11.5px;
-  color: var(--muted);
-  font-weight: 700;
-  margin: 0 0 6px 0;
-  letter-spacing: .2px;
-}
-
-  .wiki-bracket-outer{
-  min-height: 520px; /* adjust to taste */
-}
-
-/* Match box */
-.wiki-match{
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 6px 7px;
-  margin: 0 0 8px 0;
-  background: rgba(255,255,255,0.035);
-}
-
-/* Team rows with flags always */
-.wiki-team-row{
-  display:flex;
-  align-items:center;
-  gap: 6px;
-  padding: 3px 4px;
-  border-radius: 6px;
-  min-width: 0;
-}
-
-.wiki-team-flag{
-  font-size: 14px;
-  flex: 0 0 auto;
-}
-
-.wiki-team-name{
-  font-size: 11.5px;
-  font-weight: 600;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* If long, shrink + allow two lines */
-.wiki-team-name.long{
-  font-size: 10.2px;
-  line-height: 1.1;
-  white-space: normal;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.wiki-team-row.winner{
-  border: 1px solid rgba(94,230,168,0.45);
-  background: rgba(94,230,168,0.08);
-}
-
-/* Center final column highlight */
-.wiki-final-col{
-  border-color: rgba(122,162,255,0.35);
-  background: linear-gradient(180deg, rgba(122,162,255,0.08), rgba(255,255,255,0.02));
-}
-
-/* SVG lines overlay */
-.wiki-lines{
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-.wiki-lines path{
-  stroke: rgba(200,210,255,0.28);
-  stroke-width: 1.3;
-  fill: none;
-}
-
-
-/* Winner box shouldn't be too wide on smaller screens */
-.winner-zone{
-  min-width: 0;
-}
-
-    .round-title{
-      display:flex;
-      align-items:center;
-      justify-content: space-between;
-      gap: 8px;
-      margin: 0 0 8px 0;
-    }
-    .round-title h3{
-      margin:0;
-      font-size: 14.5px;
-      letter-spacing: 0.2px;
-    }
-    .round-title .meta{
-      font-size: 10px;
-      color: var(--muted);
-    }
-
-    .match-card{
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 10px 8px;
-      background: rgba(255,255,255,0.035);
-      margin-bottom: 10px;
-    }
-    .match-head{
-      display:flex;
-      align-items:center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    .match-id{
-      font-weight: 700;
-      font-size: 11px;
-      color: var(--muted);
+    .column-title{
+      font-size: 13px;
       letter-spacing: 0.3px;
       text-transform: uppercase;
-    }
-    .match-venue{
-      font-size: 10px;
       color: var(--muted);
-      text-align:right;
-      line-height: 1.2;
+    }
+    .count{
+      font-size: 11px;
+      color: var(--muted);
+      opacity: 0.9;
     }
 
-    .match-body{
-      display:grid;
-      grid-template-columns: 1fr 110px 1fr;
-      gap: 8px;
-      align-items: center;
-    }
-    @media (max-width: 420px){
-      .match-body{
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .team-chip{
+    /* =========================================
+       4) Dropzone
+       - Container that holds cards
+       - "over" class is applied during drag hover
+    ========================================== */
+    .dropzone{
+      padding: 10px;
       display:flex;
-      align-items:center;
+      flex-direction:column;
       gap: 8px;
-      padding: 8px 9px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.05);
-      cursor: grab;
-      user-select:none;
-    }
-    .team-chip.dragging{
-      opacity: 0.55;
-      border-color: rgba(122,162,255,0.5);
-      background: rgba(122,162,255,0.12);
-    }
-    .team-chip .name{
-      font-size: 12.5px;
-      font-weight: 600;
       flex: 1;
-      min-width: 0;
-      overflow:hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      transition: background 120ms ease, outline 120ms ease;
     }
 
-    /* For long team names in knockout rounds:
-   smaller font, allow up to 2 lines */
-.team-chip .name.long{
-      font-size: 11px;
-      line-height: 1.1;
-      white-space: normal;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;      /* clamp to 2 lines where supported */
-      -webkit-box-orient: vertical;
+    /* Highlight state when pointer is over this zone */
+    .dropzone.over{
+      background: rgba(122,162,255,0.08);
+      outline: 1px dashed rgba(122,162,255,0.5);
+      outline-offset: -6px;
     }
 
-    .team-chip .code{
-      font-size: 9.5px;
-      color: var(--muted);
-      font-weight: 700;
-      letter-spacing: 0.2px;
-      padding: 2px 6px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
+    /* =========================================
+       5) Card styling
+       - Each draggable item
+       - Most important mobile fix:
+         touch-action: none;
+         This stops the browser from treating
+         finger drag as page scroll.
+    ========================================== */
+    .card{
       background: rgba(255,255,255,0.04);
-    }
-
-    .winner-zone{
-      border: 1px dashed rgba(255,255,255,0.18);
-      border-radius: 10px;
-      padding: 10px 8px;
-      text-align:center;
-      min-height: 54px;
+      border:1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
       display:flex;
       align-items:center;
-      justify-content:center;
-      background: rgba(255,255,255,0.03);
-      font-size: 10.5px;
-      color: var(--muted);
-      font-weight: 650;
-    }
-    .winner-zone.active{
-      border-color: rgba(94,230,168,0.55);
-      background: rgba(94,230,168,0.08);
-      color: #dfffee;
-    }
-    .winner-zone.filled{
-      border-style: solid;
-      border-color: rgba(94,230,168,0.55);
-      background: rgba(94,230,168,0.10);
-      color: var(--text);
-    }
-    .winner-zone .winner-pill{
-      display:inline-flex;
-      align-items:center;
-      gap: 6px;
-      padding: 4px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(94,230,168,0.5);
-      background: rgba(94,230,168,0.12);
-      font-size: 11px;
-      font-weight: 700;
-    }
+      justify-content:space-between;
+      gap: 10px;
+      cursor: grab;
+      user-select: none;
 
-    /* Winner name, normal length */
-    .winner-pill .winner-name{
-      max-width: 140px;           /* keeps it from pushing too wide */
+      /* ✅ CRITICAL MOBILE FIX */
+      touch-action: none;
+
+      transition: transform 80ms ease, background 120ms ease, border-color 120ms ease;
+    }
+    .card:active{ cursor: grabbing; }
+
+    .name{
+      font-size: 14px;
+      font-weight: 560;
+      letter-spacing: 0.1px;
+      white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      white-space: nowrap;
     }
-
-    /* Winner name when it is long: smaller font, up to 2 lines */
-    .winner-pill .winner-name.long{
+    .tag{
       font-size: 10px;
-      line-height: 1.1;
-      white-space: normal;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;       /* clamp to 2 lines when supported */
-      -webkit-box-orient: vertical;
-    }
-
-
-    .champ-box{
-      border: 1px solid rgba(122,162,255,0.35);
-      background: linear-gradient(90deg, rgba(122,162,255,0.18), rgba(122,162,255,0.05));
-      border-radius: 12px;
-      padding: 12px 12px 10px;
-      display:flex;
-      align-items:center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-    .champ-left{
-      display:flex;
-      align-items:center;
-      gap: 10px;
-    }
-    .champ-flag{
-      font-size: 26px;
-      width:auto;
-    }
-    .champ-name{
-      font-size: 16px;
-      font-weight: 800;
-      letter-spacing: 0.2px;
-    }
-    .champ-sub{
-      font-size: 10.5px;
       color: var(--muted);
-      margin-top: 2px;
+      border:1px solid var(--border);
+      padding: 3px 6px;
+      border-radius: 999px;
     }
 
+    /* =========================================
+       6) Dragging states
+    ========================================== */
 
+    /* Original card becomes faint while dragging */
+    .dragging{
+      opacity: 0.35;
+    }
 
+    /* Floating clone that follows your finger/mouse */
+    .drag-clone{
+      position: fixed;
+      z-index: 9999;
+      pointer-events: none;
+      width: min(340px, 88vw);
+      transform: translate(-50%, -50%);
+      box-shadow: 0 18px 45px rgba(0,0,0,0.5);
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.18);
+      backdrop-filter: blur(8px);
+    }
+
+    /* =========================================
+       7) Footer + button
+    ========================================== */
+    .footer{
+      padding: 0 16px 24px 16px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    button.reset{
+      background: rgba(122,162,255,0.12);
+      color: var(--text);
+      border: 1px solid rgba(122,162,255,0.35);
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    button.reset:hover{
+      background: rgba(122,162,255,0.18);
+    }
   </style>
 </head>
+
 <body>
-<header>
-  <h1>2026 hello1 World Cup Mini Predictor</h1>
-  <div class="sub">
-    Drag to set group rankings, rank all 3rd-place teams, generate R32,
-    then <strong>drag winners through every knockout round</strong>.
-    Third-place allocation is built from an <strong>embedded official mapping table</strong>.
-  </div>
-</header>
+  <!-- =========================================
+       HTML BODY SECTION MAP
+       1) Header (title + hint + reset)
+       2) Board (3 columns)
+          - Each column contains:
+            - column header (title + count)
+            - dropzone container
+       3) Footer
+  ========================================== -->
 
-<div class="container">
-
-  <!-- GROUPS -->
-  <section class="panel">
-    <div class="row">
-      <div>
-        <span class="badge good">Step 1</span>
-        <span class="badge">Drag teams inside each group</span>
-      </div>
-      <div class="row">
-        <button class="btn" id="resetGroupsBtn">Reset to draw order</button>
-        <button class="btn accent" id="rebuildThirdBtn">Refresh 3rd-place list</button>
-      </div>
-    </div>
-    <div class="divider"></div>
-    <div id="groupsGrid" class="groups-grid"></div>
-  </section>
-
-  <!-- THIRD PLACE + QUALIFIED SNAPSHOT -->
-  <section class="panel">
-    <div class="row">
-      <div>
-        <span class="badge good">Step 2</span>
-        <span class="badge">Rank 3rd-place teams overall</span>
-      </div>
-     <div class="row">
-        <span id="thirdStatus" class="badge"></span>
-        <span id="mappingStatus" class="badge"></span>
-        <button class="btn tiny" id="autoFillThirdOrderBtn">Auto Fill 3rd order</button>
-      </div>
-
-    </div>
-    <div class="divider"></div>
-
-    <div class="third-grid">
-      <div>
-        <h3 style="margin:0 0 8px 0; font-size:16px;">3rd-place ranking (drag to order)</h3>
-        <div class="note">
-          This list is auto-built from your group orders.
-          Each entry keeps its original group label (3A, 3B, ...).
-        </div>
-        <div style="height:10px"></div>
-        <ul id="thirdList" class="third-list"></ul>
-      </div>
-
-      <div>
-        <h3 style="margin:0 0 8px 0; font-size:16px;">Qualification snapshot</h3>
-        <div class="qual-grid">
-          <div class="qual-box">
-            <h4>Group winners (1st)</h4>
-            <div id="winnersPills"></div>
-          </div>
-          <div class="qual-box">
-            <h4>Group runners-up (2nd)</h4>
-            <div id="runnersPills"></div>
-          </div>
-          <div class="qual-box">
-            <h4>Top 8 third-place qualifiers</h4>
-            <div id="third8Pills"></div>
-          </div>
-        </div>
-        <div class="divider"></div>
-        <div class="note">
-          Once you rank the third-place list, the app selects the top 8 and uses the
-          embedded official mapping to assign them into the Round of 32.
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- R32 GENERATOR -->
-  <section class="panel">
-    <div class="row">
-      <div>
-        <span class="badge good">Step 3</span>
-        <span class="badge">Round of 32 generator</span>
-      </div>
-      <div class="row">
-        <button class="btn good" id="generateR32Btn">Generate R32</button>
-        <button class="btn" id="resetKnockoutBtn">Reset knockout picks</button>
-      </div>
-    </div>
-    <div class="divider"></div>
-
-    <div class="note">
-      After generating R32, proceed to the knockout bracket below.
-      This version does <strong>not</strong> use fallback logic.
-    </div>
-  </section>
-
-  <!-- KNOCKOUT BRACKET -->
-  <section class="panel">
-    <div class="row">
-      <div>
-        <span class="badge good">Step 4</span>
-        <span class="badge">Drag winners through knockouts</span>
-      </div>
-      <div class="row">
-        <span class="badge" id="koStatus"></span>
-      </div>
+  <!-- 1) App header -->
+  <header>
+    <div>
+      <h1>Mobile-Safe Drag & Drop Foundation</h1>
+      <div class="hint">Pointer Events + touch-action:none + no scroll while dragging</div>
     </div>
 
-   <div class="divider"></div>
- 
+    <!-- Reset button restores starter demo state -->
+    <button class="reset" id="resetBtn">Reset Demo</button>
+  </header>
 
-    <div class="ko-stack">
+  <!-- 2) Main board: contains all dropzones -->
+  <main class="board" id="board">
 
-  <div class="round-row">
-    <div class="round-title">
-      <h3>Round of 32</h3>
-      <span class="meta">Matches 73–88</span>
-      <button class="btn tiny" id="autoFillR32Btn">Auto Fill Round</button>
-    </div>
+    <!-- Column 1: Pool -->
+    <section class="column">
+      <div class="column-header">
+        <div class="column-title">Pool</div>
+        <div class="count" data-count-for="pool"></div>
+      </div>
+      <div class="dropzone" data-zone="pool"></div>
+    </section>
 
-    <div id="round32Col" class="matches-grid"></div>
+    <!-- Column 2: Group A Slot 1 -->
+    <section class="column">
+      <div class="column-header">
+        <div class="column-title">Group A (Slot 1)</div>
+        <div class="count" data-count-for="a1"></div>
+      </div>
+      <div class="dropzone" data-zone="a1"></div>
+    </section>
+
+    <!-- Column 3: Group A Slot 2 -->
+    <section class="column">
+      <div class="column-header">
+        <div class="column-title">Group A (Slot 2)</div>
+        <div class="count" data-count-for="a2"></div>
+      </div>
+      <div class="dropzone" data-zone="a2"></div>
+    </section>
+  </main>
+
+  <!-- 3) Simple footer note -->
+  <div class="footer">
+    Next step after this works flawlessly on your phone: replace demo structures with real World Cup groups.
   </div>
 
-  <div class="round-row">
-    <div class="round-title">
-      <h3>Round of 16</h3>
-      <span class="meta">July 4–7, 2026 • Matches 89–96</span>
-      <button class="btn tiny" id="autoFillR16Btn">Auto Fill Round</button>
-    </div>
-    <div id="round16Col" class="matches-grid"></div>
-  </div>
+  <script>
+    /* =========================================
+       JAVASCRIPT SECTION MAP
+       1) State model
+       2) Render function
+       3) State helpers
+       4) Pointer-based drag engine
+       5) Reset action
+       6) Boot
+    ========================================== */
 
-  <div class="round-row">
-    <div class="round-title">
-      <h3>Quarterfinals</h3>
-      <span class="meta">July 9–11, 2026 • Matches 97–100</span>
-      <button class="btn tiny" id="autoFillQFBtn">Auto Fill Round</button>
-    </div>
-    <div id="round8Col" class="matches-grid"></div>
-  </div>
 
-  <div class="round-row">
-    <div class="round-title">
-      <h3>Semifinals</h3>
-      <span class="meta">July 14–15, 2026 • Matches 101–102</span>
-      <button class="btn tiny" id="autoFillSFBtn">Auto Fill Round</button>
-    </div>
-    <div id="semiCol" class="matches-grid"></div>
-  </div>
-
-  <div class="round-row">
-    <div class="round-title">
-      <h3>Third place</h3>
-      <span class="meta">July 18, 2026 • Match 103</span>
-      <button class="btn tiny" id="autoFillThirdBtn">Auto Fill Round</button>
-    </div>
-    <div id="thirdPlaceCol" class="matches-grid"></div>
-  </div>
-
-  <div class="round-row">
-    <div class="round-title">
-      <h3>Final</h3>
-      <span class="meta">July 19, 2026 • Match 104</span>
-      <button class="btn tiny" id="autoFillFinalBtn">Auto Fill Round</button>
-    </div>
-    <div id="finalCol" class="matches-grid"></div>
-  </div>
-<div class="round-row">
-  <div id="wikiBracket"></div>
-</div>
-          <div class="divider"></div>
-
-    <div class="round-row">
-  <div id="championBox"></div>
-</div>
-    <div style="height:10px"></div>
-</div>
-
-<script>
-
-function applySkyHighlights(){
-  // 1) Highlight top 2 in each group list
-  document.querySelectorAll(".team-list").forEach(ul => {
-    const gid = ul.dataset.group;
-    const top2 = (groupsState[gid] || []).slice(0, 2).map(x => (x || "").trim());
-
-    Array.from(ul.children).forEach(li => {
-      const n = (li.dataset.teamName || li.querySelector(".team-text")?.textContent || "").trim();
-      li.classList.toggle("sky-highlight", top2.includes(n));
+    /* =========================================
+       1) Minimal state
+       - Each zone is an array of team objects
+       - Later you will expand zones to Group A-L etc.
+    ========================================== */
+    const initialState = () => ({
+      pool: [
+        { id: "usa", name: "United States", tag: "Demo" },
+        { id: "bra", name: "Brazil", tag: "Demo" },
+        { id: "fra", name: "France", tag: "Demo" },
+        { id: "jpn", name: "Japan", tag: "Demo" }
+      ],
+      a1: [],
+      a2: []
     });
-  });
 
-  // 2) Highlight top 8 3rd-place items in the 3rd list
-  const top8ThirdGroups = getTop8Thirds().map(t => t.group);
-  document.querySelectorAll("#thirdList .third-item").forEach((li, idx) => {
-    const g = li.dataset.group;
-    li.classList.toggle("sky-highlight", top8ThirdGroups.includes(g));
-  });
+    let state = initialState();
 
-  // 3) If you later add data attributes for KO chips, keep this hook safe:
-  // (no-op unless attributes exist)
-  document.querySelectorAll("[data-match-id][data-team-code]").forEach(el => {
-    const mid = Number(el.getAttribute("data-match-id"));
-    const tcode = el.getAttribute("data-team-code");
-    const picked = koWinners?.[mid]?.code;
-    el.classList.toggle("sky-highlight", picked === tcode);
-  });
-}
-const IS_COARSE = window.matchMedia("(pointer: coarse)").matches;
-document.addEventListener("touchmove", e => {
-  if(document.body.classList.contains("no-scroll")){
-    e.preventDefault();
-  }
-}, { passive: false });
+    /* =========================================
+       Zones registry
+       - This list drives rendering + searches
+       - When you add more groups,
+         extend this array and state keys.
+    ========================================== */
+    const zones = ["pool", "a1", "a2"];
 
 
-/* =========================================================
-   DEFAULT GROUPS
-   ========================================================= */
-const DEFAULT_GROUPS = {
-  A: ["Mexico","South Africa","South Korea","European Playoff D"],
-  B: ["Canada","European Playoff A","Qatar","Switzerland"],
-  C: ["Brazil","Morocco","Haiti","Scotland"],
-  D: ["United States","Paraguay","Australia","European Playoff C"],
-  E: ["Germany","Curaçao","Ivory Coast","Ecuador"],
-  F: ["Netherlands","Japan","European Playoff B","Tunisia"],
-  G: ["Belgium","Egypt","Iran","New Zealand"],
-  H: ["Spain","Cape Verde","Saudi Arabia","Uruguay"],
-  I: ["France","Senegal","FIFA Intercontinental Playoff Tournament 2","Norway"],
-  J: ["Argentina","Algeria","Austria","Jordan"],
-  K: ["Portugal","FIFA Intercontinental Playoff Tournament 1","Uzbekistan","Colombia"],
-  L: ["England","Croatia","Ghana","Panama"]
-};
+    /* =========================================
+       2) Render
+       - Clears each dropzone
+       - Rebuilds cards from current state
+       - Updates counts
+       - Attaches drag listeners per card
+    ========================================== */
+    function render(){
+      zones.forEach(zone => {
+        const dz = document.querySelector(`.dropzone[data-zone="${zone}"]`);
+        dz.innerHTML = "";
 
-/* =========================================================
-   FLAGS
-   ========================================================= */
-const NAME_TO_ISO = {
-  "Mexico":"MX","South Africa":"ZA","South Korea":"KR","Korea Republic":"KR",
-  "Canada":"CA","Qatar":"QA","Switzerland":"CH",
-  "Brazil":"BR","Morocco":"MA","Haiti":"HT","Scotland":"GB",
-  "United States":"US","USA":"US","Paraguay":"PY","Australia":"AU",
-  "Germany":"DE","Curaçao":"CW","Ivory Coast":"CI","Côte d’Ivoire":"CI","Ecuador":"EC",
-  "Netherlands":"NL","Holland":"NL","Japan":"JP","Tunisia":"TN",
-  "Belgium":"BE","Egypt":"EG","Iran":"IR","New Zealand":"NZ",
-  "Spain":"ES","Cape Verde":"CV","Saudi Arabia":"SA","Uruguay":"UY",
-  "France":"FR","Senegal":"SN","Norway":"NO",
-  "Argentina":"AR","Algeria":"DZ","Austria":"AT","Jordan":"JO",
-  "Portugal":"PT","Uzbekistan":"UZ","Colombia":"CO",
-  "England":"GB","Croatia":"HR","Ghana":"GH","Panama":"PA"
-};
+        state[zone].forEach(team => {
+          const card = document.createElement("div");
+          card.className = "card";
 
-  /* =========================================================
-   AUTO-FILL PRIORITY ORDER (your ranking)
-   ========================================================= */
+          /* Store metadata on the element itself */
+          card.dataset.id = team.id;
+          card.dataset.zone = zone;
 
-const PRIORITY_RAW = [
-  "Spain",
-  "Argentina",
-  "France",
-  "England",
-  "Brazil",
-  "Portugal",
-  "Netherlands",
-  "Belgium",
-  "Germany",
-  "Croatia",
-  "Morocco",
-  "Italy",
-  "Colombia",
-  "USA",
-  "Mexico",
-  "Uruguay",
-  "Switzerland",
-  "Japan",
-  "Senegal",
-  "Iran",
-  "Denmark",
-  "South Korea",
-  "Ecuador",
-  "Austria",
-  "Turkey",
-  "Australia",
-  "Canada",
-  "Ukraine",
-  "Norway",
-  "Panama",
-  "Poland",
-  "Wales",
-  "Russia",
-  "Egypt",
-  "Algeria",
-  "Scotland",
-  "Serbia",
-  "Nigeria",
-  "Paraguay",
-  "Tunisia",
-  "Hungary",
-  "Ivory Coast",
-  "Sweden",
-  "Czechia",
-  "Slovakia",
-  "Greece",
-  "Romania",
-  "Venezuela",
-  "Costa Rica",
-  "Uzbekistan",
+          /* Card content */
+          card.innerHTML = `
+            <span class="name">${team.name}</span>
+            <span class="tag">${team.tag ?? ""}</span>
+          `;
 
-  // Ranking of World Cup Qualifiers Outside Top 50
-  "Qatar",
-  "Saudi Arabia",
-  "South Africa",
-  "Jordan",
-  "Cabo Verde",
-  "Ghana",
-  "Curaçao",
-  "Haiti",
-  "New Zealand"
-];
+          /* Attach pointer-based drag behavior */
+          attachPointerDrag(card);
 
-// Basic cleanup + canonicalization for comparisons
-function canonicalName(name){
-  const n = String(name || "").trim();
+          dz.appendChild(card);
+        });
 
-  if(!n) return "";
-
-  // Normalize common synonyms used in your list vs app
-  if(/^usa$/i.test(n) || /^united states$/i.test(n)) return "UNITED STATES";
-  if(/^south korea$/i.test(n) || /^korea republic$/i.test(n)) return "SOUTH KOREA";
-  if(/^ivory coast$/i.test(n) || /^côte d.?ivoire$/i.test(n)) return "IVORY COAST";
-  if(/^cabo verde$/i.test(n)) return "CAPE VERDE";
-
-  return n.toUpperCase();
-}
-
-const PRIORITY_LIST = PRIORITY_RAW.map(canonicalName);
-const PRIORITY_INDEX = new Map(PRIORITY_LIST.map((n, i) => [n, i]));
-function priorityRank(name){
-  const key = canonicalName(name);
-  if(!key) return 9999;
-  return PRIORITY_INDEX.has(key) ? PRIORITY_INDEX.get(key) : 9999;
-}
-
-
-function isoToFlag(iso){
-  if(!iso || iso.length !== 2) return "🏳️";
-  const code = iso.toUpperCase();
-  const A = 0x1F1E6;
-  const base = "A".charCodeAt(0);
-  const c1 = code.charCodeAt(0) - base + A;
-  const c2 = code.charCodeAt(1) - base + A;
-  return String.fromCodePoint(c1, c2);
-}
-function isPlayoffName(name){
-  return /playoff|intercontinental|tournament/i.test(name);
-}
-function flagForName(name){
-  if(!name) return "🏳️";
-  if(isPlayoffName(name)) return "🏳️";
-  const iso = NAME_TO_ISO[name.trim()];
-  if(!iso) return "🏳️";
-  return isoToFlag(iso);
-}
-
-  function flagImgUrlFromISO(iso){
-  if(!iso || iso.length !== 2) return "";
-  return `https://flagcdn.com/w20/${iso.toLowerCase()}.png`;
-}
-
-// Create a flag node: try image first, fall back to emoji on error
-function createFlagElement(name){
-  // Playoff names: keep white flag emoji style
-  if(isPlayoffName(name)){
-    const span = document.createElement("span");
-    span.className = "flag";
-    span.textContent = flagForName(name);
-    return span;
-  }
-
-  const iso = NAME_TO_ISO[name?.trim?.()] || "";
-
-  if(!iso){
-    // Unknown team → just use emoji / white flag fallback
-    const span = document.createElement("span");
-    span.className = "flag";
-    span.textContent = flagForName(name);
-    return span;
-  }
-
-  const img = document.createElement("img");
-  img.className = "flag-img";
-  img.src = flagImgUrlFromISO(iso);
-  img.alt = `${iso} flag`;
-  img.loading = "lazy";
-
-  // If CDN fails, swap to emoji so area is never blank
-  img.onerror = () => {
-    const span = document.createElement("span");
-    span.className = "flag";
-    span.textContent = flagForName(name);
-    img.replaceWith(span);
-  };
-
-  return img;
-}
-
-
-/* =========================================================
-   STATE
-   ========================================================= */
-let groupsState = deepClone(DEFAULT_GROUPS);
-let thirdOrderState = []; // [{group, name}]
-let THIRD_MAPPING = {};   // built from embedded raw table
-
-// Knockout state
-let r32Fixtures = []; // resolved R32 matches with real teams
-let koWinners = {};   // matchId -> teamObj
-
-/* =========================================================
-   DOM
-   ========================================================= */
-const groupsGrid = document.getElementById("groupsGrid");
-const thirdList = document.getElementById("thirdList");
-const winnersPills = document.getElementById("winnersPills");
-const runnersPills = document.getElementById("runnersPills");
-const third8Pills = document.getElementById("third8Pills");
-const resetGroupsBtn = document.getElementById("resetGroupsBtn");
-const rebuildThirdBtn = document.getElementById("rebuildThirdBtn");
-const generateR32Btn = document.getElementById("generateR32Btn");
-const resetKnockoutBtn = document.getElementById("resetKnockoutBtn");
-const mappingStatus = document.getElementById("mappingStatus");
-const thirdStatus = document.getElementById("thirdStatus");
-const koStatus = document.getElementById("koStatus");
-
-const round32Col = document.getElementById("round32Col");
-const round16Col = document.getElementById("round16Col");
-const round8Col = document.getElementById("round8Col");
-const semiCol = document.getElementById("semiCol");
-const thirdPlaceCol = document.getElementById("thirdPlaceCol");
-const finalCol = document.getElementById("finalCol");
-const championBox = document.getElementById("championBox");
-const autoFillR32Btn = document.getElementById("autoFillR32Btn");
-const autoFillR16Btn = document.getElementById("autoFillR16Btn");
-const autoFillQFBtn  = document.getElementById("autoFillQFBtn");
-const autoFillSFBtn  = document.getElementById("autoFillSFBtn");
-const autoFillThirdBtn = document.getElementById("autoFillThirdBtn");
-const autoFillFinalBtn = document.getElementById("autoFillFinalBtn");
-const autoFillThirdOrderBtn = document.getElementById("autoFillThirdOrderBtn");
-const wikiBracket = document.getElementById("wikiBracket");
-
-
-/* =========================================================
-   EMBEDDED OFFICIAL 3rd-PLACE MAPPING TABLE
-   ========================================================= */
-const THIRD_WINNER_ORDER = ["A","B","D","E","G","I","K","L"];
-const WINNER_TO_MATCHID = {
-  A: 79,
-  B: 85,
-  D: 81,
-  E: 74,
-  G: 82,
-  I: 77,
-  K: 87,
-  L: 80
-};
-
-const THIRD_MAPPING_RAW = `
-No.	
-Third-placed teams
-advance from groupsvte
-1A
-vs	1B
-vs	1D
-vs	1E
-vs	1G
-vs	1I
-vs	1K
-vs	1L
-vs
-1					E	F	G	H	I	J	K	L		3E	3J	3I	3F	3H	3G	3L	3K
-2				D		F	G	H	I	J	K	L	3H	3G	3I	3D	3J	3F	3L	3K
-3				D	E		G	H	I	J	K	L	3E	3J	3I	3D	3H	3G	3L	3K
-4				D	E	F		H	I	J	K	L	3E	3J	3I	3D	3H	3F	3L	3K
-5				D	E	F	G		I	J	K	L	3E	3G	3I	3D	3J	3F	3L	3K
-6				D	E	F	G	H		J	K	L	3E	3G	3J	3D	3H	3F	3L	3K
-7				D	E	F	G	H	I		K	L	3E	3G	3I	3D	3H	3F	3L	3K
-8				D	E	F	G	H	I	J		L	3E	3G	3J	3D	3H	3F	3L	3I
-9				D	E	F	G	H	I	J	K		3E	3G	3J	3D	3H	3F	3I	3K
-10			C			F	G	H	I	J	K	L	3H	3G	3I	3C	3J	3F	3L	3K
-11			C		E		G	H	I	J	K	L	3E	3J	3I	3C	3H	3G	3L	3K
-12			C		E	F		H	I	J	K	L	3E	3J	3I	3C	3H	3F	3L	3K
-13			C		E	F	G		I	J	K	L	3E	3G	3I	3C	3J	3F	3L	3K
-14			C		E	F	G	H		J	K	L	3E	3G	3J	3C	3H	3F	3L	3K
-15			C		E	F	G	H	I		K	L	3E	3G	3I	3C	3H	3F	3L	3K
-16			C		E	F	G	H	I	J		L	3E	3G	3J	3C	3H	3F	3L	3I
-17			C		E	F	G	H	I	J	K		3E	3G	3J	3C	3H	3F	3I	3K
-18			C	D			G	H	I	J	K	L	3H	3G	3I	3C	3J	3D	3L	3K
-19			C	D		F		H	I	J	K	L	3C	3J	3I	3D	3H	3F	3L	3K
-20			C	D		F	G		I	J	K	L	3C	3G	3I	3D	3J	3F	3L	3K
-21			C	D		F	G	H		J	K	L	3C	3G	3J	3D	3H	3F	3L	3K
-22			C	D		F	G	H	I		K	L	3C	3G	3I	3D	3H	3F	3L	3K
-23			C	D		F	G	H	I	J		L	3C	3G	3J	3D	3H	3F	3L	3I
-24			C	D		F	G	H	I	J	K		3C	3G	3J	3D	3H	3F	3I	3K
-25			C	D	E			H	I	J	K	L	3E	3J	3I	3C	3H	3D	3L	3K
-26			C	D	E		G		I	J	K	L	3E	3G	3I	3C	3J	3D	3L	3K
-27			C	D	E		G	H		J	K	L	3E	3G	3J	3C	3H	3D	3L	3K
-28			C	D	E		G	H	I		K	L	3E	3G	3I	3C	3H	3D	3L	3K
-29			C	D	E		G	H	I	J		L	3E	3G	3J	3C	3H	3D	3L	3I
-30			C	D	E		G	H	I	J	K		3E	3G	3J	3C	3H	3D	3I	3K
-31			C	D	E	F			I	J	K	L	3C	3J	3E	3D	3I	3F	3L	3K
-32			C	D	E	F		H		J	K	L	3C	3J	3E	3D	3H	3F	3L	3K
-33			C	D	E	F		H	I		K	L	3C	3E	3I	3D	3H	3F	3L	3K
-34			C	D	E	F		H	I	J		L	3C	3J	3E	3D	3H	3F	3L	3I
-35			C	D	E	F		H	I	J	K		3C	3J	3E	3D	3H	3F	3I	3K
-36			C	D	E	F	G			J	K	L	3C	3G	3E	3D	3J	3F	3L	3K
-37			C	D	E	F	G		I		K	L	3C	3G	3E	3D	3I	3F	3L	3K
-38			C	D	E	F	G		I	J		L	3C	3G	3E	3D	3J	3F	3L	3I
-39			C	D	E	F	G		I	J	K		3C	3G	3E	3D	3J	3F	3I	3K
-40			C	D	E	F	G	H			K	L	3C	3G	3E	3D	3H	3F	3L	3K
-41			C	D	E	F	G	H		J		L	3C	3G	3J	3D	3H	3F	3L	3E
-42			C	D	E	F	G	H		J	K		3C	3G	3J	3D	3H	3F	3E	3K
-43			C	D	E	F	G	H	I			L	3C	3G	3E	3D	3H	3F	3L	3I
-44			C	D	E	F	G	H	I		K		3C	3G	3E	3D	3H	3F	3I	3K
-45			C	D	E	F	G	H	I	J			3C	3G	3J	3D	3H	3F	3E	3I
-46		B				F	G	H	I	J	K	L	3H	3J	3B	3F	3I	3G	3L	3K
-47		B			E		G	H	I	J	K	L	3E	3J	3I	3B	3H	3G	3L	3K
-48		B			E	F		H	I	J	K	L	3E	3J	3B	3F	3I	3H	3L	3K
-49		B			E	F	G		I	J	K	L	3E	3J	3B	3F	3I	3G	3L	3K
-50		B			E	F	G	H		J	K	L	3E	3J	3B	3F	3H	3G	3L	3K
-51		B			E	F	G	H	I		K	L	3E	3G	3B	3F	3I	3H	3L	3K
-52		B			E	F	G	H	I	J		L	3E	3J	3B	3F	3H	3G	3L	3I
-53		B			E	F	G	H	I	J	K		3E	3J	3B	3F	3H	3G	3I	3K
-54		B		D			G	H	I	J	K	L	3H	3J	3B	3D	3I	3G	3L	3K
-55		B		D		F		H	I	J	K	L	3H	3J	3B	3D	3I	3F	3L	3K
-56		B		D		F	G		I	J	K	L	3I	3G	3B	3D	3J	3F	3L	3K
-57		B		D		F	G	H		J	K	L	3H	3G	3B	3D	3J	3F	3L	3K
-58		B		D		F	G	H	I		K	L	3H	3G	3B	3D	3I	3F	3L	3K
-59		B		D		F	G	H	I	J		L	3H	3G	3B	3D	3J	3F	3L	3I
-60		B		D		F	G	H	I	J	K		3H	3G	3B	3D	3J	3F	3I	3K
-61		B		D	E			H	I	J	K	L	3E	3J	3B	3D	3I	3H	3L	3K
-62		B		D	E		G		I	J	K	L	3E	3J	3B	3D	3I	3G	3L	3K
-63		B		D	E		G	H		J	K	L	3E	3J	3B	3D	3H	3G	3L	3K
-64		B		D	E		G	H	I		K	L	3E	3G	3B	3D	3I	3H	3L	3K
-65		B		D	E		G	H	I	J		L	3E	3J	3B	3D	3H	3G	3L	3I
-66		B		D	E		G	H	I	J	K		3E	3J	3B	3D	3H	3G	3I	3K
-67		B		D	E	F			I	J	K	L	3E	3J	3B	3D	3I	3F	3L	3K
-68		B		D	E	F		H		J	K	L	3E	3J	3B	3D	3H	3F	3L	3K
-69		B		D	E	F		H	I		K	L	3E	3I	3B	3D	3H	3F	3L	3K
-70		B		D	E	F		H	I	J		L	3E	3J	3B	3D	3H	3F	3L	3I
-71		B		D	E	F		H	I	J	K		3E	3J	3B	3D	3H	3F	3I	3K
-72		B		D	E	F	G			J	K	L	3E	3G	3B	3D	3J	3F	3L	3K
-73		B		D	E	F	G		I		K	L	3E	3G	3B	3D	3I	3F	3L	3K
-74		B		D	E	F	G		I	J		L	3E	3G	3B	3D	3J	3F	3L	3I
-75		B		D	E	F	G		I	J	K		3E	3G	3B	3D	3J	3F	3I	3K
-76		B		D	E	F	G	H			K	L	3E	3G	3B	3D	3H	3F	3L	3K
-77		B		D	E	F	G	H		J		L	3H	3G	3B	3D	3J	3F	3L	3E
-78		B		D	E	F	G	H		J	K		3H	3G	3B	3D	3J	3F	3E	3K
-79		B		D	E	F	G	H	I			L	3E	3G	3B	3D	3H	3F	3L	3I
-80		B		D	E	F	G	H	I		K		3E	3G	3B	3D	3H	3F	3I	3K
-81		B		D	E	F	G	H	I	J			3H	3G	3B	3D	3J	3F	3E	3I
-82		B	C				G	H	I	J	K	L	3H	3J	3B	3C	3I	3G	3L	3K
-83		B	C			F		H	I	J	K	L	3H	3J	3B	3C	3I	3F	3L	3K
-84		B	C			F	G		I	J	K	L	3I	3G	3B	3C	3J	3F	3L	3K
-85		B	C			F	G	H		J	K	L	3H	3G	3B	3C	3J	3F	3L	3K
-86		B	C			F	G	H	I		K	L	3H	3G	3B	3C	3I	3F	3L	3K
-87		B	C			F	G	H	I	J		L	3H	3G	3B	3C	3J	3F	3L	3I
-88		B	C			F	G	H	I	J	K		3H	3G	3B	3C	3J	3F	3I	3K
-89		B	C		E			H	I	J	K	L	3E	3J	3B	3C	3I	3H	3L	3K
-90		B	C		E		G		I	J	K	L	3E	3J	3B	3C	3I	3G	3L	3K
-91		B	C		E		G	H		J	K	L	3E	3J	3B	3C	3H	3G	3L	3K
-92		B	C		E		G	H	I		K	L	3E	3G	3B	3C	3I	3H	3L	3K
-93		B	C		E		G	H	I	J		L	3E	3J	3B	3C	3H	3G	3L	3I
-94		B	C		E		G	H	I	J	K		3E	3J	3B	3C	3H	3G	3I	3K
-95		B	C		E	F			I	J	K	L	3E	3J	3B	3C	3I	3F	3L	3K
-96		B	C		E	F		H		J	K	L	3E	3J	3B	3C	3H	3F	3L	3K
-97		B	C		E	F		H	I		K	L	3E	3I	3B	3C	3H	3F	3L	3K
-98		B	C		E	F		H	I	J		L	3E	3J	3B	3C	3H	3F	3L	3I
-99		B	C		E	F		H	I	J	K		3E	3J	3B	3C	3H	3F	3I	3K
-100		B	C		E	F	G			J	K	L	3E	3G	3B	3C	3J	3F	3L	3K
-101		B	C		E	F	G		I		K	L	3E	3G	3B	3C	3I	3F	3L	3K
-102		B	C		E	F	G		I	J		L	3E	3G	3B	3C	3J	3F	3L	3I
-103		B	C		E	F	G		I	J	K		3E	3G	3B	3C	3J	3F	3I	3K
-104		B	C		E	F	G	H			K	L	3E	3G	3B	3C	3H	3F	3L	3K
-105		B	C		E	F	G	H		J		L	3H	3G	3B	3C	3J	3F	3L	3E
-106		B	C		E	F	G	H		J	K		3H	3G	3B	3C	3J	3F	3E	3K
-107		B	C		E	F	G	H	I			L	3E	3G	3B	3C	3H	3F	3L	3I
-108		B	C		E	F	G	H	I		K		3E	3G	3B	3C	3H	3F	3I	3K
-109		B	C		E	F	G	H	I	J			3H	3G	3B	3C	3J	3F	3E	3I
-110		B	C	D				H	I	J	K	L	3H	3J	3B	3C	3I	3D	3L	3K
-111		B	C	D			G		I	J	K	L	3I	3G	3B	3C	3J	3D	3L	3K
-112		B	C	D			G	H		J	K	L	3H	3G	3B	3C	3J	3D	3L	3K
-113		B	C	D			G	H	I		K	L	3H	3G	3B	3C	3I	3D	3L	3K
-114		B	C	D			G	H	I	J		L	3H	3G	3B	3C	3J	3D	3L	3I
-115		B	C	D			G	H	I	J	K		3H	3G	3B	3C	3J	3D	3I	3K
-116		B	C	D		F			I	J	K	L	3C	3J	3B	3D	3I	3F	3L	3K
-117		B	C	D		F		H		J	K	L	3C	3J	3B	3D	3H	3F	3L	3K
-118		B	C	D		F		H	I		K	L	3C	3I	3B	3D	3H	3F	3L	3K
-119		B	C	D		F		H	I	J		L	3C	3J	3B	3D	3H	3F	3L	3I
-120		B	C	D		F		H	I	J	K		3C	3J	3B	3D	3H	3F	3I	3K
-121		B	C	D		F	G			J	K	L	3C	3G	3B	3D	3J	3F	3L	3K
-122		B	C	D		F	G		I		K	L	3C	3G	3B	3D	3I	3F	3L	3K
-123		B	C	D		F	G		I	J		L	3C	3G	3B	3D	3J	3F	3L	3I
-124		B	C	D		F	G		I	J	K		3C	3G	3B	3D	3J	3F	3I	3K
-125		B	C	D		F	G	H			K	L	3C	3G	3B	3D	3H	3F	3L	3K
-126		B	C	D		F	G	H		J		L	3C	3G	3B	3D	3H	3F	3L	3J
-127		B	C	D		F	G	H		J	K		3H	3G	3B	3C	3J	3F	3D	3K
-128		B	C	D		F	G	H	I			L	3C	3G	3B	3D	3H	3F	3L	3I
-129		B	C	D		F	G	H	I		K		3C	3G	3B	3D	3H	3F	3I	3K
-130		B	C	D		F	G	H	I	J			3H	3G	3B	3C	3J	3F	3D	3I
-131		B	C	D	E				I	J	K	L	3E	3J	3B	3C	3I	3D	3L	3K
-132		B	C	D	E			H		J	K	L	3E	3J	3B	3C	3H	3D	3L	3K
-133		B	C	D	E			H	I		K	L	3E	3I	3B	3C	3H	3D	3L	3K
-134		B	C	D	E			H	I	J		L	3E	3J	3B	3C	3H	3D	3L	3I
-135		B	C	D	E			H	I	J	K		3E	3J	3B	3C	3H	3D	3I	3K
-136		B	C	D	E		G			J	K	L	3E	3G	3B	3C	3J	3D	3L	3K
-137		B	C	D	E		G		I		K	L	3E	3G	3B	3C	3I	3D	3L	3K
-138		B	C	D	E		G		I	J		L	3E	3G	3B	3C	3J	3D	3L	3I
-139		B	C	D	E		G		I	J	K		3E	3G	3B	3C	3J	3D	3I	3K
-140		B	C	D	E		G	H			K	L	3E	3G	3B	3C	3H	3D	3L	3K
-141		B	C	D	E		G	H		J		L	3H	3G	3B	3C	3J	3D	3L	3E
-142		B	C	D	E		G	H		J	K		3H	3G	3B	3C	3J	3D	3E	3K
-143		B	C	D	E		G	H	I			L	3E	3G	3B	3C	3H	3D	3L	3I
-144		B	C	D	E		G	H	I		K		3E	3G	3B	3C	3H	3D	3I	3K
-145		B	C	D	E		G	H	I	J			3H	3G	3B	3C	3J	3D	3E	3I
-146		B	C	D	E	F				J	K	L	3C	3J	3B	3D	3E	3F	3L	3K
-147		B	C	D	E	F			I		K	L	3C	3E	3B	3D	3I	3F	3L	3K
-148		B	C	D	E	F			I	J		L	3C	3J	3B	3D	3E	3F	3L	3I
-149		B	C	D	E	F			I	J	K		3C	3J	3B	3D	3E	3F	3I	3K
-150		B	C	D	E	F		H			K	L	3C	3E	3B	3D	3H	3F	3L	3K
-151		B	C	D	E	F		H		J		L	3C	3J	3B	3D	3H	3F	3L	3E
-152		B	C	D	E	F		H		J	K		3C	3J	3B	3D	3H	3F	3E	3K
-153		B	C	D	E	F		H	I			L	3C	3E	3B	3D	3H	3F	3L	3I
-154		B	C	D	E	F		H	I		K		3C	3E	3B	3D	3H	3F	3I	3K
-155		B	C	D	E	F		H	I	J			3C	3J	3B	3D	3H	3F	3E	3I
-156		B	C	D	E	F	G				K	L	3C	3G	3B	3D	3E	3F	3L	3K
-157		B	C	D	E	F	G			J		L	3C	3G	3B	3D	3J	3F	3L	3E
-158		B	C	D	E	F	G			J	K		3C	3G	3B	3D	3J	3F	3E	3K
-159		B	C	D	E	F	G		I			L	3C	3G	3B	3D	3E	3F	3L	3I
-160		B	C	D	E	F	G		I		K		3C	3G	3B	3D	3E	3F	3I	3K
-161		B	C	D	E	F	G		I	J			3C	3G	3B	3D	3J	3F	3E	3I
-162		B	C	D	E	F	G	H				L	3C	3G	3B	3D	3H	3F	3L	3E
-163		B	C	D	E	F	G	H			K		3C	3G	3B	3D	3H	3F	3E	3K
-164		B	C	D	E	F	G	H		J			3H	3G	3B	3C	3J	3F	3D	3E
-165		B	C	D	E	F	G	H	I				3C	3G	3B	3D	3H	3F	3E	3I
-166	A					F	G	H	I	J	K	L	3H	3J	3I	3F	3A	3G	3L	3K
-167	A				E		G	H	I	J	K	L	3E	3J	3I	3A	3H	3G	3L	3K
-168	A				E	F		H	I	J	K	L	3E	3J	3I	3F	3A	3H	3L	3K
-169	A				E	F	G		I	J	K	L	3E	3J	3I	3F	3A	3G	3L	3K
-170	A				E	F	G	H		J	K	L	3E	3G	3J	3F	3A	3H	3L	3K
-171	A				E	F	G	H	I		K	L	3E	3G	3I	3F	3A	3H	3L	3K
-172	A				E	F	G	H	I	J		L	3E	3G	3J	3F	3A	3H	3L	3I
-173	A				E	F	G	H	I	J	K		3E	3G	3J	3F	3A	3H	3I	3K
-174	A			D			G	H	I	J	K	L	3H	3J	3I	3D	3A	3G	3L	3K
-175	A			D		F		H	I	J	K	L	3H	3J	3I	3D	3A	3F	3L	3K
-176	A			D		F	G		I	J	K	L	3I	3G	3J	3D	3A	3F	3L	3K
-177	A			D		F	G	H		J	K	L	3H	3G	3J	3D	3A	3F	3L	3K
-178	A			D		F	G	H	I		K	L	3H	3G	3I	3D	3A	3F	3L	3K
-179	A			D		F	G	H	I	J		L	3H	3G	3J	3D	3A	3F	3L	3I
-180	A			D		F	G	H	I	J	K		3H	3G	3J	3D	3A	3F	3I	3K
-181	A			D	E			H	I	J	K	L	3E	3J	3I	3D	3A	3H	3L	3K
-182	A			D	E		G		I	J	K	L	3E	3J	3I	3D	3A	3G	3L	3K
-183	A			D	E		G	H		J	K	L	3E	3G	3J	3D	3A	3H	3L	3K
-184	A			D	E		G	H	I		K	L	3E	3G	3I	3D	3A	3H	3L	3K
-185	A			D	E		G	H	I	J		L	3E	3G	3J	3D	3A	3H	3L	3I
-186	A			D	E		G	H	I	J	K		3E	3G	3J	3D	3A	3H	3I	3K
-187	A			D	E	F			I	J	K	L	3E	3J	3I	3D	3A	3F	3L	3K
-188	A			D	E	F		H		J	K	L	3H	3J	3E	3D	3A	3F	3L	3K
-189	A			D	E	F		H	I		K	L	3H	3E	3I	3D	3A	3F	3L	3K
-190	A			D	E	F		H	I	J		L	3H	3J	3E	3D	3A	3F	3L	3I
-191	A			D	E	F		H	I	J	K		3H	3J	3E	3D	3A	3F	3I	3K
-192	A			D	E	F	G			J	K	L	3E	3G	3J	3D	3A	3F	3L	3K
-193	A			D	E	F	G		I		K	L	3E	3G	3I	3D	3A	3F	3L	3K
-194	A			D	E	F	G		I	J		L	3E	3G	3J	3D	3A	3F	3L	3I
-195	A			D	E	F	G		I	J	K		3E	3G	3J	3D	3A	3F	3I	3K
-196	A			D	E	F	G	H			K	L	3H	3G	3E	3D	3A	3F	3L	3K
-197	A			D	E	F	G	H		J		L	3H	3G	3J	3D	3A	3F	3L	3E
-198	A			D	E	F	G	H		J	K		3H	3G	3J	3D	3A	3F	3E	3K
-199	A			D	E	F	G	H	I			L	3H	3G	3E	3D	3A	3F	3L	3I
-200	A			D	E	F	G	H	I		K		3H	3G	3E	3D	3A	3F	3I	3K
-201	A			D	E	F	G	H	I	J			3H	3G	3J	3D	3A	3F	3E	3I
-202	A		C				G	H	I	J	K	L	3H	3J	3I	3C	3A	3G	3L	3K
-203	A		C			F		H	I	J	K	L	3H	3J	3I	3C	3A	3F	3L	3K
-204	A		C			F	G		I	J	K	L	3I	3G	3J	3C	3A	3F	3L	3K
-205	A		C			F	G	H		J	K	L	3H	3G	3J	3C	3A	3F	3L	3K
-206	A		C			F	G	H	I		K	L	3H	3G	3I	3C	3A	3F	3L	3K
-207	A		C			F	G	H	I	J		L	3H	3G	3J	3C	3A	3F	3L	3I
-208	A		C			F	G	H	I	J	K		3H	3G	3J	3C	3A	3F	3I	3K
-209	A		C		E			H	I	J	K	L	3E	3J	3I	3C	3A	3H	3L	3K
-210	A		C		E		G		I	J	K	L	3E	3J	3I	3C	3A	3G	3L	3K
-211	A		C		E		G	H		J	K	L	3E	3G	3J	3C	3A	3H	3L	3K
-212	A		C		E		G	H	I		K	L	3E	3G	3I	3C	3A	3H	3L	3K
-213	A		C		E		G	H	I	J		L	3E	3G	3J	3C	3A	3H	3L	3I
-214	A		C		E		G	H	I	J	K		3E	3G	3J	3C	3A	3H	3I	3K
-215	A		C		E	F			I	J	K	L	3E	3J	3I	3C	3A	3F	3L	3K
-216	A		C		E	F		H		J	K	L	3H	3J	3E	3C	3A	3F	3L	3K
-217	A		C		E	F		H	I		K	L	3H	3E	3I	3C	3A	3F	3L	3K
-218	A		C		E	F		H	I	J		L	3H	3J	3E	3C	3A	3F	3L	3I
-219	A		C		E	F		H	I	J	K		3H	3J	3E	3C	3A	3F	3I	3K
-220	A		C		E	F	G			J	K	L	3E	3G	3J	3C	3A	3F	3L	3K
-221	A		C		E	F	G		I		K	L	3E	3G	3I	3C	3A	3F	3L	3K
-222	A		C		E	F	G		I	J		L	3E	3G	3J	3C	3A	3F	3L	3I
-223	A		C		E	F	G		I	J	K		3E	3G	3J	3C	3A	3F	3I	3K
-224	A		C		E	F	G	H			K	L	3H	3G	3E	3C	3A	3F	3L	3K
-225	A		C		E	F	G	H		J		L	3H	3G	3J	3C	3A	3F	3L	3E
-226	A		C		E	F	G	H		J	K		3H	3G	3J	3C	3A	3F	3E	3K
-227	A		C		E	F	G	H	I			L	3H	3G	3E	3C	3A	3F	3L	3I
-228	A		C		E	F	G	H	I		K		3H	3G	3E	3C	3A	3F	3I	3K
-229	A		C		E	F	G	H	I	J			3H	3G	3J	3C	3A	3F	3E	3I
-230	A		C	D				H	I	J	K	L	3H	3J	3I	3C	3A	3D	3L	3K
-231	A		C	D			G		I	J	K	L	3I	3G	3J	3C	3A	3D	3L	3K
-232	A		C	D			G	H		J	K	L	3H	3G	3J	3C	3A	3D	3L	3K
-233	A		C	D			G	H	I		K	L	3H	3G	3I	3C	3A	3D	3L	3K
-234	A		C	D			G	H	I	J		L	3H	3G	3J	3C	3A	3D	3L	3I
-235	A		C	D			G	H	I	J	K		3H	3G	3J	3C	3A	3D	3I	3K
-236	A		C	D		F			I	J	K	L	3C	3J	3I	3D	3A	3F	3L	3K
-237	A		C	D		F		H		J	K	L	3H	3J	3F	3C	3A	3D	3L	3K
-238	A		C	D		F		H	I		K	L	3H	3F	3I	3C	3A	3D	3L	3K
-239	A		C	D		F		H	I	J		L	3H	3J	3F	3C	3A	3D	3L	3I
-240	A		C	D		F		H	I	J	K		3H	3J	3F	3C	3A	3D	3I	3K
-241	A		C	D		F	G			J	K	L	3C	3G	3J	3D	3A	3F	3L	3K
-242	A		C	D		F	G		I		K	L	3C	3G	3I	3D	3A	3F	3L	3K
-243	A		C	D		F	G		I	J		L	3C	3G	3J	3D	3A	3F	3L	3I
-244	A		C	D		F	G		I	J	K		3C	3G	3J	3D	3A	3F	3I	3K
-245	A		C	D		F	G	H			K	L	3H	3G	3F	3C	3A	3D	3L	3K
-246	A		C	D		F	G	H		J		L	3C	3G	3J	3D	3A	3F	3L	3H
-247	A		C	D		F	G	H		J	K		3H	3G	3J	3C	3A	3F	3D	3K
-248	A		C	D		F	G	H	I			L	3H	3G	3F	3C	3A	3D	3L	3I
-249	A		C	D		F	G	H	I		K		3H	3G	3F	3C	3A	3D	3I	3K
-250	A		C	D		F	G	H	I	J			3H	3G	3J	3C	3A	3F	3D	3I
-251	A		C	D	E				I	J	K	L	3E	3J	3I	3C	3A	3D	3L	3K
-252	A		C	D	E			H		J	K	L	3H	3J	3E	3C	3A	3D	3L	3K
-253	A		C	D	E			H	I		K	L	3H	3E	3I	3C	3A	3D	3L	3K
-254	A		C	D	E			H	I	J		L	3H	3J	3E	3C	3A	3D	3L	3I
-255	A		C	D	E			H	I	J	K		3H	3J	3E	3C	3A	3D	3I	3K
-256	A		C	D	E		G			J	K	L	3E	3G	3J	3C	3A	3D	3L	3K
-257	A		C	D	E		G		I		K	L	3E	3G	3I	3C	3A	3D	3L	3K
-258	A		C	D	E		G		I	J		L	3E	3G	3J	3C	3A	3D	3L	3I
-259	A		C	D	E		G		I	J	K		3E	3G	3J	3C	3A	3D	3I	3K
-260	A		C	D	E		G	H			K	L	3H	3G	3E	3C	3A	3D	3L	3K
-261	A		C	D	E		G	H		J		L	3H	3G	3J	3C	3A	3D	3L	3E
-262	A		C	D	E		G	H		J	K		3H	3G	3J	3C	3A	3D	3E	3K
-263	A		C	D	E		G	H	I			L	3H	3G	3E	3C	3A	3D	3L	3I
-264	A		C	D	E		G	H	I		K		3H	3G	3E	3C	3A	3D	3I	3K
-265	A		C	D	E		G	H	I	J			3H	3G	3J	3C	3A	3D	3E	3I
-266	A		C	D	E	F				J	K	L	3C	3J	3E	3D	3A	3F	3L	3K
-267	A		C	D	E	F			I		K	L	3C	3E	3I	3D	3A	3F	3L	3K
-268	A		C	D	E	F			I	J		L	3C	3J	3E	3D	3A	3F	3L	3I
-269	A		C	D	E	F			I	J	K		3C	3J	3E	3D	3A	3F	3I	3K
-270	A		C	D	E	F		H			K	L	3H	3E	3F	3C	3A	3D	3L	3K
-271	A		C	D	E	F		H		J		L	3H	3J	3F	3C	3A	3D	3L	3E
-272	A		C	D	E	F		H		J	K		3H	3J	3E	3C	3A	3F	3D	3K
-273	A		C	D	E	F		H	I			L	3H	3E	3F	3C	3A	3D	3L	3I
-274	A		C	D	E	F		H	I		K		3H	3E	3F	3C	3A	3D	3I	3K
-275	A		C	D	E	F		H	I	J			3H	3J	3E	3C	3A	3F	3D	3I
-276	A		C	D	E	F	G				K	L	3C	3G	3E	3D	3A	3F	3L	3K
-277	A		C	D	E	F	G			J		L	3C	3G	3J	3D	3A	3F	3L	3E
-278	A		C	D	E	F	G			J	K		3C	3G	3J	3D	3A	3F	3E	3K
-279	A		C	D	E	F	G		I			L	3C	3G	3E	3D	3A	3F	3L	3I
-280	A		C	D	E	F	G		I		K		3C	3G	3E	3D	3A	3F	3I	3K
-281	A		C	D	E	F	G		I	J			3C	3G	3J	3D	3A	3F	3E	3I
-282	A		C	D	E	F	G	H				L	3H	3G	3F	3C	3A	3D	3L	3E
-283	A		C	D	E	F	G	H			K		3H	3G	3E	3C	3A	3F	3D	3K
-284	A		C	D	E	F	G	H		J			3H	3G	3J	3C	3A	3F	3D	3E
-285	A		C	D	E	F	G	H	I				3H	3G	3E	3C	3A	3F	3D	3I
-286	A	B					G	H	I	J	K	L	3H	3J	3B	3A	3I	3G	3L	3K
-287	A	B				F		H	I	J	K	L	3H	3J	3B	3A	3I	3F	3L	3K
-288	A	B				F	G		I	J	K	L	3I	3J	3B	3F	3A	3G	3L	3K
-289	A	B				F	G	H		J	K	L	3H	3J	3B	3F	3A	3G	3L	3K
-290	A	B				F	G	H	I		K	L	3H	3G	3B	3A	3I	3F	3L	3K
-291	A	B				F	G	H	I	J		L	3H	3J	3B	3F	3A	3G	3L	3I
-292	A	B				F	G	H	I	J	K		3H	3J	3B	3F	3A	3G	3I	3K
-293	A	B			E			H	I	J	K	L	3E	3J	3B	3A	3I	3H	3L	3K
-294	A	B			E		G		I	J	K	L	3E	3J	3B	3A	3I	3G	3L	3K
-295	A	B			E		G	H		J	K	L	3E	3J	3B	3A	3H	3G	3L	3K
-296	A	B			E		G	H	I		K	L	3E	3G	3B	3A	3I	3H	3L	3K
-297	A	B			E		G	H	I	J		L	3E	3J	3B	3A	3H	3G	3L	3I
-298	A	B			E		G	H	I	J	K		3E	3J	3B	3A	3H	3G	3I	3K
-299	A	B			E	F			I	J	K	L	3E	3J	3B	3A	3I	3F	3L	3K
-300	A	B			E	F		H		J	K	L	3E	3J	3B	3F	3A	3H	3L	3K
-301	A	B			E	F		H	I		K	L	3E	3I	3B	3F	3A	3H	3L	3K
-302	A	B			E	F		H	I	J		L	3E	3J	3B	3F	3A	3H	3L	3I
-303	A	B			E	F		H	I	J	K		3E	3J	3B	3F	3A	3H	3I	3K
-304	A	B			E	F	G			J	K	L	3E	3J	3B	3F	3A	3G	3L	3K
-305	A	B			E	F	G		I		K	L	3E	3G	3B	3A	3I	3F	3L	3K
-306	A	B			E	F	G		I	J		L	3E	3J	3B	3F	3A	3G	3L	3I
-307	A	B			E	F	G		I	J	K		3E	3J	3B	3F	3A	3G	3I	3K
-308	A	B			E	F	G	H			K	L	3E	3G	3B	3F	3A	3H	3L	3K
-309	A	B			E	F	G	H		J		L	3H	3J	3B	3F	3A	3G	3L	3E
-310	A	B			E	F	G	H		J	K		3H	3J	3B	3F	3A	3G	3E	3K
-311	A	B			E	F	G	H	I			L	3E	3G	3B	3F	3A	3H	3L	3I
-312	A	B			E	F	G	H	I		K		3E	3G	3B	3F	3A	3H	3I	3K
-313	A	B			E	F	G	H	I	J			3H	3J	3B	3F	3A	3G	3E	3I
-314	A	B		D				H	I	J	K	L	3I	3J	3B	3D	3A	3H	3L	3K
-315	A	B		D			G		I	J	K	L	3I	3J	3B	3D	3A	3G	3L	3K
-316	A	B		D			G	H		J	K	L	3H	3J	3B	3D	3A	3G	3L	3K
-317	A	B		D			G	H	I		K	L	3I	3G	3B	3D	3A	3H	3L	3K
-318	A	B		D			G	H	I	J		L	3H	3J	3B	3D	3A	3G	3L	3I
-319	A	B		D			G	H	I	J	K		3H	3J	3B	3D	3A	3G	3I	3K
-320	A	B		D		F			I	J	K	L	3I	3J	3B	3D	3A	3F	3L	3K
-321	A	B		D		F		H		J	K	L	3H	3J	3B	3D	3A	3F	3L	3K
-322	A	B		D		F		H	I		K	L	3H	3I	3B	3D	3A	3F	3L	3K
-323	A	B		D		F		H	I	J		L	3H	3J	3B	3D	3A	3F	3L	3I
-324	A	B		D		F		H	I	J	K		3H	3J	3B	3D	3A	3F	3I	3K
-325	A	B		D		F	G			J	K	L	3F	3J	3B	3D	3A	3G	3L	3K
-326	A	B		D		F	G		I		K	L	3I	3G	3B	3D	3A	3F	3L	3K
-327	A	B		D		F	G		I	J		L	3F	3J	3B	3D	3A	3G	3L	3I
-328	A	B		D		F	G		I	J	K		3F	3J	3B	3D	3A	3G	3I	3K
-329	A	B		D		F	G	H			K	L	3H	3G	3B	3D	3A	3F	3L	3K
-330	A	B		D		F	G	H		J		L	3H	3G	3B	3D	3A	3F	3L	3J
-331	A	B		D		F	G	H		J	K		3H	3G	3B	3D	3A	3F	3J	3K
-332	A	B		D		F	G	H	I			L	3H	3G	3B	3D	3A	3F	3L	3I
-333	A	B		D		F	G	H	I		K		3H	3G	3B	3D	3A	3F	3I	3K
-334	A	B		D		F	G	H	I	J			3H	3G	3B	3D	3A	3F	3I	3J
-335	A	B		D	E				I	J	K	L	3E	3J	3B	3A	3I	3D	3L	3K
-336	A	B		D	E			H		J	K	L	3E	3J	3B	3D	3A	3H	3L	3K
-337	A	B		D	E			H	I		K	L	3E	3I	3B	3D	3A	3H	3L	3K
-338	A	B		D	E			H	I	J		L	3E	3J	3B	3D	3A	3H	3L	3I
-339	A	B		D	E			H	I	J	K		3E	3J	3B	3D	3A	3H	3I	3K
-340	A	B		D	E		G			J	K	L	3E	3J	3B	3D	3A	3G	3L	3K
-341	A	B		D	E		G		I		K	L	3E	3G	3B	3A	3I	3D	3L	3K
-342	A	B		D	E		G		I	J		L	3E	3J	3B	3D	3A	3G	3L	3I
-343	A	B		D	E		G		I	J	K		3E	3J	3B	3D	3A	3G	3I	3K
-344	A	B		D	E		G	H			K	L	3E	3G	3B	3D	3A	3H	3L	3K
-345	A	B		D	E		G	H		J		L	3H	3J	3B	3D	3A	3G	3L	3E
-346	A	B		D	E		G	H		J	K		3H	3J	3B	3D	3A	3G	3E	3K
-347	A	B		D	E		G	H	I			L	3E	3G	3B	3D	3A	3H	3L	3I
-348	A	B		D	E		G	H	I		K		3E	3G	3B	3D	3A	3H	3I	3K
-349	A	B		D	E		G	H	I	J			3H	3J	3B	3D	3A	3G	3E	3I
-350	A	B		D	E	F				J	K	L	3E	3J	3B	3D	3A	3F	3L	3K
-351	A	B		D	E	F			I		K	L	3E	3I	3B	3D	3A	3F	3L	3K
-352	A	B		D	E	F			I	J		L	3E	3J	3B	3D	3A	3F	3L	3I
-353	A	B		D	E	F			I	J	K		3E	3J	3B	3D	3A	3F	3I	3K
-354	A	B		D	E	F		H			K	L	3H	3E	3B	3D	3A	3F	3L	3K
-355	A	B		D	E	F		H		J		L	3H	3J	3B	3D	3A	3F	3L	3E
-356	A	B		D	E	F		H		J	K		3H	3J	3B	3D	3A	3F	3E	3K
-357	A	B		D	E	F		H	I			L	3H	3E	3B	3D	3A	3F	3L	3I
-358	A	B		D	E	F		H	I		K		3H	3E	3B	3D	3A	3F	3I	3K
-359	A	B		D	E	F		H	I	J			3H	3J	3B	3D	3A	3F	3E	3I
-360	A	B		D	E	F	G				K	L	3E	3G	3B	3D	3A	3F	3L	3K
-361	A	B		D	E	F	G			J		L	3E	3G	3B	3D	3A	3F	3L	3J
-362	A	B		D	E	F	G			J	K		3E	3G	3B	3D	3A	3F	3J	3K
-363	A	B		D	E	F	G		I			L	3E	3G	3B	3D	3A	3F	3L	3I
-364	A	B		D	E	F	G		I		K		3E	3G	3B	3D	3A	3F	3I	3K
-365	A	B		D	E	F	G		I	J			3E	3G	3B	3D	3A	3F	3I	3J
-366	A	B		D	E	F	G	H				L	3H	3G	3B	3D	3A	3F	3L	3E
-367	A	B		D	E	F	G	H			K		3H	3G	3B	3D	3A	3F	3E	3K
-368	A	B		D	E	F	G	H		J			3H	3G	3B	3D	3A	3F	3E	3J
-369	A	B		D	E	F	G	H	I				3H	3G	3B	3D	3A	3F	3E	3I
-370	A	B	C					H	I	J	K	L	3I	3J	3B	3C	3A	3H	3L	3K
-371	A	B	C				G		I	J	K	L	3I	3J	3B	3C	3A	3G	3L	3K
-372	A	B	C				G	H		J	K	L	3H	3J	3B	3C	3A	3G	3L	3K
-373	A	B	C				G	H	I		K	L	3I	3G	3B	3C	3A	3H	3L	3K
-374	A	B	C				G	H	I	J		L	3H	3J	3B	3C	3A	3G	3L	3I
-375	A	B	C				G	H	I	J	K		3H	3J	3B	3C	3A	3G	3I	3K
-376	A	B	C			F			I	J	K	L	3I	3J	3B	3C	3A	3F	3L	3K
-377	A	B	C			F		H		J	K	L	3H	3J	3B	3C	3A	3F	3L	3K
-378	A	B	C			F		H	I		K	L	3H	3I	3B	3C	3A	3F	3L	3K
-379	A	B	C			F		H	I	J		L	3H	3J	3B	3C	3A	3F	3L	3I
-380	A	B	C			F		H	I	J	K		3H	3J	3B	3C	3A	3F	3I	3K
-381	A	B	C			F	G			J	K	L	3C	3J	3B	3F	3A	3G	3L	3K
-382	A	B	C			F	G		I		K	L	3I	3G	3B	3C	3A	3F	3L	3K
-383	A	B	C			F	G		I	J		L	3C	3J	3B	3F	3A	3G	3L	3I
-384	A	B	C			F	G		I	J	K		3C	3J	3B	3F	3A	3G	3I	3K
-385	A	B	C			F	G	H			K	L	3H	3G	3B	3C	3A	3F	3L	3K
-386	A	B	C			F	G	H		J		L	3H	3G	3B	3C	3A	3F	3L	3J
-387	A	B	C			F	G	H		J	K		3H	3G	3B	3C	3A	3F	3J	3K
-388	A	B	C			F	G	H	I			L	3H	3G	3B	3C	3A	3F	3L	3I
-389	A	B	C			F	G	H	I		K		3H	3G	3B	3C	3A	3F	3I	3K
-390	A	B	C			F	G	H	I	J			3H	3G	3B	3C	3A	3F	3I	3J
-391	A	B	C		E				I	J	K	L	3E	3J	3B	3A	3I	3C	3L	3K
-392	A	B	C		E			H		J	K	L	3E	3J	3B	3C	3A	3H	3L	3K
-393	A	B	C		E			H	I		K	L	3E	3I	3B	3C	3A	3H	3L	3K
-394	A	B	C		E			H	I	J		L	3E	3J	3B	3C	3A	3H	3L	3I
-395	A	B	C		E			H	I	J	K		3E	3J	3B	3C	3A	3H	3I	3K
-396	A	B	C		E		G			J	K	L	3E	3J	3B	3C	3A	3G	3L	3K
-397	A	B	C		E		G		I		K	L	3E	3G	3B	3A	3I	3C	3L	3K
-398	A	B	C		E		G		I	J		L	3E	3J	3B	3C	3A	3G	3L	3I
-399	A	B	C		E		G		I	J	K		3E	3J	3B	3C	3A	3G	3I	3K
-400	A	B	C		E		G	H			K	L	3E	3G	3B	3C	3A	3H	3L	3K
-401	A	B	C		E		G	H		J		L	3H	3J	3B	3C	3A	3G	3L	3E
-402	A	B	C		E		G	H		J	K		3H	3J	3B	3C	3A	3G	3E	3K
-403	A	B	C		E		G	H	I			L	3E	3G	3B	3C	3A	3H	3L	3I
-404	A	B	C		E		G	H	I		K		3E	3G	3B	3C	3A	3H	3I	3K
-405	A	B	C		E		G	H	I	J			3H	3J	3B	3C	3A	3G	3E	3I
-406	A	B	C		E	F				J	K	L	3E	3J	3B	3C	3A	3F	3L	3K
-407	A	B	C		E	F			I		K	L	3E	3I	3B	3C	3A	3F	3L	3K
-408	A	B	C		E	F			I	J		L	3E	3J	3B	3C	3A	3F	3L	3I
-409	A	B	C		E	F			I	J	K		3E	3J	3B	3C	3A	3F	3I	3K
-410	A	B	C		E	F		H			K	L	3H	3E	3B	3C	3A	3F	3L	3K
-411	A	B	C		E	F		H		J		L	3H	3J	3B	3C	3A	3F	3L	3E
-412	A	B	C		E	F		H		J	K		3H	3J	3B	3C	3A	3F	3E	3K
-413	A	B	C		E	F		H	I			L	3H	3E	3B	3C	3A	3F	3L	3I
-414	A	B	C		E	F		H	I		K		3H	3E	3B	3C	3A	3F	3I	3K
-415	A	B	C		E	F		H	I	J			3H	3J	3B	3C	3A	3F	3E	3I
-416	A	B	C		E	F	G				K	L	3E	3G	3B	3C	3A	3F	3L	3K
-417	A	B	C		E	F	G			J		L	3E	3G	3B	3C	3A	3F	3L	3J
-418	A	B	C		E	F	G			J	K		3E	3G	3B	3C	3A	3F	3J	3K
-419	A	B	C		E	F	G		I			L	3E	3G	3B	3C	3A	3F	3L	3I
-420	A	B	C		E	F	G		I		K		3E	3G	3B	3C	3A	3F	3I	3K
-421	A	B	C		E	F	G		I	J			3E	3G	3B	3C	3A	3F	3I	3J
-422	A	B	C		E	F	G	H				L	3H	3G	3B	3C	3A	3F	3L	3E
-423	A	B	C		E	F	G	H			K		3H	3G	3B	3C	3A	3F	3E	3K
-424	A	B	C		E	F	G	H		J			3H	3G	3B	3C	3A	3F	3E	3J
-425	A	B	C		E	F	G	H	I				3H	3G	3B	3C	3A	3F	3E	3I
-426	A	B	C	D					I	J	K	L	3I	3J	3B	3C	3A	3D	3L	3K
-427	A	B	C	D				H		J	K	L	3H	3J	3B	3C	3A	3D	3L	3K
-428	A	B	C	D				H	I		K	L	3H	3I	3B	3C	3A	3D	3L	3K
-429	A	B	C	D				H	I	J		L	3H	3J	3B	3C	3A	3D	3L	3I
-430	A	B	C	D				H	I	J	K		3H	3J	3B	3C	3A	3D	3I	3K
-431	A	B	C	D			G			J	K	L	3C	3J	3B	3D	3A	3G	3L	3K
-432	A	B	C	D			G		I		K	L	3I	3G	3B	3C	3A	3D	3L	3K
-433	A	B	C	D			G		I	J		L	3C	3J	3B	3D	3A	3G	3L	3I
-434	A	B	C	D			G		I	J	K		3C	3J	3B	3D	3A	3G	3I	3K
-435	A	B	C	D			G	H			K	L	3H	3G	3B	3C	3A	3D	3L	3K
-436	A	B	C	D			G	H		J		L	3H	3G	3B	3C	3A	3D	3L	3J
-437	A	B	C	D			G	H		J	K		3H	3G	3B	3C	3A	3D	3J	3K
-438	A	B	C	D			G	H	I			L	3H	3G	3B	3C	3A	3D	3L	3I
-439	A	B	C	D			G	H	I		K		3H	3G	3B	3C	3A	3D	3I	3K
-440	A	B	C	D			G	H	I	J			3H	3G	3B	3C	3A	3D	3I	3J
-441	A	B	C	D		F				J	K	L	3C	3J	3B	3D	3A	3F	3L	3K
-442	A	B	C	D		F			I		K	L	3C	3I	3B	3D	3A	3F	3L	3K
-443	A	B	C	D		F			I	J		L	3C	3J	3B	3D	3A	3F	3L	3I
-444	A	B	C	D		F			I	J	K		3C	3J	3B	3D	3A	3F	3I	3K
-445	A	B	C	D		F		H			K	L	3H	3F	3B	3C	3A	3D	3L	3K
-446	A	B	C	D		F		H		J		L	3C	3J	3B	3D	3A	3F	3L	3H
-447	A	B	C	D		F		H		J	K		3H	3J	3B	3C	3A	3F	3D	3K
-448	A	B	C	D		F		H	I			L	3H	3F	3B	3C	3A	3D	3L	3I
-449	A	B	C	D		F		H	I		K		3H	3F	3B	3C	3A	3D	3I	3K
-450	A	B	C	D		F		H	I	J			3H	3J	3B	3C	3A	3F	3D	3I
-451	A	B	C	D		F	G				K	L	3C	3G	3B	3D	3A	3F	3L	3K
-452	A	B	C	D		F	G			J		L	3C	3G	3B	3D	3A	3F	3L	3J
-453	A	B	C	D		F	G			J	K		3C	3G	3B	3D	3A	3F	3J	3K
-454	A	B	C	D		F	G		I			L	3C	3G	3B	3D	3A	3F	3L	3I
-455	A	B	C	D		F	G		I		K		3C	3G	3B	3D	3A	3F	3I	3K
-456	A	B	C	D		F	G		I	J			3C	3G	3B	3D	3A	3F	3I	3J
-457	A	B	C	D		F	G	H				L	3C	3G	3B	3D	3A	3F	3L	3H
-458	A	B	C	D		F	G	H			K		3H	3G	3B	3C	3A	3F	3D	3K
-459	A	B	C	D		F	G	H		J			3H	3G	3B	3C	3A	3F	3D	3J
-460	A	B	C	D		F	G	H	I				3H	3G	3B	3C	3A	3F	3D	3I
-461	A	B	C	D	E					J	K	L	3E	3J	3B	3C	3A	3D	3L	3K
-462	A	B	C	D	E				I		K	L	3E	3I	3B	3C	3A	3D	3L	3K
-463	A	B	C	D	E				I	J		L	3E	3J	3B	3C	3A	3D	3L	3I
-464	A	B	C	D	E				I	J	K		3E	3J	3B	3C	3A	3D	3I	3K
-465	A	B	C	D	E			H			K	L	3H	3E	3B	3C	3A	3D	3L	3K
-466	A	B	C	D	E			H		J		L	3H	3J	3B	3C	3A	3D	3L	3E
-467	A	B	C	D	E			H		J	K		3H	3J	3B	3C	3A	3D	3E	3K
-468	A	B	C	D	E			H	I			L	3H	3E	3B	3C	3A	3D	3L	3I
-469	A	B	C	D	E			H	I		K		3H	3E	3B	3C	3A	3D	3I	3K
-470	A	B	C	D	E			H	I	J			3H	3J	3B	3C	3A	3D	3E	3I
-471	A	B	C	D	E		G				K	L	3E	3G	3B	3C	3A	3D	3L	3K
-472	A	B	C	D	E		G			J		L	3E	3G	3B	3C	3A	3D	3L	3J
-473	A	B	C	D	E		G			J	K		3E	3G	3B	3C	3A	3D	3J	3K
-474	A	B	C	D	E		G		I			L	3E	3G	3B	3C	3A	3D	3L	3I
-475	A	B	C	D	E		G		I		K		3E	3G	3B	3C	3A	3D	3I	3K
-476	A	B	C	D	E		G		I	J			3E	3G	3B	3C	3A	3D	3I	3J
-477	A	B	C	D	E		G	H				L	3H	3G	3B	3C	3A	3D	3L	3E
-478	A	B	C	D	E		G	H			K		3H	3G	3B	3C	3A	3D	3E	3K
-479	A	B	C	D	E		G	H		J			3H	3G	3B	3C	3A	3D	3E	3J
-480	A	B	C	D	E		G	H	I				3H	3G	3B	3C	3A	3D	3E	3I
-481	A	B	C	D	E	F					K	L	3C	3E	3B	3D	3A	3F	3L	3K
-482	A	B	C	D	E	F				J		L	3C	3J	3B	3D	3A	3F	3L	3E
-483	A	B	C	D	E	F				J	K		3C	3J	3B	3D	3A	3F	3E	3K
-484	A	B	C	D	E	F			I			L	3C	3E	3B	3D	3A	3F	3L	3I
-485	A	B	C	D	E	F			I		K		3C	3E	3B	3D	3A	3F	3I	3K
-486	A	B	C	D	E	F			I	J			3C	3J	3B	3D	3A	3F	3E	3I
-487	A	B	C	D	E	F		H				L	3H	3F	3B	3C	3A	3D	3L	3E
-488	A	B	C	D	E	F		H			K		3H	3E	3B	3C	3A	3F	3D	3K
-489	A	B	C	D	E	F		H		J			3H	3J	3B	3C	3A	3F	3D	3E
-490	A	B	C	D	E	F		H	I				3H	3E	3B	3C	3A	3F	3D	3I
-491	A	B	C	D	E	F	G					L	3C	3G	3B	3D	3A	3F	3L	3E
-492	A	B	C	D	E	F	G				K		3C	3G	3B	3D	3A	3F	3E	3K
-493	A	B	C	D	E	F	G			J			3C	3G	3B	3D	3A	3F	3E	3J
-494	A	B	C	D	E	F	G		I				3C	3G	3B	3D	3A	3F	3E	3I
-495	A	B	C	D	E	F	G	H					3H	3G	3B	3C	3A	3F	3D	3E
-`;
-
-function buildThirdMappingFromRaw(raw){
-  const mapping = {};
-  const lines = String(raw || "").split(/\r?\n/);
-
-  for(const line of lines){
-    const thirds = [...line.matchAll(/\b3([A-L])\b/g)].map(m => m[1]);
-    if(thirds.length !== 8) continue;
-
-    const unique = [...new Set(thirds)];
-    if(unique.length !== 8) continue;
-
-    const key = unique.slice().sort().join("");
-
-    const entry = {};
-    for(let i = 0; i < 8; i++){
-      const winnerGroup = THIRD_WINNER_ORDER[i];
-      const matchId = WINNER_TO_MATCHID[winnerGroup];
-      entry[String(matchId)] = thirds[i];
+        /* Update header counts */
+        const countEl = document.querySelector(`[data-count-for="${zone}"]`);
+        if(countEl) countEl.textContent = `${state[zone].length} item${state[zone].length !== 1 ? "s" : ""}`;
+      });
     }
 
-    mapping[key] = entry;
-  }
 
-  return mapping;
-}
+    /* =========================================
+       3) State helpers
+    ========================================== */
 
-async function loadThirdMapping(){
-  try{
-    THIRD_MAPPING = buildThirdMappingFromRaw(THIRD_MAPPING_RAW);
-    const count = Object.keys(THIRD_MAPPING).length;
-
-    if(count > 0){
-      mappingStatus.textContent = `Embedded 3rd-place mapping loaded`;
-      mappingStatus.className = "badge good";
-    } else {
-      mappingStatus.textContent = "Embedded mapping empty — paste your table into THIRD_MAPPING_RAW";
-      mappingStatus.className = "badge warn";
-    }
-  }catch(err){
-    THIRD_MAPPING = {};
-    mappingStatus.textContent = "Embedded mapping parse error";
-    mappingStatus.className = "badge warn";
-    console.warn(err);
-  }
-}
-
-/* =========================================================
-   GROUPS RENDER
-   ========================================================= */
-function renderGroups(){
-  groupsGrid.innerHTML = "";
-  const letters = Object.keys(groupsState).sort();
-
-  letters.forEach(letter => {
-    const card = document.createElement("div");
-    card.className = "panel group-card";
-    card.style.padding = "12px 12px 10px";
-
-    const headRow = document.createElement("div");
-    headRow.className = "row";
-    headRow.style.justifyContent = "space-between";
-    
-    const h = document.createElement("h3");
-    h.textContent = `Group ${letter}`;
-    h.style.margin = "2px 0 10px";
-    
-    const autoBtn = document.createElement("button");
-    autoBtn.className = "btn tiny";
-    autoBtn.textContent = "Auto Fill Group";
-    autoBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      autoFillSingleGroup(letter);
-    });
-
-headRow.appendChild(h);
-headRow.appendChild(autoBtn);
-card.appendChild(headRow);
-
-
-    const ul = document.createElement("ul");
-    ul.className = "team-list";
-    ul.dataset.group = letter;
-
-    groupsState[letter].forEach((team, idx) => {
-      ul.appendChild(makeTeamItem(letter, team, idx));
-    });
-
-    enableSortableList(ul, onGroupReorder);
-
-    card.appendChild(ul);
-    groupsGrid.appendChild(card);
-  });
-
-  markLongGroupTeamNames();
-  applySkyHighlights();
-}
-
-function makeTeamItem(groupLetter, teamName, idx){
-  const li = document.createElement("li");
-  li.className = "team-item";
-  li.draggable = !IS_COARSE;   
-  li.dataset.group = groupLetter;
-  li.dataset.teamName = teamName || "";
-
-  const handle = document.createElement("span");
-  handle.className = "handle";
-
-  // ✅ keep the element returned by createFlagElement
-  const flag = createFlagElement(teamName);
-
-  const nameWrap = document.createElement("span");
-  nameWrap.className = "team-name";
-
-  const nameText = document.createElement("span");
-  nameText.className = "team-text";
-  nameText.textContent = teamName || "TBD";
-
-  nameWrap.appendChild(nameText);
-
-  const pos = document.createElement("span");
-  pos.className = "pos-tag";
-  pos.textContent = `#${idx+1}`;
-
-  li.appendChild(handle);
-  li.appendChild(flag);
-  li.appendChild(nameWrap);
-  li.appendChild(pos);
-
-  return li;
-}
-
-
-
-function refreshGroupPositionTags(){
-  document.querySelectorAll(".team-list").forEach(ul => {
-    Array.from(ul.children).forEach((li, i) => {
-      const tag = li.querySelector(".pos-tag");
-      if(tag) tag.textContent = `#${i+1}`;
-    });
-  });
-}
-
-/* =========================================================
-   SORTABLE LIST (for groups & 3rd list)
-   ========================================================= */
-function enableSortableList(listEl, onUpdate){
-  let dragged = null;
-  let pointerActive = false;
-  let activePointerId = null;
-
-  // make sure browser won't interpret touch as scroll/zoom on this list
-  listEl.style.touchAction = "none";
-
-  /* -----------------------------
-     Desktop HTML5 drag
-  ------------------------------ */
-  listEl.addEventListener("dragstart", e => {
-    const li = e.target.closest("li");
-    if(!li) return;
-    dragged = li;
-    li.classList.add("dragging");
-    e.dataTransfer.effectAllowed = "move";
-  });
-
-  listEl.addEventListener("dragend", e => {
-    const li = e.target.closest("li");
-    if(li) li.classList.remove("dragging");
-    dragged = null;
-  });
-
-  listEl.addEventListener("dragover", e => {
-    e.preventDefault();
-    if(!dragged) return;
-    const after = getDragAfterElement(listEl, e.clientY);
-    if(after == null) listEl.appendChild(dragged);
-    else listEl.insertBefore(dragged, after);
-  });
-
-  listEl.addEventListener("drop", e => {
-    e.preventDefault();
-    if(typeof onUpdate === "function") onUpdate(listEl);
-  });
-
-  /* -----------------------------
-     Mobile / Pointer drag
- ------------------------------ */
-  listEl.addEventListener("pointerdown", e => {
-    if(e.pointerType === "mouse") return;
-
-    const li = e.target.closest("li");
-    if(!li || !listEl.contains(li)) return;
-
-    pointerActive = true;
-    activePointerId = e.pointerId;
-    dragged = li;
-
-    li.classList.add("dragging");
-    li.draggable = false;
-
-    // hard lock page scroll while dragging
-    document.body.classList.add("no-scroll");
-
-    try { li.setPointerCapture(activePointerId); } catch(_){}
-
-    e.preventDefault();
-  });
-
-  listEl.addEventListener("pointermove", e => {
-    if(!pointerActive || !dragged) return;
-    if(activePointerId !== null && e.pointerId !== activePointerId) return;
-
-    const after = getDragAfterElement(listEl, e.clientY);
-    if(after == null) listEl.appendChild(dragged);
-    else listEl.insertBefore(dragged, after);
-
-    e.preventDefault();
-  });
-
-  function endPointerDrag(e){
-    if(!pointerActive) return;
-
-    pointerActive = false;
-    const pid = activePointerId;
-    activePointerId = null;
-
-    document.body.classList.remove("no-scroll");
-
-    if(dragged){
-      dragged.classList.remove("dragging");
-      dragged.draggable = !IS_COARSE;
-      try { dragged.releasePointerCapture(pid ?? e.pointerId); } catch(_){}
+    /* Find the team in any zone */
+    function findTeamAndZone(teamId){
+      for(const z of zones){
+        const idx = state[z].findIndex(t => t.id === teamId);
+        if(idx !== -1) return { zone: z, index: idx, team: state[z][idx] };
+      }
+      return null;
     }
 
-    if(typeof onUpdate === "function") onUpdate(listEl);
-    dragged = null;
-  }
+    /* Move a team from one zone to another */
+    function moveTeam(teamId, toZone){
+      const found = findTeamAndZone(teamId);
+      if(!found) return;
 
-  listEl.addEventListener("pointerup", endPointerDrag);
-  listEl.addEventListener("pointercancel", endPointerDrag);
-}
+      const { zone: fromZone, index, team } = found;
 
+      /* Ignore if dropped into same zone */
+      if(fromZone === toZone) return;
 
-function getDragAfterElement(container, y){
-  const els = [...container.querySelectorAll("li:not(.dragging)")];
-  return els.reduce((closest, child) => {
-    const box = child.getBoundingClientRect();
-    const offset = y - box.top - box.height / 2;
-    if(offset < 0 && offset > closest.offset){
-      return { offset, element: child };
-    } else {
-      return closest;
+      /* Remove from old zone, push to new */
+      state[fromZone].splice(index, 1);
+      state[toZone].push(team);
+
+      /* Re-render to reflect changes */
+      render();
     }
-  }, { offset: Number.NEGATIVE_INFINITY }).element;
-}
 
-/* =========================================================
-   GROUP REORDER HANDLER
-   ========================================================= */
-function onGroupReorder(ul){
-  const groupLetter = ul.dataset.group;
-
-  const newOrder = Array.from(ul.children).map(li => {
-    const txt = li.dataset.teamName || li.querySelector(".team-text")?.textContent || "";
-    return txt.trim();
-  });
-
-  groupsState[groupLetter] = newOrder;
-
-  // Update stored names on each li (keeps future reads consistent)
-  Array.from(ul.children).forEach((li, i) => {
-    li.dataset.teamName = newOrder[i] || "";
-  });
-
-  refreshGroupPositionTags();
-  rebuildThirdFromGroups(false);
-  renderQualificationSnapshot();
-  resetKnockouts(true);
-  markLongGroupTeamNames();
-
-}
-
-
-/* =========================================================
-   THIRD PLACE LIST
-   ========================================================= */
-function rebuildThirdFromGroups(resetOrder = true){
-  const letters = Object.keys(groupsState).sort();
-  const thirds = letters.map(letter => {
-    const team = groupsState[letter][2] || "";
-    return { group: letter, name: team };
-  });
-
-  if(resetOrder || thirdOrderState.length === 0){
-    thirdOrderState = thirds;
-  } else {
-    const byGroup = new Map(thirds.map(t => [t.group, t]));
-    thirdOrderState = thirdOrderState.map(old => byGroup.get(old.group) || old);
-  }
-
-  renderThirdList();
-  updateThirdStatus();
-}
-
-function renderThirdList(){
-  thirdList.innerHTML = "";
-  thirdOrderState.forEach(item => {
-    const li = document.createElement("li");
-    li.className = "third-item";
-    li.draggable = !IS_COARSE;
-    li.dataset.group = item.group;
-
-    const handle = document.createElement("span");
-    handle.className = "handle";
-
-    const flag = createFlagElement(item.name);
-
-    const code = document.createElement("span");
-    code.className = "third-code";
-    code.textContent = `3${item.group}`;
-
-    const name = document.createElement("span");
-    name.className = "third-name";
-    name.textContent = item.name || "TBD";
-
-    const meta = document.createElement("span");
-    meta.className = "third-meta";
-    meta.textContent = `from Group ${item.group}`;
-
-    li.appendChild(handle);
-    li.appendChild(flag);
-    li.appendChild(code);
-    li.appendChild(name);
-    li.appendChild(meta);
-
-    thirdList.appendChild(li);
-  });
-
-  enableSortableList(thirdList, onThirdReorder);
-  renderQualificationSnapshot();
-}
-
-function onThirdReorder(ul){
-  thirdOrderState = Array.from(ul.querySelectorAll("li")).map(li => {
-    const group = li.dataset.group;
-    const name = (groupsState[group] && groupsState[group][2]) ? groupsState[group][2] : "";
-    return { group, name };
-  });
-  renderThirdList();
-  resetKnockouts(true);
-}
-
-/* =========================================================
-   QUALIFICATION SNAPSHOT
-   ========================================================= */
-function getWinners(){
-  return Object.keys(groupsState).sort().map(g => ({ group:g, name: groupsState[g][0] || "" }));
-}
-function getRunners(){
-  return Object.keys(groupsState).sort().map(g => ({ group:g, name: groupsState[g][1] || "" }));
-}
-function getTop8Thirds(){
-  return thirdOrderState.slice(0, 8).filter(t => t && t.group);
-}
-
-function renderQualificationSnapshot(){
-  winnersPills.innerHTML = "";
-  runnersPills.innerHTML = "";
-  third8Pills.innerHTML = "";
-
-  getWinners().forEach(t => winnersPills.appendChild(makePill(`1${t.group}`, t.name, "good")));
-  getRunners().forEach(t => runnersPills.appendChild(makePill(`2${t.group}`, t.name, "")));
-  getTop8Thirds().forEach((t, i) => {
-    third8Pills.appendChild(makePill(`3${t.group}`, t.name, i < 8 ? "warn" : ""));
-  });
-
-  updateThirdStatus();
-}
-
-function makePill(code, name, cls){
-  const span = document.createElement("span");
-  span.className = `pill ${cls || ""}`;
-
-  const flag = createFlagElement(name);
-
-  const txt = document.createElement("span");
-  txt.className = "pill-text";
-
-  const codeEl = document.createElement("span");
-  codeEl.className = "pill-code";
-  codeEl.textContent = code;
-
-  const nameEl = document.createElement("span");
-  nameEl.className = "pill-name";
-  nameEl.textContent = name || "TBD";
-
-  // long-name detection (same spirit as your knockout logic)
-  const nm = (name || "").trim();
-  const hasVeryLongWord = nm.split(/\s+/).some(w => w.length >= 12);
-  if(nm.length > 22 || hasVeryLongWord){
-    nameEl.classList.add("long");
-  }
-
-  txt.appendChild(codeEl);
-  txt.appendChild(nameEl);
-
-  span.appendChild(flag);
-  span.appendChild(txt);
-
-  return span;
-}
-
-
-function updateThirdStatus(){
-  const top8 = getTop8Thirds();
-  const key = top8.map(t => t.group).sort().join("");
-  thirdStatus.textContent = top8.length === 8
-    ? `Top-8 third groups: ${key}`
-    : `Waiting for 3rd-place ranking`;
-}
-
-/* =========================================================
-   R32 TEMPLATE + THIRD MATCHES FOR ALLOCATION
-   ========================================================= */
-const THIRD_MATCHES = [
-  { matchId: 74, winnerGroup: "E", candidates: ["A","B","C","D","F"] },
-  { matchId: 77, winnerGroup: "I", candidates: ["C","D","F","G","H"] },
-  { matchId: 79, winnerGroup: "A", candidates: ["C","E","F","H","I"] },
-  { matchId: 80, winnerGroup: "L", candidates: ["E","H","I","J","K"] },
-  { matchId: 81, winnerGroup: "D", candidates: ["B","E","F","I","J"] },
-  { matchId: 82, winnerGroup: "G", candidates: ["A","E","H","I","J"] },
-  { matchId: 85, winnerGroup: "B", candidates: ["E","F","G","I","J"] },
-  { matchId: 87, winnerGroup: "K", candidates: ["D","E","I","J","L"] }
-];
-
-const R32_TEMPLATE = [
-  { matchId: 73, home: {type:"runner", group:"A"}, away:{type:"runner", group:"B"} },
-  { matchId: 74, home: {type:"winner", group:"E"}, away:{type:"third", matchId:74} },
-  { matchId: 75, home: {type:"winner", group:"F"}, away:{type:"runner", group:"C"} },
-  { matchId: 76, home: {type:"winner", group:"C"}, away:{type:"runner", group:"F"} },
-  { matchId: 77, home: {type:"winner", group:"I"}, away:{type:"third", matchId:77} },
-  { matchId: 78, home: {type:"runner", group:"E"}, away:{type:"runner", group:"I"} },
-  { matchId: 79, home: {type:"winner", group:"A"}, away:{type:"third", matchId:79} },
-  { matchId: 80, home: {type:"winner", group:"L"}, away:{type:"third", matchId:80} },
-  { matchId: 81, home: {type:"winner", group:"D"}, away:{type:"third", matchId:81} },
-  { matchId: 82, home: {type:"winner", group:"G"}, away:{type:"third", matchId:82} },
-  { matchId: 83, home: {type:"runner", group:"K"}, away:{type:"runner", group:"L"} },
-  { matchId: 84, home: {type:"winner", group:"H"}, away:{type:"runner", group:"J"} },
-  { matchId: 85, home: {type:"winner", group:"B"}, away:{type:"third", matchId:85} },
-  { matchId: 86, home: {type:"winner", group:"J"}, away:{type:"runner", group:"H"} },
-  { matchId: 87, home: {type:"winner", group:"K"}, away:{type:"third", matchId:87} },
-  { matchId: 88, home: {type:"runner", group:"D"}, away:{type:"runner", group:"G"} }
-];
-
-/* =========================================================
-   THIRD-PLACE ALLOCATION (STRICT)
-   ========================================================= */
-function getThirdAllocation(mappingObj){
-  const top8 = getTop8Thirds();
-  const key = top8.map(t => t.group).sort().join("");
-  const entry = mappingObj[key];
-
-  if(!entry || typeof entry !== "object"){
-    return { allocation: null, key };
-  }
-
-  const allocation = {};
-  THIRD_MATCHES.forEach(tm => {
-    const id = String(tm.matchId);
-    const chosen = entry[id];
-    if(chosen) allocation[tm.matchId] = String(chosen).toUpperCase();
-  });
-
-  return { allocation, key };
-}
-
- /* =========================================================
-   THIRD-PLACE AUTO-FILL
-   ========================================================= */
-
-function autoFillThirdOrder(){
-  // Ensure thirdOrderState reflects current group 3rd teams
-  rebuildThirdFromGroups(false);
-
-  thirdOrderState = [...thirdOrderState].sort((a, b) => {
-    const ra = priorityRank(a?.name);
-    const rb = priorityRank(b?.name);
-    if(ra !== rb) return ra - rb;
-    return String(a?.name || "").localeCompare(String(b?.name || ""));
-  });
-
-  renderThirdList();
-  resetKnockouts(true);
-}
- 
-
-/* =========================================================
-   SLOT RESOLUTION -> TEAM OBJECT
-   ========================================================= */
-function teamObjFromName(name, code){
-  return {
-    name: name || "TBD",
-    code: code || "",
-    flag: flagForName(name || "")
-  };
-}
-
-function resolveSlotToTeam(slot, thirdAlloc){
-  if(slot.type === "winner"){
-    return teamObjFromName(groupsState[slot.group]?.[0] || "TBD", `1${slot.group}`);
-  }
-  if(slot.type === "runner"){
-    return teamObjFromName(groupsState[slot.group]?.[1] || "TBD", `2${slot.group}`);
-  }
-  if(slot.type === "third"){
-    const g = thirdAlloc?.[slot.matchId];
-    const nm = g ? (groupsState[g]?.[2] || "TBD") : "TBD";
-    return teamObjFromName(nm, g ? `3${g}` : "3?");
-  }
-  return teamObjFromName("TBD", "");
-}
-
-/* =========================================================
-   BUILD R32 FIXTURES (resolved teams)
-   ========================================================= */
-function buildR32Fixtures(){
-  rebuildThirdFromGroups(false);
-  renderQualificationSnapshot();
-
-  const top8 = getTop8Thirds();
-  if(top8.length !== 8) {
-    mappingStatus.textContent = "Rank 3rd-place teams to enable mapping";
-    mappingStatus.className = "badge warn";
-    return { ok:false, reason:"third-not-ready" };
-  }
-
-  const { allocation, key } = getThirdAllocation(THIRD_MAPPING);
-  if(!allocation){
-    mappingStatus.textContent = `No embedded mapping for ${key}`;
-    mappingStatus.className = "badge warn";
-    return { ok:false, reason:"mapping-not-found" };
-  }
-
-  mappingStatus.textContent = `Embedded mapping used for ${key}`;
-  mappingStatus.className = "badge good";
-
-  mappingStatus.className = "badge good";
-
-  const fixtures = R32_TEMPLATE.map(m => {
-    const homeTeam = resolveSlotToTeam(m.home, allocation);
-    const awayTeam = resolveSlotToTeam(m.away, allocation);
-    return { matchId: m.matchId, home: homeTeam, away: awayTeam };
-  });
-
-  return { ok:true, fixtures };
-}
-
-/* =========================================================
-   KNOCKOUT DRAW YOU PROVIDED
-   ========================================================= */
-  const R32_META = {
-  73: { date: "June 28, 2026", stadium: "SoFi Stadium, Inglewood" },
-  74: { date: "June 29, 2026", stadium: "Gillette Stadium, Foxborough" },
-  75: { date: "June 29, 2026", stadium: "Estadio BBVA, Guadalupe" },
-  76: { date: "June 29, 2026", stadium: "NRG Stadium, Houston" },
-  77: { date: "June 30, 2026", stadium: "MetLife Stadium, East Rutherford" },
-  78: { date: "June 30, 2026", stadium: "AT&T Stadium, Arlington" },
-  79: { date: "June 30, 2026", stadium: "Estadio Azteca, Mexico City" },
-  80: { date: "July 1, 2026", stadium: "Mercedes-Benz Stadium, Atlanta" },
-  81: { date: "July 1, 2026", stadium: "Levi's Stadium, Santa Clara" },
-  82: { date: "July 1, 2026", stadium: "Lumen Field, Seattle" },
-  83: { date: "July 2, 2026", stadium: "BMO Field, Toronto" },
-  84: { date: "July 2, 2026", stadium: "SoFi Stadium, Inglewood" },
-  85: { date: "July 2, 2026", stadium: "BC Place, Vancouver" },
-  86: { date: "July 3, 2026", stadium: "Hard Rock Stadium, Miami Gardens" },
-  87: { date: "July 3, 2026", stadium: "Arrowhead Stadium, Kansas City" },
-  88: { date: "July 3, 2026", stadium: "AT&T Stadium, Arlington" }
-};
-const KO_DRAW = {
-  r16: [
-    { matchId: 89, date:"July 4, 2026", venue:"Lincoln Financial Field, Philadelphia", homeFrom:{win:74}, awayFrom:{win:77} },
-    { matchId: 90, date:"July 4, 2026", venue:"NRG Stadium, Houston", homeFrom:{win:73}, awayFrom:{win:75} },
-    { matchId: 91, date:"July 5, 2026", venue:"MetLife Stadium, East Rutherford", homeFrom:{win:76}, awayFrom:{win:78} },
-    { matchId: 92, date:"July 5, 2026", venue:"Estadio Azteca, Mexico City", homeFrom:{win:79}, awayFrom:{win:80} },
-    { matchId: 93, date:"July 6, 2026", venue:"AT&T Stadium, Arlington", homeFrom:{win:83}, awayFrom:{win:84} },
-    { matchId: 94, date:"July 6, 2026", venue:"Lumen Field, Seattle", homeFrom:{win:81}, awayFrom:{win:82} },
-    { matchId: 95, date:"July 7, 2026", venue:"Mercedes-Benz Stadium, Atlanta", homeFrom:{win:86}, awayFrom:{win:88} },
-    { matchId: 96, date:"July 7, 2026", venue:"BC Place, Vancouver", homeFrom:{win:85}, awayFrom:{win:87} }
-  ],
-  qf: [
-    { matchId: 97, date:"July 9, 2026", venue:"Gillette Stadium, Foxborough", homeFrom:{win:89}, awayFrom:{win:90} },
-    { matchId: 98, date:"July 10, 2026", venue:"SoFi Stadium, Inglewood", homeFrom:{win:93}, awayFrom:{win:94} },
-    { matchId: 99, date:"July 11, 2026", venue:"Hard Rock Stadium, Miami Gardens", homeFrom:{win:91}, awayFrom:{win:92} },
-    { matchId: 100, date:"July 11, 2026", venue:"Arrowhead Stadium, Kansas City", homeFrom:{win:95}, awayFrom:{win:96} }
-  ],
-  sf: [
-    { matchId: 101, date:"July 14, 2026", venue:"AT&T Stadium, Arlington", homeFrom:{win:97}, awayFrom:{win:98} },
-    { matchId: 102, date:"July 15, 2026", venue:"Mercedes-Benz Stadium, Atlanta", homeFrom:{win:99}, awayFrom:{win:100} }
-  ],
-  third: [
-    { matchId: 103, date:"July 18, 2026", venue:"Hard Rock Stadium, Miami Gardens", homeFrom:{lose:101}, awayFrom:{lose:102} }
-  ],
-  final: [
-    { matchId: 104, date:"July 19, 2026", venue:"MetLife Stadium, East Rutherford", homeFrom:{win:101}, awayFrom:{win:102} }
-  ]
-};
-
-/* =========================================================
-   KO TEAM RESOLUTION FROM PREVIOUS MATCH RESULTS
-   ========================================================= */
-function getWinner(matchId){
-  return koWinners[matchId] || null;
-}
-function getLoser(matchId){
-  const m = getMatchTeams(matchId);
-  const w = getWinner(matchId);
-  if(!m || !w) return null;
-  if(m.home?.name === w.name && m.home?.code === w.code) return m.away || null;
-  if(m.away?.name === w.name && m.away?.code === w.code) return m.home || null;
-  // fallback compare by name only
-  if(m.home?.name === w.name) return m.away || null;
-  if(m.away?.name === w.name) return m.home || null;
-  return null;
-}
-
-function resolveFromRef(ref){
-  if(ref.win) return getWinner(ref.win);
-  if(ref.lose) return getLoser(ref.lose);
-  return null;
-}
-
-/* =========================================================
-   MATCH TEAMS LOOKUP ACROSS ROUNDS
-   ========================================================= */
-function getMatchTeams(matchId){
-  // R32
-  if(matchId >= 73 && matchId <= 88){
-    return r32Fixtures.find(m => m.matchId === matchId) || null;
-  }
-  // For later rounds, we compute on the fly from KO_DRAW + winners
-  const allLater = [...KO_DRAW.r16, ...KO_DRAW.qf, ...KO_DRAW.sf, ...KO_DRAW.third, ...KO_DRAW.final];
-  const spec = allLater.find(s => s.matchId === matchId);
-  if(!spec) return null;
-
-  const home = resolveFromRef(spec.homeFrom) || teamObjFromName("TBD", "");
-  const away = resolveFromRef(spec.awayFrom) || teamObjFromName("TBD", "");
-  return { matchId, home, away };
-}
-
-/* =========================================================
-   KNOCKOUT RENDERING
-   ========================================================= */
-function renderKnockouts(){
-  // Status
-  if(!r32Fixtures.length){
-    koStatus.textContent = "Generate R32 to start knockouts";
-    koStatus.className = "badge warn";
-  } else {
-    koStatus.textContent = "Drag a team into the Winner box for each match";
-    koStatus.className = "badge";
-  }
-
-  // Round columns
-  round32Col.innerHTML = "";
-  round16Col.innerHTML = "";
-  round8Col.innerHTML = "";
-  semiCol.innerHTML = "";
-  thirdPlaceCol.innerHTML = "";
-  finalCol.innerHTML = "";
-  championBox.innerHTML = "";
-
-// R32 cards (with date + stadium meta)
-  r32Fixtures.forEach(m => {
-    const meta = R32_META[m.matchId] || {};
-    round32Col.appendChild(makeMatchCard({
-      matchId: m.matchId,
-      date: meta.date || "",
-      venue: meta.stadium || meta.venue || "",
-      home: m.home,
-      away: m.away
-    }));
-  });
-
-
-  // R16
-  KO_DRAW.r16.forEach(spec => {
-    const teams = getMatchTeams(spec.matchId);
-    round16Col.appendChild(makeMatchCard({
-      matchId: spec.matchId,
-      date: spec.date,
-      venue: spec.venue,
-      home: teams.home,
-      away: teams.away
-    }));
-  });
-
-  // QF
-  KO_DRAW.qf.forEach(spec => {
-    const teams = getMatchTeams(spec.matchId);
-    round8Col.appendChild(makeMatchCard({
-      matchId: spec.matchId,
-      date: spec.date,
-      venue: spec.venue,
-      home: teams.home,
-      away: teams.away
-    }));
-  });
-
-  // SF
-  KO_DRAW.sf.forEach(spec => {
-    const teams = getMatchTeams(spec.matchId);
-    semiCol.appendChild(makeMatchCard({
-      matchId: spec.matchId,
-      date: spec.date,
-      venue: spec.venue,
-      home: teams.home,
-      away: teams.away
-    }));
-  });
-
-  // Third place
-  KO_DRAW.third.forEach(spec => {
-    const teams = getMatchTeams(spec.matchId);
-    thirdPlaceCol.appendChild(makeMatchCard({
-      matchId: spec.matchId,
-      date: spec.date,
-      venue: spec.venue,
-      home: teams.home,
-      away: teams.away
-    }));
-  });
-
-  // Final
-  KO_DRAW.final.forEach(spec => {
-    const teams = getMatchTeams(spec.matchId);
-    finalCol.appendChild(makeMatchCard({
-      matchId: spec.matchId,
-      date: spec.date,
-      venue: spec.venue,
-      home: teams.home,
-      away: teams.away
-    }));
-  });
-
-  // Champion
-  const champ = getWinner(104);
-  if(champ && champ.name && champ.name !== "TBD"){
-    championBox.appendChild(makeChampionCard(champ));
-  } else {
-    championBox.innerHTML = `
-      <div class="note">
-        Champion will appear here after you pick the winner of <strong>Match 104</strong>.
-      </div>
-    `;
-  }
-
-    renderWikiBracket();
-  applySkyHighlights();
-
-}
-
-
-  /* =========================================================
-   WIKI-STYLE BRACKET (RENDER WHEN COMPLETE)
-   ========================================================= */
-let wikiResizeBound = false;
-
-function drawWikiLines(outer){
-  // Remove old SVG if any
-  const old = outer.querySelector(".wiki-lines");
-  if(old) old.remove();
-
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.classList.add("wiki-lines");
-
-  const rect = outer.getBoundingClientRect();
-  svg.setAttribute("viewBox", `0 0 ${rect.width} ${rect.height}`);
-  svg.setAttribute("preserveAspectRatio", "none");
-
-  const edges = buildWikiEdges();
-
-  function getBox(mid){
-    return outer.querySelector(`.wiki-match[data-match-id="${mid}"]`);
-  }
-
-  edges.forEach(([fromId, toId]) => {
-    const fromEl = getBox(fromId);
-    const toEl = getBox(toId);
-    if(!fromEl || !toEl) return;
-
-    const a = fromEl.getBoundingClientRect();
-    const b = toEl.getBoundingClientRect();
-
-    // نقاط داخل container
-    const x1 = (a.right - rect.left);
-    const y1 = (a.top - rect.top) + a.height/2;
-
-    const x2 = (b.left - rect.left);
-    const y2 = (b.top - rect.top) + b.height/2;
-
-    const midX = x1 + (x2 - x1) * 0.5;
-
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    // Bracket-style elbow line
-    path.setAttribute("d", `M ${x1} ${y1} H ${midX} V ${y2} H ${x2}`);
-
-    svg.appendChild(path);
-  });
-
-  outer.appendChild(svg);
-}
-
-function scheduleWikiLines(outer){
-  // ensure layout is ready
-  requestAnimationFrame(() => drawWikiLines(outer));
-}
-
-function getAllTournamentMatchIds(){
-  const r32Ids = r32Fixtures.map(m => m.matchId);
-  const r16Ids = KO_DRAW.r16.map(m => m.matchId);
-  const qfIds  = KO_DRAW.qf.map(m => m.matchId);
-  const sfIds  = KO_DRAW.sf.map(m => m.matchId);
-  const thirdIds = KO_DRAW.third.map(m => m.matchId);
-  const finalIds = KO_DRAW.final.map(m => m.matchId);
-
-  return { r32Ids, r16Ids, qfIds, sfIds, thirdIds, finalIds };
-}
-
-function allTeamsResolvedForMatch(id){
-  const teams = getMatchTeams(id);
-  if(!teams) return false;
-  const hn = teams.home?.name || "TBD";
-  const an = teams.away?.name || "TBD";
-  return hn !== "TBD" && an !== "TBD";
-}
-
-function isTournamentComplete(){
-  if(!r32Fixtures.length) return false;
-
-  const { r32Ids, r16Ids, qfIds, sfIds, thirdIds, finalIds } = getAllTournamentMatchIds();
-  const allIds = [...r32Ids, ...r16Ids, ...qfIds, ...sfIds, ...thirdIds, ...finalIds];
-
-  // Ensure teams exist (no TBD) for all matches
-  for(const id of allIds){
-    if(!allTeamsResolvedForMatch(id)) return false;
-  }
-
-  // Ensure winners are picked for all matches
-  for(const id of allIds){
-    if(!getWinner(id)) return false;
-  }
-
-  return true;
-}
-
-function splitBracketSides(){
-  // Definition based on your KO_DRAW structure
-  const LEFT_R16  = [89, 90, 93, 94];
-  const RIGHT_R16 = [91, 92, 95, 96];
-
-  const LEFT_QF  = [97, 98];
-  const RIGHT_QF = [99, 100];
-
-  const LEFT_SF  = [101];
-  const RIGHT_SF = [102];
-
-  const FINAL = [104];
-
-  // Derive R32 feeding these R16 matches from KO_DRAW refs
-  function r32FromR16(ids){
-    const set = new Set();
-    ids.forEach(mid => {
-      const spec = KO_DRAW.r16.find(s => s.matchId === mid);
-      if(spec?.homeFrom?.win) set.add(spec.homeFrom.win);
-      if(spec?.awayFrom?.win) set.add(spec.awayFrom.win);
-    });
-    return [...set];
-  }
-
-  const LEFT_R32  = r32FromR16(LEFT_R16);
-  const RIGHT_R32 = r32FromR16(RIGHT_R16);
-
-  return {
-    LEFT_R32, LEFT_R16, LEFT_QF, LEFT_SF,
-    RIGHT_R32, RIGHT_R16, RIGHT_QF, RIGHT_SF,
-    FINAL
-  };
-}
-
-function makeWikiTeamRow(team, winner){
-  const row = document.createElement("div");
-  row.className = "wiki-team-row" + (winner ? " winner" : "");
-
-  const teamName = team?.name || "TBD";
-
-  const flag = document.createElement("span");
-  flag.className = "wiki-team-flag";
-  flag.textContent = teamName === "TBD" ? "🏳️" : flagForName(teamName);
-
-  const name = document.createElement("span");
-  name.className = "wiki-team-name";
-  name.textContent = teamName;
-
-  const nm = teamName.trim();
-  const hasVeryLongWord = nm.split(/\s+/).some(w => w.length >= 12);
-  if(nm.length > 22 || hasVeryLongWord){
-    name.classList.add("long");
-  }
-
-  row.appendChild(flag);
-  row.appendChild(name);
-  return row;
-}
-
-
-function makeWikiMatchBox(matchId){
-  const box = document.createElement("div");
-  box.className = "wiki-match";
-  box.dataset.matchId = String(matchId);
-
-  const teams = getMatchTeams(matchId);
-  const w = getWinner(matchId);
-
-  const homeWinner = w && teams?.home && (teams.home.name === w.name || teams.home.code === w.code);
-  const awayWinner = w && teams?.away && (teams.away.name === w.name || teams.away.code === w.code);
-
-  box.appendChild(makeWikiTeamRow(teams.home, homeWinner));
-  box.appendChild(makeWikiTeamRow(teams.away, awayWinner));
-
-  return box;
-}
-
-function makeWikiRoundCol(title, matchIds, extraClass = ""){
-  const col = document.createElement("div");
-  col.className = `wiki-round-col ${extraClass || ""}`.trim();
-
-  const head = document.createElement("div");
-  head.className = "wiki-round-title";
-  head.textContent = title;
-
-  const body = document.createElement("div");
-  body.className = "wiki-round-body";
-
-  matchIds.forEach(mid => body.appendChild(makeWikiMatchBox(mid)));
-
-  col.appendChild(head);
-  col.appendChild(body);
-  return col;
-}
-
-
-function renderWikiBracket(){
-  if(!wikiBracket) return;
-
-  // Only show when fully complete
-  if(!isTournamentComplete()){
-    wikiBracket.innerHTML = "";
-    return;
-  }
-
-  const champ = getWinner(104);
-  if(!champ || !champ.name || champ.name === "TBD"){
-    wikiBracket.innerHTML = "";
-    return;
-  }
-
-  const sides = splitBracketSides();
-
-  const outer = document.createElement("div");
- outer.className = "wiki-bracket wiki-bracket-outer";
-
-
-  // Winner banner
-  const banner = document.createElement("div");
-  banner.className = "wiki-winner-banner";
-  banner.innerHTML = `
-    <span class="wiki-winner-flag">${flagForName(champ.name)}</span>
-    <span class="wiki-winner-text">WC 2026 winner ${escapeHtml(champ.name)} 🏆</span>
-  `;
-  outer.appendChild(banner);
-
-  const grid = document.createElement("div");
-  grid.className = "wiki-grid";
-
-  // Left side columns
-  grid.appendChild(makeWikiRoundCol("Round of 32", sides.LEFT_R32));
-  grid.appendChild(makeWikiRoundCol("Round of 16", sides.LEFT_R16));
-  grid.appendChild(makeWikiRoundCol("Quarterfinals", sides.LEFT_QF));
-  grid.appendChild(makeWikiRoundCol("Semifinal", sides.LEFT_SF));
-
-  // Center final column
-  grid.appendChild(makeWikiRoundCol("Final", sides.FINAL, "wiki-final-col"));
-
-  // Right side columns
-  grid.appendChild(makeWikiRoundCol("Semifinal", sides.RIGHT_SF));
-  grid.appendChild(makeWikiRoundCol("Quarterfinals", sides.RIGHT_QF));
-  grid.appendChild(makeWikiRoundCol("Round of 16", sides.RIGHT_R16));
-  grid.appendChild(makeWikiRoundCol("Round of 32", sides.RIGHT_R32));
-
-  outer.appendChild(grid);
-
-  wikiBracket.innerHTML = "";
-  wikiBracket.appendChild(outer);
-    // Draw connector lines
-  scheduleWikiLines(outer);
-
-  // Re-draw on resize (bind once)
-  if(!wikiResizeBound){
-    wikiResizeBound = true;
-    window.addEventListener("resize", () => {
-      const current = wikiBracket.querySelector(".wiki-bracket");
-      if(current) scheduleWikiLines(current);
-    });
-  }
-
-  applySkyHighlights();
-}
-
-
-
-  
-
-function makeChampionCard(team){
-  const wrap = document.createElement("div");
-  wrap.className = "champ-box";
-
-  const left = document.createElement("div");
-  left.className = "champ-left";
-
-  const flag = document.createElement("span");
-  flag.className = "champ-flag";
-  flag.textContent = flagForName(team.name);
-
-  const txt = document.createElement("div");
-  txt.innerHTML = `
-    <div class="champ-name">${escapeHtml(team.name)}</div>
-    <div class="champ-sub">Your predicted 2026 World Cup champion</div>
-  `;
-
-  left.appendChild(flag);
-  left.appendChild(txt);
-
-  // Optional right-side actions (if you want)
-  const right = document.createElement("div");
-  right.className = "row";
-  right.style.gap = "8px";
-
-  // Example: add a small reset just for convenience
-  const btn = document.createElement("button");
-  btn.className = "btn tiny";
-  btn.textContent = "Reset winner";
-  btn.addEventListener("click", () => {
-    delete koWinners[104];
-    renderKnockouts();
-  });
-
-  right.appendChild(btn);
-
-  wrap.appendChild(left);
-  wrap.appendChild(right);
-
-  return wrap;
-}
-
-
-/* =========================================================
-   MATCH CARD WITH DRAGGABLE TEAMS + WINNER ZONE
-   ========================================================= */
-function makeMatchCard({matchId, date, venue, home, away}){
-  const card = document.createElement("div");
-  card.className = "match-card";
-  card.dataset.matchId = String(matchId);
-
-  const head = document.createElement("div");
-  head.className = "match-head";
-
-  const id = document.createElement("div");
-  id.className = "match-id";
-  id.textContent = `Match ${matchId}`;
-
-  const v = document.createElement("div");
-  v.className = "match-venue";
-  const dateLine = date ? escapeHtml(date) : "";
-  const venueLine = venue ? escapeHtml(venue) : "";
-  v.innerHTML = `${dateLine}${dateLine && venueLine ? "<br>" : ""}${venueLine}`;
-
-  head.appendChild(id);
-  head.appendChild(v);
-
-  const body = document.createElement("div");
-  body.className = "match-body";
-
-  const homeChip = makeTeamChip(home, matchId, "home");
-  const awayChip = makeTeamChip(away, matchId, "away");
-  const winnerZone = makeWinnerZone(matchId, home, away);
-
-  body.appendChild(homeChip);
-  body.appendChild(winnerZone);
-  body.appendChild(awayChip);
-
-  card.appendChild(head);
-  card.appendChild(body);
-
-  chip.addEventListener("click", () => {
-      setWinner(matchId, teamObj);
+    /* Determine which dropzone lies under x/y */
+    function zoneFromPoint(x, y){
+      const all = [...document.querySelectorAll(".dropzone")];
+      return all.find(dz => {
+        const r = dz.getBoundingClientRect();
+        return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+      });
+    }
+
+
+    /* =========================================
+       4) Pointer-based drag engine
+       Why pointer events?
+       - Unifies mouse + touch + pen
+       - More reliable than HTML5 drag on mobile
+       Key mobile protections:
+       - card { touch-action: none }
+       - pointerdown/move: preventDefault()
+       - setPointerCapture() keeps drag stable
+    ========================================== */
+
+    let dragging = null;
+
+    function attachPointerDrag(card){
+      /* Start drag */
+      card.addEventListener("pointerdown", (e) => {
+        /* Only allow left mouse button or touch */
+        if(e.button !== undefined && e.button !== 0) return;
+
+        /* Stop page scrolling / text selecting */
+        e.preventDefault();
+
+        const teamId = card.dataset.id;
+
+        /* Create a clone that visually follows pointer */
+        const rect = card.getBoundingClientRect();
+        const clone = card.cloneNode(true);
+        clone.classList.add("drag-clone");
+        document.body.appendChild(clone);
+
+        /* Fade the original card */
+        card.classList.add("dragging");
+
+        /* Store drag session data */
+        dragging = {
+          teamId,
+          originCard: card,
+          clone,
+          pointerId: e.pointerId,
+
+          /* Center-follow offset so clone feels natural */
+          offsetX: e.clientX - (rect.left + rect.width/2),
+          offsetY: e.clientY - (rect.top + rect.height/2),
+
+          /* Track hover zone to update highlight */
+          lastZoneEl: null
+        };
+
+        /* Ensures we keep receiving pointer events */
+        card.setPointerCapture(e.pointerId);
+
+        /* Place clone at start position */
+        positionClone(e.clientX, e.clientY);
       });
 
+      /* During drag */
+      card.addEventListener("pointermove", (e) => {
+        if(!dragging || dragging.pointerId !== e.pointerId) return;
 
-  return card;
-}
+        /* Prevent scroll on mobile */
+        e.preventDefault();
 
-function makeTeamChip(team, matchId, side){
-  const chip = document.createElement("div");
-  chip.className = "team-chip";
-  chip.draggable = true;
-  chip.dataset.matchId = String(matchId);
-  chip.dataset.side = side;
+        positionClone(e.clientX, e.clientY);
 
-  const flag = createFlagElement(team?.name);
+        /* Highlight zone under pointer */
+        const zoneEl = zoneFromPoint(e.clientX, e.clientY);
+
+        if(zoneEl !== dragging.lastZoneEl){
+          document.querySelectorAll(".dropzone").forEach(z => z.classList.remove("over"));
+          if(zoneEl) zoneEl.classList.add("over");
+          dragging.lastZoneEl = zoneEl;
+        }
+      });
+
+      /* End drag */
+      card.addEventListener("pointerup", (e) => {
+        if(!dragging || dragging.pointerId !== e.pointerId) return;
+        e.preventDefault();
+        finishDrag(e.clientX, e.clientY);
+      });
+
+      /* Cancel drag (system interruption) */
+      card.addEventListener("pointercancel", (e) => {
+        if(!dragging || dragging.pointerId !== e.pointerId) return;
+        finishDrag(null, null, true);
+      });
+    }
+
+    /* Position floating clone near pointer */
+    function positionClone(x, y){
+      if(!dragging) return;
+      dragging.clone.style.left = `${x - dragging.offsetX}px`;
+      dragging.clone.style.top  = `${y - dragging.offsetY}px`;
+    }
+
+    /* Finalize drag:
+       - remove hover styles
+       - remove clone
+       - if over a zone, move team */
+    function finishDrag(x, y, cancelled=false){
+      const { teamId, originCard, clone } = dragging;
+
+      /* Clear visual states */
+      document.querySelectorAll(".dropzone").forEach(z => z.classList.remove("over"));
+      originCard.classList.remove("dragging");
+      clone.remove();
+
+      /* Execute drop if valid */
+      if(!cancelled && x !== null && y !== null){
+        const zoneEl = zoneFromPoint(x, y);
+        if(zoneEl){
+          const toZone = zoneEl.dataset.zone;
+          moveTeam(teamId, toZone);
+        }
+      }
+
+      dragging = null;
+    }
 
 
-  const name = document.createElement("span");
-  name.className = "name";
-  name.textContent = team?.name || "TBD";
-
-    // If the team name is long, use smaller font + 2-line wrap
-  if ((team?.name || "").length > 22){
-    name.classList.add("long");
-  }
-
-
-  const code = document.createElement("span");
-  code.className = "code";
-  code.textContent = team?.code || "";
-
-  chip.appendChild(flag);
-  chip.appendChild(name);
-  chip.appendChild(code);
-
-  chip.addEventListener("dragstart", e => {
-    chip.classList.add("dragging");
-    const payload = JSON.stringify({
-      matchId,
-      team
+    /* =========================================
+       5) Reset demo
+       - Restores original starter content
+    ========================================== */
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      state = initialState();
+      render();
     });
-    e.dataTransfer.setData("application/json", payload);
-    e.dataTransfer.effectAllowed = "copyMove";
-  });
-  chip.addEventListener("dragend", () => chip.classList.remove("dragging"));
 
-  // Disable dragging for TBD placeholders
-  if(!team || !team.name || team.name === "TBD"){
-    chip.draggable = false;
-    chip.style.opacity = "0.55";
-    chip.style.cursor = "not-allowed";
-  }
 
-  return chip;
-}
+    /* =========================================
+       6) Boot
+       - First render when page loads
+    ========================================== */
+    render();
 
-/* =========================================================
-   UTILITIES
-   ========================================================= */
-function deepClone(obj){
-  return JSON.parse(JSON.stringify(obj));
-}
-
-function setWinner(matchId, team){
-  if(!team || !team.name || team.name === "TBD") return;
-  koWinners[matchId] = team;
-  renderKnockouts();
-}
-
-
-function escapeHtml(str){
-  return String(str ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function isLongName(name){
-  const nm = String(name || "").trim();
-  if(!nm) return false;
-  const hasVeryLongWord = nm.split(/\s+/).some(w => w.length >= 12);
-  return nm.length > 22 || hasVeryLongWord;
-}
-
-function markLongGroupTeamNames(){
-  document.querySelectorAll(".team-text").forEach(el => {
-    const t = el.textContent || "";
-    el.classList.toggle("is-long", isLongName(t));
-  });
-}
-
-/* =========================================================
-   WINNER ZONE RENDER
-   ========================================================= */
-function renderWinnerZoneContent(zone, winner){
-  zone.classList.remove("filled", "active");
-
-  if(winner && winner.name && winner.name !== "TBD"){
-    zone.classList.add("filled");
-
-    const longCls = isLongName(winner.name) ? "long" : "";
-
-    zone.innerHTML = `
-      <span class="winner-pill">
-        <span class="flag">${escapeHtml(flagForName(winner.name))}</span>
-        <span class="winner-name ${longCls}">${escapeHtml(winner.name)}</span>
-        ${winner.code ? `<span class="code">${escapeHtml(winner.code)}</span>` : ""}
-      </span>
-    `;
-  } else {
-    zone.innerHTML = `Drop winner here`;
-  }
-}
-
-/* =========================================================
-   WINNER ZONE (DROP TARGET)
-   ========================================================= */
-function makeWinnerZone(matchId, home, away){
-  const zone = document.createElement("div");
-  zone.className = "winner-zone";
-  zone.dataset.matchId = String(matchId);
-
-  const existing = getWinner(matchId);
-  renderWinnerZoneContent(zone, existing);
-
-  zone.addEventListener("dragover", e => {
-    e.preventDefault();
-    zone.classList.add("active");
-  });
-
-  zone.addEventListener("dragleave", () => {
-    zone.classList.remove("active");
-  });
-
-  zone.addEventListener("drop", e => {
-    e.preventDefault();
-    zone.classList.remove("active");
-
-    let payloadStr = "";
-    try{
-      payloadStr = e.dataTransfer.getData("application/json");
-    }catch(_){}
-
-    if(!payloadStr) return;
-
-    let payload;
-    try{
-      payload = JSON.parse(payloadStr);
-    }catch(_){
-      return;
-    }
-
-    const team = payload?.team;
-    if(!team || !team.name || team.name === "TBD") return;
-
-    // ✅ Only allow picking winner from the same match
-    if(String(payload?.matchId) !== String(matchId)) return;
-
-    koWinners[matchId] = team;
-
-    // Re-render downstream rounds
-    renderKnockouts();
-  });
-
-  // Optional: click to clear winner
-  zone.addEventListener("dblclick", () => {
-    if(koWinners[matchId]){
-      delete koWinners[matchId];
-      renderKnockouts();
-    }
-  });
-
-  return zone;
-}
-
-/* =========================================================
-   RESET KNOCKOUTS
-   ========================================================= */
-function resetKnockouts(soft=false){
-  // soft reset used when group/third order changes
-  koWinners = {};
-  if(!soft){
-    r32Fixtures = [];
-  }
-  renderKnockouts();
-}
-
-/* =========================================================
-   BUTTON WIRING (if not already present below)
-   ========================================================= */
-resetGroupsBtn?.addEventListener("click", () => {
-  groupsState = deepClone(DEFAULT_GROUPS);
-  renderGroups();
-  rebuildThirdFromGroups(true);
-  renderQualificationSnapshot();
-  resetKnockouts(false);
-});
-
-rebuildThirdBtn?.addEventListener("click", () => {
-  rebuildThirdFromGroups(true);
-  renderQualificationSnapshot();
-  resetKnockouts(true);
-});
-
-autoFillThirdOrderBtn?.addEventListener("click", () => {
-  autoFillThirdOrder();
-});
-
-generateR32Btn?.addEventListener("click", () => {
-  const res = buildR32Fixtures();
-  if(!res.ok){
-    renderKnockouts();
-    return;
-  }
-  r32Fixtures = res.fixtures;
-  koWinners = {};
-  renderKnockouts();
-});
-
-resetKnockoutBtn?.addEventListener("click", () => {
-  resetKnockouts(false);
-});
-
-/* =========================================================
-   INIT
-   ========================================================= */
-(async function init(){
-  await loadThirdMapping();
-  renderGroups();
-  rebuildThirdFromGroups(true);
-  renderQualificationSnapshot();
-  renderKnockouts();
-})();
-
-
-
-/* =========================================================
-   WINNER STATE MANAGEMENT
-   ========================================================= */
-function setWinner(matchId, team){
-  koWinners[matchId] = team;
-
-  // When a winner changes, downstream winners may become invalid.
-  // We do a simple cleanup pass: if a stored winner is not present
-  // in its current two teams, remove it.
-  cleanupInvalidWinners();
-
-  renderKnockouts();
-}
-
-function clearWinner(matchId){
-  delete koWinners[matchId];
-  cleanupInvalidWinners();
-  renderKnockouts();
-}
-
-  function pickWinnerByPriority(home, away){
-  if(!home || !away) return null;
-  if(!home.name || !away.name) return null;
-  if(home.name === "TBD" || away.name === "TBD") return null;
-
-  const hKey = canonicalName(home.name);
-  const aKey = canonicalName(away.name);
-
-  const hRank = PRIORITY_INDEX.has(hKey) ? PRIORITY_INDEX.get(hKey) : 9999;
-  const aRank = PRIORITY_INDEX.has(aKey) ? PRIORITY_INDEX.get(aKey) : 9999;
-
-  if(hRank === aRank){
-    // Fallback: if both unknown, pick home
-    return home;
-  }
-  return hRank < aRank ? home : away;
-}
-
-function autoFillMatches(matchIds){
-  let changed = false;
-
-  matchIds.forEach(id => {
-    if(getWinner(id)) return; // don't overwrite existing picks
-
-    const teams = getMatchTeams(id);
-    if(!teams) return;
-
-    const choice = pickWinnerByPriority(teams.home, teams.away);
-    if(!choice) return;
-
-    koWinners[id] = choice;
-    changed = true;
-  });
-
-  if(changed){
-    cleanupInvalidWinners();
-    renderKnockouts();
-  }
-}
-
-  
-
-function cleanupInvalidWinners(){
-  const allMatchIds = [
-    ...r32Fixtures.map(m => m.matchId),
-    ...KO_DRAW.r16.map(m => m.matchId),
-    ...KO_DRAW.qf.map(m => m.matchId),
-    ...KO_DRAW.sf.map(m => m.matchId),
-    ...KO_DRAW.third.map(m => m.matchId),
-    ...KO_DRAW.final.map(m => m.matchId),
-  ];
-
-  for(const id of allMatchIds){
-    const w = koWinners[id];
-    if(!w) continue;
-    const teams = getMatchTeams(id);
-    if(!teams) continue;
-
-    const ok =
-      (teams.home && teams.home.name === w.name && (teams.home.code === w.code || !w.code)) ||
-      (teams.away && teams.away.name === w.name && (teams.away.code === w.code || !w.code)) ||
-      (teams.home && teams.home.code && teams.home.code === w.code) ||
-      (teams.away && teams.away.code && teams.away.code === w.code);
-
-    if(!ok) delete koWinners[id];
-  }
-}
-
-/* =========================================================
-   BUTTONS
-   ========================================================= */
-
-if(autoFillR32Btn){
-  autoFillR32Btn.addEventListener("click", () => {
-    if(!r32Fixtures.length){
-      // must generate first so teams exist
-      const res = buildR32Fixtures();
-      if(!res.ok) return;
-      r32Fixtures = res.fixtures;
-    }
-    autoFillMatches(r32Fixtures.map(m => m.matchId));
-  });
-}
-
-  if(autoFillThirdOrderBtn){
-  autoFillThirdOrderBtn.addEventListener("click", () => {
-    autoFillThirdOrder();
-  });
-}
-
-
-if(autoFillR16Btn){
-  autoFillR16Btn.addEventListener("click", () => {
-    autoFillMatches(KO_DRAW.r16.map(m => m.matchId));
-  });
-}
-
-if(autoFillQFBtn){
-  autoFillQFBtn.addEventListener("click", () => {
-    autoFillMatches(KO_DRAW.qf.map(m => m.matchId));
-  });
-}
-
-if(autoFillSFBtn){
-  autoFillSFBtn.addEventListener("click", () => {
-    autoFillMatches(KO_DRAW.sf.map(m => m.matchId));
-  });
-}
-
-  if(autoFillThirdBtn){
-  autoFillThirdBtn.addEventListener("click", () => {
-    autoFillMatches(KO_DRAW.third.map(m => m.matchId));
-  });
-}
-if(autoFillFinalBtn){
-  autoFillFinalBtn.addEventListener("click", () => {
-    autoFillMatches(KO_DRAW.final.map(m => m.matchId));
-  });
-}
-  
-  resetGroupsBtn.addEventListener("click", () => {
-  groupsState = deepClone(DEFAULT_GROUPS);
-  renderGroups();
-  rebuildThirdFromGroups(true);
-  renderQualificationSnapshot();
-  resetKnockouts(true);
-});
-
-rebuildThirdBtn.addEventListener("click", () => {
-  rebuildThirdFromGroups(true);
-  renderQualificationSnapshot();
-  resetKnockouts(true);
-});
-
-generateR32Btn.addEventListener("click", () => {
-  const res = buildR32Fixtures();
-  if(!res.ok){
-    r32Fixtures = [];
-    resetKnockouts(false);
-    renderKnockouts();
-    return;
-  }
-  r32Fixtures = res.fixtures;
-  resetKnockouts(false);
-  renderKnockouts();
-});
-
-resetKnockoutBtn.addEventListener("click", () => {
-  resetKnockouts(false);
-  renderKnockouts();
-});
-
-function resetKnockouts(hard){
-  // hard = groups/third changed: wipe fixtures too
-  koWinners = {};
-  if(hard){
-    r32Fixtures = [];
-  }
-  renderKnockouts();
-}
-
-/* =========================================================
-   HELPERS
-   ========================================================= */
-const IS_COARSE = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
-
-  
-  function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
-function escapeHtml(str){
-  return String(str ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-
-  function getCurrentTop8ThirdKey() {
-  // Adjust this line to your real source of truth:
-  // It should be the 8 teams currently shown in "Top 8 third-place"
-  const thirds = top8ThirdPlaceTeams || qualifiedThirdPlace || [];
-
-  const letters = thirds
-    .map(t => t?.group)
-    .filter(Boolean);
-
-  const uniqueSorted = [...new Set(letters)].sort();
-  return uniqueSorted.join("");
-}
-
-
-  /* =========================================================
-   GROUP AUTO-FILL
-   ========================================================= */
-
-function sortTeamNamesByPriority(names){
-  return [...names].sort((a, b) => {
-    const ra = priorityRank(a);
-    const rb = priorityRank(b);
-    if(ra !== rb) return ra - rb;
-    // stable fallback for unknowns
-    return String(a || "").localeCompare(String(b || ""));
-  });
-}
-
-function autoFillSingleGroup(groupLetter){
-  const current = groupsState[groupLetter] || [];
-  groupsState[groupLetter] = sortTeamNamesByPriority(current);
-
-  renderGroups();
-  rebuildThirdFromGroups(true);
-  renderQualificationSnapshot();
-  resetKnockouts(true);
-}
-
-
-  
-function markLongGroupTeamNames(){
-  const els = document.querySelectorAll(".team-list .team-text");
-  els.forEach(el => {
-    el.classList.remove("is-long");
-    const txt = (el.textContent || "").trim();
-
-    // Heuristic: long labels or very long words (like "Intercontinental")
-    const hasVeryLongWord = txt.split(/\s+/).some(w => w.length >= 12);
-    if(txt.length >= 22 || hasVeryLongWord){
-      el.classList.add("is-long");
-    }
-  });
-}
-
-function buildWikiEdges(){
-  const edges = [];
-
-  function addEdgesFromSpecs(specs){
-    specs.forEach(s => {
-      if(s.homeFrom?.win) edges.push([s.homeFrom.win, s.matchId]);
-      if(s.awayFrom?.win) edges.push([s.awayFrom.win, s.matchId]);
-    });
-  }
-
-  addEdgesFromSpecs(KO_DRAW.r16);
-  addEdgesFromSpecs(KO_DRAW.qf);
-  addEdgesFromSpecs(KO_DRAW.sf);
-  addEdgesFromSpecs(KO_DRAW.third);
-  addEdgesFromSpecs(KO_DRAW.final);
-
-  return edges;
-}
-  
-
-/* =========================================================
-   INIT
-   ========================================================= */
-async function init(){
-  await loadThirdMapping();
-  renderGroups();
-  rebuildThirdFromGroups(true);
-  renderQualificationSnapshot();
-  renderKnockouts();
-}
-init();
-</script>
-    
+  </script>
 </body>
 </html>
