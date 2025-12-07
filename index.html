@@ -240,21 +240,31 @@
   </div>
 
   <script>
-   /* =========================================================
-   World Cup 2026 Groups Drag/Drop (NO POOL)
-   Complete JS
+  /* =========================================================
+   World Cup 2026 Groups Drag/Drop
+   + Playoff Pools (Paths) BEFORE group stage
+   + Placeholder rename rules:
+       "European Playoff X" -> "UFEA Path X"
+       "FIFA Intercontinental Playoff Tournament X" -> "FIFA IC Path X"
+   + One team can be chosen from each path:
+       Drag a candidate from a Path column into its assigned Group.
+       The placeholder in that Group is replaced by the chosen team.
 
    Assumes your HTML has:
-   - <main class="board" id="board"></main>
-   Optional:
-   - <button id="resetBtn">Reset Groups</button>
+     <main class="board" id="board"></main>
 
-   This builds ONLY Group A–L columns using DEFAULT_GROUPS.
-   Mobile-safe drag uses Pointer Events + touch-action:none in CSS.
+   Optional:
+     <button id="resetBtn">Reset</button>
+
+   CSS expectation (already in your base):
+     .card { touch-action: none; }  // critical for mobile drag
+
 ========================================================= */
 
 
-/* 1) REAL GROUPS (your data) */
+/* ---------------------------------------------------------
+   1) GROUPS with UPDATED placeholder names
+--------------------------------------------------------- */
 const DEFAULT_GROUPS = {
   A: ["Mexico","South Africa","South Korea","UFEA Path D"],
   B: ["Canada","UFEA Path A","Qatar","Switzerland"],
@@ -271,45 +281,128 @@ const DEFAULT_GROUPS = {
 };
 
 
-/* 2) Derived keys + ID helper */
+/* ---------------------------------------------------------
+   2) PATH POOLS (your data) + where they feed into groups
+--------------------------------------------------------- */
+const PATHS = [
+  {
+    id: "ufeapath-a",
+    label: "UFEA Path A",
+    candidates: ["Wales", "Bosnia and Herzegovina", "Italy", "Northern Ireland"],
+    group: "B"
+  },
+  {
+    id: "ufeapath-b",
+    label: "UFEA Path B",
+    candidates: ["Ukraine", "Sweden", "Poland", "Albania"],
+    group: "F"
+  },
+  {
+    id: "ufeapath-c",
+    label: "UFEA Path C",
+    candidates: ["Slovakia", "Kosovo", "Turkey", "Romania"],
+    group: "D"
+  },
+  {
+    id: "ufeapath-d",
+    label: "UFEA Path D",
+    candidates: ["Czech Republic", "Republic of Ireland", "Denmark", "North Macedonia"],
+    group: "A"
+  },
+  {
+    id: "fifaicpath-1",
+    label: "FIFA IC Path 1",
+    candidates: ["New Caledonia", "Jamaica", "DR Congo"],
+    group: "K"
+  },
+  {
+    id: "fifaicpath-2",
+    label: "FIFA IC Path 2",
+    candidates: ["Bolivia", "Suriname", "Iraq"],
+    group: "I"
+  }
+];
+
+const PATH_BY_ID = Object.fromEntries(PATHS.map(p => [p.id, p]));
+const PATH_ID_BY_LABEL = Object.fromEntries(PATHS.map(p => [p.label, p.id]));
+
+
+/* ---------------------------------------------------------
+   3) Helpers
+--------------------------------------------------------- */
 const GROUP_KEYS = Object.keys(DEFAULT_GROUPS);
 
-/** Slugify helper for stable DOM IDs */
 const toId = (name) =>
   name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
 
-/* 3) State constructor */
+/* ---------------------------------------------------------
+   4) State construction
+     - state.paths[pathId] = candidate team objects
+     - state.groups[groupLetter] = group teams with placeholders
+--------------------------------------------------------- */
 const initialState = () => {
-  const groups = {};
-
-  GROUP_KEYS.forEach(key => {
-    groups[key] = DEFAULT_GROUPS[key].map(name => ({
-      // Prefix group to minimize collision risk
-      id: toId(`${key}-${name}`),
+  const paths = {};
+  PATHS.forEach(p => {
+    paths[p.id] = p.candidates.map(name => ({
+      id: toId(`${p.id}-${name}`),
       name,
-      tag: `Group ${key}`
+      tag: p.label,
+      originPathId: p.id
     }));
   });
 
-  return { groups };
+  const groups = {};
+  GROUP_KEYS.forEach(g => {
+    groups[g] = DEFAULT_GROUPS[g].map(entryName => {
+      const pathId = PATH_ID_BY_LABEL[entryName];
+
+      // If this entry is a placeholder label, store as placeholder object
+      if (pathId) {
+        return {
+          id: `ph-${pathId}-${g}`,
+          name: entryName,
+          tag: "Placeholder",
+          isPlaceholder: true,
+          pathId
+        };
+      }
+
+      // Normal fixed team
+      return {
+        id: toId(`${g}-${entryName}`),
+        name: entryName,
+        tag: `Group ${g}`
+      };
+    });
+  });
+
+  return { paths, groups };
 };
 
 let state = initialState();
 
 
-/* 4) Zones registry (only groups) */
-const zones = GROUP_KEYS.map(g => `group-${g}`);
+/* ---------------------------------------------------------
+   5) Zones
+     - Path zones appear first
+     - Then group zones A–L
+--------------------------------------------------------- */
+const pathZones = PATHS.map(p => `path-${p.id}`);
+const groupZones = GROUP_KEYS.map(g => `group-${g}`);
+const zones = [...pathZones, ...groupZones];
 
 
-/* 5) Board builder (dynamic columns) */
-function makeColumn(title, zoneKey){
+/* ---------------------------------------------------------
+   6) Board builder (dynamic columns)
+--------------------------------------------------------- */
+function makeColumn(title, zoneKey, subtitle = ""){
   const col = document.createElement("section");
   col.className = "column";
 
   col.innerHTML = `
     <div class="column-header">
-      <div class="column-title">${title}</div>
+      <div class="column-title">${title}${subtitle ? ` • ${subtitle}` : ""}</div>
       <div class="count" data-count-for="${zoneKey}"></div>
     </div>
     <div class="dropzone" data-zone="${zoneKey}"></div>
@@ -324,21 +417,55 @@ function buildBoard(){
 
   board.innerHTML = "";
 
+  // ---- Paths first (pooling stage) ----
+  PATHS.forEach(p => {
+    board.appendChild(makeColumn(p.label, `path-${p.id}`, `feeds Group ${p.group}`));
+  });
+
+  // ---- Groups next ----
   GROUP_KEYS.forEach(g => {
     board.appendChild(makeColumn(`Group ${g}`, `group-${g}`));
   });
 }
 
 
-/* 6) Zone access + render */
+/* ---------------------------------------------------------
+   7) Zone access
+--------------------------------------------------------- */
 function getZoneArray(zoneKey){
-  const m = zoneKey.match(/^group-([A-L])$/);
-  if(m){
-    return state.groups[m[1]];
+  // Path zone
+  if(zoneKey.startsWith("path-")){
+    const id = zoneKey.replace("path-", "");
+    return state.paths[id];
   }
+
+  // Group zone
+  const gm = zoneKey.match(/^group-([A-L])$/);
+  if(gm){
+    return state.groups[gm[1]];
+  }
+
   return null;
 }
 
+function isPathZone(zoneKey){
+  return zoneKey.startsWith("path-");
+}
+function isGroupZone(zoneKey){
+  return zoneKey.startsWith("group-");
+}
+function pathIdFromZone(zoneKey){
+  return zoneKey.replace("path-", "");
+}
+function groupKeyFromZone(zoneKey){
+  const m = zoneKey.match(/^group-([A-L])$/);
+  return m ? m[1] : null;
+}
+
+
+/* ---------------------------------------------------------
+   8) Render
+--------------------------------------------------------- */
 function render(){
   zones.forEach(zone => {
     const dz = document.querySelector(`.dropzone[data-zone="${zone}"]`);
@@ -359,19 +486,35 @@ function render(){
         <span class="tag">${team.tag ?? ""}</span>
       `;
 
-      attachPointerDrag(card);
+      // Do NOT make placeholders draggable
+      if(!team.isPlaceholder){
+        attachPointerDrag(card);
+      }
+
       dz.appendChild(card);
     });
 
     const countEl = document.querySelector(`[data-count-for="${zone}"]`);
     if(countEl){
-      countEl.textContent = `${arr.length} team${arr.length !== 1 ? "s" : ""}`;
+      countEl.textContent = `${arr.length} item${arr.length !== 1 ? "s" : ""}`;
     }
   });
 }
 
 
-/* 7) State helpers */
+/* ---------------------------------------------------------
+   9) Find + move logic
+     Key rule enforcement:
+     - Only ONE selection from each Path
+     - Selection is done by dragging a candidate
+       from Path zone into its assigned Group zone.
+     - On selection:
+         * remove placeholder in that group
+         * remove chosen team from path candidates
+         * add chosen team into group
+     - If placeholder already gone, further drops
+       from same path into the group are rejected.
+--------------------------------------------------------- */
 function findTeamAndZone(teamId){
   for(const z of zones){
     const arr = getZoneArray(z);
@@ -383,22 +526,92 @@ function findTeamAndZone(teamId){
   return null;
 }
 
+function groupHasPlaceholder(groupKey, pathId){
+  return state.groups[groupKey].some(t => t.isPlaceholder && t.pathId === pathId);
+}
+
+function removePlaceholder(groupKey, pathId){
+  const arr = state.groups[groupKey];
+  const idx = arr.findIndex(t => t.isPlaceholder && t.pathId === pathId);
+  if(idx !== -1) arr.splice(idx, 1);
+}
+
+/**
+ * Core move function with path-selection rules.
+ */
 function moveTeam(teamId, toZone){
   const found = findTeamAndZone(teamId);
   if(!found) return;
 
-  if(found.zone === toZone) return;
+  const fromZone = found.zone;
+  if(fromZone === toZone) return;
 
-  const fromArr = getZoneArray(found.zone);
+  const fromArr = getZoneArray(fromZone);
   const toArr = getZoneArray(toZone);
   if(!fromArr || !toArr) return;
 
-  const [team] = fromArr.splice(found.index, 1);
-  toArr.push(team);
+  // ---------------------------
+  // Case 1: Selecting from a Path into a Group
+  // ---------------------------
+  if(isPathZone(fromZone) && isGroupZone(toZone)){
+    const pathId = pathIdFromZone(fromZone);
+    const path = PATH_BY_ID[pathId];
+    const targetGroup = groupKeyFromZone(toZone);
 
-  render();
+    // Only allow drop into the correct assigned group
+    if(!path || targetGroup !== path.group){
+      return; // reject
+    }
+
+    // Only allow ONE selection (placeholder must exist)
+    if(!groupHasPlaceholder(targetGroup, pathId)){
+      return; // already selected; reject
+    }
+
+    // Execute selection:
+    // 1) remove team from path
+    const [team] = fromArr.splice(found.index, 1);
+
+    // 2) remove placeholder in group
+    removePlaceholder(targetGroup, pathId);
+
+    // 3) add chosen team to group with a clear tag
+    toArr.push({
+      ...team,
+      tag: path.label,
+      chosenFromPath: true
+    });
+
+    render();
+    return;
+  }
+
+  // ---------------------------
+  // Case 2: Normal moves between groups
+  // (Allowed: you can reorder by moving across groups)
+  // ---------------------------
+  if(isGroupZone(fromZone) && isGroupZone(toZone)){
+    const [team] = fromArr.splice(found.index, 1);
+    toArr.push(team);
+    render();
+    return;
+  }
+
+  // ---------------------------
+  // Case 3: Disallow dropping group teams into path columns
+  // (Keeps the "pooling stage" clean)
+  // ---------------------------
+  if(isGroupZone(fromZone) && isPathZone(toZone)){
+    return;
+  }
+
+  // Default safe behavior
 }
 
+
+/* ---------------------------------------------------------
+   10) Hit-testing dropzones
+--------------------------------------------------------- */
 function zoneFromPoint(x, y){
   const all = [...document.querySelectorAll(".dropzone")];
   return all.find(dz => {
@@ -408,21 +621,21 @@ function zoneFromPoint(x, y){
 }
 
 
-/* 8) Pointer drag engine (mobile-safe) */
+/* ---------------------------------------------------------
+   11) Pointer drag engine (mobile-safe)
+--------------------------------------------------------- */
 let dragging = null;
 
 function attachPointerDrag(card){
   // Start drag
   card.addEventListener("pointerdown", (e) => {
-    // Allow left mouse or touch
     if(e.button !== undefined && e.button !== 0) return;
 
-    // Prevent scroll / text selection
     e.preventDefault();
 
     const teamId = card.dataset.id;
-
     const rect = card.getBoundingClientRect();
+
     const clone = card.cloneNode(true);
     clone.classList.add("drag-clone");
     document.body.appendChild(clone);
@@ -439,13 +652,11 @@ function attachPointerDrag(card){
       lastZoneEl: null
     };
 
-    // Keep receiving pointer events during drag
     card.setPointerCapture(e.pointerId);
-
     positionClone(e.clientX, e.clientY);
   });
 
-  // During drag
+  // Move drag
   card.addEventListener("pointermove", (e) => {
     if(!dragging || dragging.pointerId !== e.pointerId) return;
 
@@ -485,7 +696,7 @@ function positionClone(x, y){
   dragging.clone.style.top  = `${y - dragging.offsetY}px`;
 }
 
-function finishDrag(x, y, cancelled = false){
+function finishDrag(x, y, cancelled=false){
   const { teamId, originCard, clone } = dragging;
 
   document.querySelectorAll(".dropzone")
@@ -497,8 +708,7 @@ function finishDrag(x, y, cancelled = false){
   if(!cancelled && x !== null && y !== null){
     const zoneEl = zoneFromPoint(x, y);
     if(zoneEl){
-      const toZone = zoneEl.dataset.zone;
-      moveTeam(teamId, toZone);
+      moveTeam(teamId, zoneEl.dataset.zone);
     }
   }
 
@@ -506,12 +716,14 @@ function finishDrag(x, y, cancelled = false){
 }
 
 
-/* 9) Reset (optional button) */
+/* ---------------------------------------------------------
+   12) Reset wiring (optional)
+--------------------------------------------------------- */
 function wireReset(){
-  const resetBtn = document.getElementById("resetBtn");
-  if(!resetBtn) return;
+  const btn = document.getElementById("resetBtn");
+  if(!btn) return;
 
-  resetBtn.addEventListener("click", () => {
+  btn.addEventListener("click", () => {
     state = initialState();
     buildBoard();
     render();
@@ -519,12 +731,15 @@ function wireReset(){
 }
 
 
-/* 10) Boot */
+/* ---------------------------------------------------------
+   13) Boot
+--------------------------------------------------------- */
 document.addEventListener("DOMContentLoaded", () => {
   buildBoard();
   render();
   wireReset();
 });
+
 
 
   </script>
