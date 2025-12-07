@@ -192,14 +192,10 @@
 }
 
 
-    /* R32 zone: show match cards as a responsive grid */
-     /* R32 zone: responsive grid based on available column width */
-.zone[data-zone="r32-fixtures"]{
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+/* Board-level R32 tiles */
+.r32-tile{
+  width: 100%;
 }
-
 
 
     /* Card */
@@ -550,8 +546,7 @@ function fallbackPathNameForGroup(g){
         THIRD_RANK_ZONE,
         CHAMP_ZONE,
         RUNNERS_ZONE,
-        TOP8_ZONE,
-        R32_ZONE
+        TOP8_ZONE
       ];
 
 
@@ -605,6 +600,13 @@ function fallbackPathNameForGroup(g){
       return col;
     }
 
+
+    function makeR32Tile(match){
+        const tile = document.createElement("div");
+        tile.className = "match-card r32-tile";
+        tile.dataset.matchId = match.id;
+        return tile;
+      }
     function buildBoard(){
       const board = document.getElementById("board");
       board.innerHTML = "";
@@ -634,15 +636,18 @@ function fallbackPathNameForGroup(g){
       board.appendChild(makeColumn("Group Runners", RUNNERS_ZONE, "A2 → L2"));
       board.appendChild(makeColumn("Top-8 Third Placed Teams", TOP8_ZONE, "auto"));
       
-      board.appendChild(
-                makeSeparator(
-                  "Round of 32 (placeholder → generate → pick winners)",
-                  { id:"generateR32Btn", text:"Generate R32" }
-                )
-              );
+   board.appendChild(
+  makeSeparator(
+    "Round of 32 (placeholder → generate → pick winners)",
+    { id:"generateR32Btn", text:"Generate R32" }
+  )
+);
 
-      
-      const r32Col = makeColumn("R32 Fixtures", R32_ZONE, "winners by click");
+// Option B: each match is a board-level tile
+R32_MATCHES.forEach(m => {
+  board.appendChild(makeR32Tile(m));
+});
+
               r32Col.classList.add("r32-wide");
               board.appendChild(r32Col);
 
@@ -867,9 +872,7 @@ function fallbackPathNameForGroup(g){
       if(zoneKey === TOP8_ZONE){
         return computeTop8ThirdPlaced();
       }
-      if(zoneKey === R32_ZONE){
-        return []; // rendered manually
-      }
+     
     
       return null;
 }
@@ -915,12 +918,7 @@ function fallbackPathNameForGroup(g){
         dz.innerHTML = "";
         const arr = getZoneArray(zone) ?? [];
 
-        if(zone === R32_ZONE){
-            renderR32(dz);
-            const countEl = document.querySelector(`[data-count-for="${zone}"]`);
-            if(countEl) countEl.textContent = `${R32_MATCHES.length} matches`;
-            return;
-          }
+
 
         const gKey = isGroupZone(zone) ? groupKeyFromZone(zone) : null;
 
@@ -997,6 +995,8 @@ function fallbackPathNameForGroup(g){
           countEl.textContent = `${arr.length} team${arr.length !== 1 ? "s" : ""}`;
         }
       });
+      
+      renderR32Tiles();
 
       updateStagePillAndButtons();
     }
@@ -1169,24 +1169,29 @@ function resolveSlot(slot, matchId){
 }
 
 
-function renderR32(dz){
-  dz.innerHTML = "";
-
+function renderR32Tiles(){
   let anyFallback = false;
   let anyTable = false;
   let tableKeyUsed = "";
 
-
   R32_MATCHES.forEach(m => {
+    const tile = document.querySelector(`.r32-tile[data-match-id="${m.id}"]`);
+    if(!tile) return;
+
     const L = resolveSlot(m.left, m.id);
     const R = resolveSlot(m.right, m.id);
 
-
-
     const winner = state.r32Winners[m.id];
 
-    const card = document.createElement("div");
-    card.className = "match-card";
+    // track source summary
+    if(L.source === "fallback" || R.source === "fallback") anyFallback = true;
+    if(L.source === "table" || R.source === "table"){
+      anyTable = true;
+      tableKeyUsed = L.tableKey || R.tableKey || tableKeyUsed;
+    }
+
+    // rebuild tile content
+    tile.innerHTML = "";
 
     const leftBtn = document.createElement("div");
     leftBtn.className = "match-team";
@@ -1198,60 +1203,46 @@ function renderR32(dz){
 
     const mid = document.createElement("div");
     mid.className = "match-mid";
-    mid.textContent = winner ? winner.abbrev : "---";
-
-   
-    if(L.source === "fallback" || R.source === "fallback") anyFallback = true;
-    if(L.source === "table" || R.source === "table"){
-      anyTable = true;
-      tableKeyUsed = L.tableKey || R.tableKey || tableKeyUsed;
-    }
 
     const canPick = state.r32Generated && !L.placeholder && !R.placeholder;
 
-if(!canPick){
-  leftBtn.classList.add("locked");
-  rightBtn.classList.add("locked");
-} else {
-  leftBtn.addEventListener("click", () => {
-    const ab = teamAbbrev(L.name);
-    state.r32Winners[m.id] = { side:"L", name:L.name, abbrev:ab };
-    render();
-  });
+    if(!canPick){
+      leftBtn.classList.add("locked");
+      rightBtn.classList.add("locked");
+      mid.textContent = "---";
+    } else {
+      leftBtn.addEventListener("click", () => {
+        const ab = teamAbbrev(L.name);
+        state.r32Winners[m.id] = { side:"L", name:L.name, abbrev:ab };
+        render();
+      });
 
-  rightBtn.addEventListener("click", () => {
-    const ab = teamAbbrev(R.name);
-    state.r32Winners[m.id] = { side:"R", name:R.name, abbrev:ab };
-    render();
-  });
-}  
+      rightBtn.addEventListener("click", () => {
+        const ab = teamAbbrev(R.name);
+        state.r32Winners[m.id] = { side:"R", name:R.name, abbrev:ab };
+        render();
+      });
 
-    mid.textContent = (canPick && winner) ? winner.abbrev : "---";
-
-
-
+      mid.textContent = winner ? winner.abbrev : "---";
+    }
 
     const meta = document.createElement("div");
     meta.className = "match-meta";
 
-    
     const metaLeft = document.createElement("span");
     metaLeft.textContent = `Match ${m.id}: ${L.label} vs ${R.label}`;
-    const metaRight = document.createElement("span");
 
-        if(m.right.type === "3SET" || m.left.type === "3SET"){
-          if(!state.r32Generated){
-            metaRight.textContent = "3rd-place: placeholder";
-          } else {
-            // Prefer TABLE label if used for this match
-            const src = (L.source === "table" || R.source === "table") ? "TABLE"
-                      : (L.source === "fallback" || R.source === "fallback") ? "FALLBACK"
-                      : "ALLOWED";
-            metaRight.textContent = `3rd-place: ${src}`;
-          }
-        } else {
-          metaRight.textContent = "";
-        }
+    const metaRight = document.createElement("span");
+    if(m.right.type === "3SET" || m.left.type === "3SET"){
+      if(!state.r32Generated){
+        metaRight.textContent = "3rd-place: placeholder";
+      } else {
+        const src = (L.source === "table" || R.source === "table") ? "TABLE"
+                  : (L.source === "fallback" || R.source === "fallback") ? "FALLBACK"
+                  : "ALLOWED";
+        metaRight.textContent = `3rd-place: ${src}`;
+      }
+    }
 
     meta.appendChild(metaLeft);
     meta.appendChild(metaRight);
@@ -1260,10 +1251,10 @@ if(!canPick){
 
     const meta2 = document.createElement("div");
     meta2.className = "match-meta secondary";
-    
+
     const meta2Left = document.createElement("span");
     const meta2Right = document.createElement("span");
-    
+
     if(info){
       meta2Left.innerHTML = `
         <span class="match-chip">${info.date}</span>
@@ -1277,41 +1268,21 @@ if(!canPick){
       meta2Left.textContent = "Date/Time TBD";
       meta2Right.textContent = "Venue TBD";
     }
-    
+
     meta2.appendChild(meta2Left);
     meta2.appendChild(meta2Right);
 
-
-
-    
-
-    card.appendChild(leftBtn);
-    card.appendChild(mid);
-    card.appendChild(rightBtn);
-    card.appendChild(meta);
-    card.appendChild(meta2);
-
-
-    dz.appendChild(card);
+    tile.appendChild(leftBtn);
+    tile.appendChild(mid);
+    tile.appendChild(rightBtn);
+    tile.appendChild(meta);
+    tile.appendChild(meta2);
   });
 
-const note = document.createElement("div");
-note.className = "r32-fallback-note";
-
-if(!state.r32Generated){
-  note.textContent =
-    "R32 not generated yet. Third-place slots are placeholders from the FIFA mapping sets.";
-} else if(anyTable){
-  note.textContent = `3rd-place mapping source: TABLE (${tableKeyUsed || "key"})`;
-} else if(anyFallback){
-  note.textContent = "3rd-place mapping source: FALLBACK ABCDEFGH";
-} else {
-  note.textContent = "3rd-place mapping source: Allowed-set ranking";
+  // Optional global summary line (if you want one)
+  // You can add this later as a separate full-width note if you prefer.
 }
 
-dz.appendChild(note);
-
-}
 
 
     function thirdPlaceholderName(setSpec){
