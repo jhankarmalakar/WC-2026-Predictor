@@ -186,10 +186,7 @@
     }
 
     /* Make R32 column span full board width */
-.column.r32-wide{
-  grid-column: 1 / -1;
-  overflow: visible; /* avoids clipping just in case */
-}
+
 
 
 /* Board-level R32 tiles */
@@ -380,12 +377,12 @@
        1) GROUPS + PATHS
     ============================== */
     const DEFAULT_GROUPS = {
-      A: ["Mexico","South Africa","South Korea","UFEA Path D"],
-      B: ["Canada","UFEA Path A","Qatar","Switzerland"],
+      A: ["Mexico","South Africa","South Korea","UEFA Path D"],
+      B: ["Canada","UEFA Path A","Qatar","Switzerland"],
       C: ["Brazil","Morocco","Haiti","Scotland"],
-      D: ["United States","Paraguay","Australia","UFEA Path C"],
+      D: ["United States","Paraguay","Australia","UEFA Path C"],
       E: ["Germany","Curaçao","Ivory Coast","Ecuador"],
-      F: ["Netherlands","Japan","UFEA Path B","Tunisia"],
+      F: ["Netherlands","Japan","UEFA Path B","Tunisia"],
       G: ["Belgium","Egypt","Iran","New Zealand"],
       H: ["Spain","Cape Verde","Saudi Arabia","Uruguay"],
       I: ["France","Senegal","FIFA IC Path 2","Norway"],
@@ -395,13 +392,13 @@
     };
 
     const PATHS = [
-      { id: "ufeapath-a", label: "UFEA Path A",
+      { id: "UEFApath-a", label: "UEFA Path A",
         candidates: ["Wales", "Bosnia and Herzegovina", "Italy", "Northern Ireland"], group: "B" },
-      { id: "ufeapath-b", label: "UFEA Path B",
+      { id: "UEFApath-b", label: "UEFA Path B",
         candidates: ["Ukraine", "Sweden", "Poland", "Albania"], group: "F" },
-      { id: "ufeapath-c", label: "UFEA Path C",
+      { id: "UEFApath-c", label: "UEFA Path C",
         candidates: ["Slovakia", "Kosovo", "Turkey", "Romania"], group: "D" },
-      { id: "ufeapath-d", label: "UFEA Path D",
+      { id: "UEFApath-d", label: "UEFA Path D",
         candidates: ["Czech Republic", "Republic of Ireland", "Denmark", "North Macedonia"], group: "A" },
       { id: "fifaicpath-1", label: "FIFA IC Path 1",
         candidates: ["New Caledonia", "Jamaica", "DR Congo"], group: "K" },
@@ -477,8 +474,8 @@ function fallbackPathNameForGroup(g){
         const p = PATHS.find(x => x.group === g);
         if(!p) return "TBD";
       
-        if(p.id.startsWith("ufeapath-")){
-          const letter = p.id.replace("ufeapath-",""); // a/b/c/d
+        if(p.id.startsWith("UEFApath-")){
+          const letter = p.id.replace("UEFApath-",""); // a/b/c/d
           const map = { a: 1, b: 2, c: 3, d: 4 };
           const n = map[letter] ?? letter.toUpperCase();
           return `UEFA Path ${n}`;
@@ -600,6 +597,19 @@ function fallbackPathNameForGroup(g){
       return col;
     }
 
+    function makeR32NoteTile(){
+          const note = document.createElement("section");
+          note.className = "column";
+          note.style.gridColumn = "1 / -1";
+          note.innerHTML = `
+            <div class="column-header">
+              <div class="column-title">R32 Third-place Mapping Status</div>
+              <div class="count"></div>
+            </div>
+            <div class="zone" data-zone="r32-note"></div>
+          `;
+          return note;
+        }
 
     function makeR32Tile(match){
         const tile = document.createElement("div");
@@ -642,14 +652,15 @@ function fallbackPathNameForGroup(g){
     { id:"generateR32Btn", text:"Generate R32" }
   )
 );
+      board.appendChild(makeR32NoteTile());
+
 
 // Option B: each match is a board-level tile
 R32_MATCHES.forEach(m => {
   board.appendChild(makeR32Tile(m));
 });
 
-              r32Col.classList.add("r32-wide");
-              board.appendChild(r32Col);
+             
 
 
     }
@@ -997,6 +1008,18 @@ R32_MATCHES.forEach(m => {
       });
       
       renderR32Tiles();
+
+      const noteZone = document.querySelector('.zone[data-zone="r32-note"]');
+            if(noteZone){
+              noteZone.innerHTML = "";
+              const p = document.createElement("div");
+              p.className = "r32-fallback-note";
+              p.textContent = !state.r32Generated
+                ? "R32 not generated yet. Third-place slots are placeholders from the FIFA mapping sets."
+                : "R32 generated. 3rd-place mapping currently uses Allowed-set ranking (until you add TABLE).";
+              noteZone.appendChild(p);
+            }
+
 
       updateStagePillAndButtons();
     }
