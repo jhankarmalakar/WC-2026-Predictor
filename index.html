@@ -127,6 +127,47 @@
       background: linear-gradient(135deg, rgba(255, 180, 90, 0.35), rgba(255, 120, 70, 0.22));
     }
 
+    /* ==========================
+       R32 out-of-date badge
+    ========================== */
+    .outofdate-badge{
+      display: inline-block;
+      margin-left: 8px;
+      padding: 2px 7px;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.25px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 184, 107, 0.70);
+      background: rgba(255, 184, 107, 0.16);
+      color: var(--text);
+      vertical-align: middle;
+      line-height: 1.1;
+
+      /* Optional subtle pop */
+      animation: badgeGlowPulse 1.8s ease-in-out infinite;
+      transform-origin: left center;
+    }
+    @keyframes badgeGlowPulse{
+      0%, 100%{
+        box-shadow:
+          0 0 0 0 rgba(255,184,107,0.00),
+          0 0 0 0 rgba(255,184,107,0.00);
+        filter: saturate(1);
+        transform: scale(1);
+      }
+      50%{
+        box-shadow:
+          0 0 0 2px rgba(255,184,107,0.18),
+          0 0 10px rgba(255,184,107,0.22);
+        filter: saturate(1.08);
+        transform: scale(1.03);
+      }
+    }
+    @media (prefers-reduced-motion: reduce){
+      .outofdate-badge{ animation: none; }
+    }
+
     /* Board grid */
     .board{
       display:grid;
@@ -177,19 +218,8 @@
     .stage-right{
       display:flex;
       gap: 8px;
-      align-items:flex-end;
+      align-items:center;
       flex-wrap: wrap;
-    }
-
-    .stage-note{
-      font-size: 10.2px;
-      color: var(--muted);
-      border: 1px dashed var(--border);
-      padding: 6px 8px;
-      border-radius: 9px;
-      background: rgba(255,255,255,0.03);
-      max-width: 280px;
-      line-height: 1.25;
     }
 
     /* Column */
@@ -226,14 +256,6 @@
       color: var(--muted);
       opacity: 0.9;
       white-space: nowrap;
-    }
-
-    .header-right{
-      display:flex;
-      align-items:center;
-      gap: 8px;
-      flex-wrap: wrap;
-      justify-content:flex-end;
     }
 
     .zone{
@@ -308,13 +330,6 @@
       background: var(--swap-bg);
       border-color: var(--swap-br);
       box-shadow: 0 0 0 1px rgba(255,184,107,0.18) inset;
-    }
-
-    /* User-moved third-place highlight */
-    .third-user-moved{
-      background: var(--swap-bg);
-      border-color: var(--swap-br);
-      box-shadow: 0 0 0 1px rgba(255,184,107,0.12) inset;
     }
 
     .footer{
@@ -759,6 +774,9 @@
     let qualifiedThirdGroupLetters = "";
     let qualifiedThirdPlacedTeams = [];
 
+    // NEW: R32 out-of-date tracking for third ranking reorder
+    let thirdRankingDirty = false;
+
     /* ==============================
        5) Build state
     ============================== */
@@ -826,8 +844,7 @@
         base.push({
           id: toId(`third-${g}-${third?.name ?? "tbd"}`),
           groupKey: g,
-          name: third?.name ?? fallbackPathNameForGroup(g),
-          userMoved: false
+          name: third?.name ?? fallbackPathNameForGroup(g)
         });
       });
       return base;
@@ -839,22 +856,11 @@
       const qualifiedByPath = {};
       PATHS.forEach(p => qualifiedByPath[p.id] = false);
 
-      const userMovedGroups = {};
-      GROUP_KEYS.forEach(g => userMovedGroups[g] = false);
-
-      const userMovedPools = {};
-      PATHS.forEach(p => userMovedPools[p.id] = false);
-
       return {
         paths,
         groups,
         qualifiedByPath,
         thirdRanking: buildThirdRankingFromGroups(groups),
-
-        // user interaction locks
-        userMovedGroups,
-        userMovedPools,
-        thirdRankingDirty: false,
 
         // Knockout
         r32Generated: false,
@@ -1017,19 +1023,22 @@
 
     /* ==============================
        8) Third-place mapping table
-       - keep ONLY TWO entries (placeholder)
-       - paste your full mapping later
+       - partial (your paste)
     ============================== */
     const THIRD_MATCH_ID_ORDER = [74, 77, 79, 80, 81, 82, 85, 87];
 
-    // Look for const THIRD_MAPPING_TABLE = {}; and paste your mapping later.
-    const THIRD_MAPPING_TABLE = {
-      "ABCDEFGH": ["3H","3G","3B","3C","3A","3F","3D","3E"],
-      "ABCDEFGI": ["3C","3G","3B","3D","3A","3F","3E","3I"]
+    const THIRD_TABLE_RAW = {
+       "EFGHIJKL ": ["3E","3J","3I","3F","3H","3G","3L","3K"],
+       "DFGHIJKL ": ["3H","3G","3I","3D","3J","3F","3L","3K"],
+
+       // (keep as you had)
+       "ABCDEFGJ": ["3C","3G","3B","3D","3A","3F","3E","3J"],
+       "ABCDEFGI": ["3C","3G","3B","3D","3A","3F","3E","3I"],
+       "ABCDEFGH": ["3H","3G","3B","3C","3A","3F","3D","3E"]
     };
 
     const THIRD_TABLE = Object.fromEntries(
-      Object.entries(THIRD_MAPPING_TABLE).map(([key, arr]) => {
+      Object.entries(THIRD_TABLE_RAW).map(([key, arr]) => {
         const matchMap = {};
         THIRD_MATCH_ID_ORDER.forEach((mid, i) => {
           matchMap[mid] = arr[i];
@@ -1055,8 +1064,7 @@
           state.thirdRanking.push({
             id: toId(`third-${g}-tbd`),
             groupKey: g,
-            name: fallbackPathNameForGroup(g),
-            userMoved: false
+            name: fallbackPathNameForGroup(g)
           });
         }
       });
@@ -1125,15 +1133,18 @@
        - FREEZE until Regenerate
     ============================== */
     function buildR32ThirdSnapshot(){
-      const top8 = computeTop8ThirdPlaced();
+      // Uses current thirdRanking order.
+      const top8 = computeTop8ThirdPlaced(); // also fills qualifiedThirdGroupLetters / teams
       const letters = qualifiedThirdGroupLetters;
 
       const tableRow = THIRD_TABLE[letters];
-      const assignment = {};
+
+      const assignment = {}; // matchId -> { groupKey, name, source }
 
       if(tableRow){
+        // Use table mapping
         THIRD_MATCH_ID_ORDER.forEach(mid => {
-          const tag = tableRow[mid];
+          const tag = tableRow[mid]; // "3E"
           const g = tag.replace("3","");
           const found = state.thirdRanking.find(x => x.groupKey === g);
           assignment[mid] = {
@@ -1143,16 +1154,20 @@
           };
         });
       } else {
+        // Greedy UNIQUE fallback using allowed sets
         const rankedTop8 = state.thirdRanking.slice(0,8);
         const used = new Set();
 
         function pickAllowedUnique(allowed){
+          // 1) try highest ranked within allowed
           const cand1 = rankedTop8.find(x => allowed.includes(x.groupKey) && !used.has(x.groupKey));
           if(cand1) return cand1;
+          // 2) else highest ranked unused overall
           const cand2 = rankedTop8.find(x => !used.has(x.groupKey));
           return cand2 || null;
         }
 
+        // find matches that actually need 3SET in your R32 list
         const thirdMatches = R32_MATCHES.filter(m =>
           m.left.type === "3SET" || m.right.type === "3SET"
         );
@@ -1241,6 +1256,7 @@
           return { name: ph, label: ph, placeholder:true, source:"placeholder", allowed };
         }
 
+        // AFTER generation: USE SNAPSHOT ONLY
         const snap = state.r32ThirdSnapshot;
         const assign = snap?.assignment?.[matchId];
 
@@ -1253,6 +1269,7 @@
           };
         }
 
+        // Safety fallback
         return { name:"3rd TBD", label:"3?", placeholder:true, source:"fallback", allowed };
       }
       if(slot.type === "WM"){
@@ -1324,6 +1341,7 @@
         const currentLeft = p.left.name;
         const currentRight = p.right.name;
 
+        // Clear if matchup changed since pick
         if(stored.leftAtPick !== currentLeft || stored.rightAtPick !== currentRight){
           delete state.winners[id];
           return;
@@ -1414,14 +1432,6 @@
       return true;
     }
 
-    function markThirdUserMovedByIds(id1, id2){
-      const a = state.thirdRanking.find(x => x.id === id1);
-      const b = state.thirdRanking.find(x => x.id === id2);
-      if(a) a.userMoved = true;
-      if(b) b.userMoved = true;
-      state.thirdRankingDirty = true;
-    }
-
     function handleClickSwap(teamId, zone){
       if(!isClickSwapEnabledForZone(zone)) return;
 
@@ -1446,23 +1456,14 @@
       const arr = getZoneArray(zone);
       if(!arr) return;
 
-      const firstId = swapSelection.teamId;
-      const secondId = teamId;
-
-      const ok = swapTeamsInArray(arr, firstId, secondId);
+      const ok = swapTeamsInArray(arr, swapSelection.teamId, teamId);
       swapSelection = null;
 
       if(ok){
-        if(isGroupZone(zone)){
-          const g = groupKeyFromZone(zone);
-          if(g) state.userMovedGroups[g] = true;
-        }
-        if(isPathZone(zone)){
-          const pid = pathIdFromZone(zone);
-          if(pid) state.userMovedPools[pid] = true;
-        }
+        // Group changes can affect KO immediately.
+        // Third-order changes should NOT affect R32 until Regenerate.
         if(zone === THIRD_RANK_ZONE){
-          markThirdUserMovedByIds(firstId, secondId);
+          thirdRankingDirty = true; // NEW
         }
 
         validateAllWinners();
@@ -1541,10 +1542,7 @@
     }
 
     /* ==============================
-       18) AUTO select
-       - Pools: skip user-moved pool
-       - Groups: skip user-moved group
-       - Third ranking: only reorder NOT user-moved items
+       18) AUTO select (partial fill)
     ============================== */
     function sortArrayByRank(arr){
       arr.sort((a,b) => {
@@ -1557,7 +1555,6 @@
 
     function autoPools(){
       PATHS.forEach(p => {
-        if(state.userMovedPools[p.id]) return; // NEW
         const arr = state.paths[p.id];
         if(arr) sortArrayByRank(arr);
       });
@@ -1566,20 +1563,16 @@
 
     function autoGroups(){
       GROUP_KEYS.forEach(g => {
-        if(state.userMovedGroups[g]) return; // NEW
-
         const arr = state.groups[g];
         if(!arr) return;
         const real = arr.filter(x => !x.isPlaceholder);
         const ph   = arr.filter(x => x.isPlaceholder);
-
         real.sort((a,b) => {
           const ra = rankOf(a.name);
           const rb = rankOf(b.name);
           if(ra === rb) return String(a.name).localeCompare(String(b.name));
           return ra - rb;
         });
-
         state.groups[g] = [...real, ...ph].slice(0,4);
       });
 
@@ -1589,34 +1582,14 @@
 
     function autoThirdRanking(){
       syncThirdRankingNames();
-
-      // NEW behavior:
-      // only reorder third-place teams NOT moved by user,
-      // while keeping user-moved teams fixed at their current indices.
-
-      const arr = state.thirdRanking;
-
-      const movableIndices = [];
-      const movableItems = [];
-
-      arr.forEach((item, idx) => {
-        if(!item.userMoved){
-          movableIndices.push(idx);
-          movableItems.push(item);
-        }
-      });
-
-      movableItems.sort((a,b) => {
+      state.thirdRanking.sort((a,b) => {
         const ra = rankOf(a.name);
         const rb = rankOf(b.name);
         if(ra === rb) return a.groupKey.localeCompare(b.groupKey);
         return ra - rb;
       });
 
-      movableIndices.forEach((idx, i) => {
-        arr[idx] = movableItems[i];
-      });
-
+      // IMPORTANT: does NOT rebuild R32 assignment unless regenerate clicked.
       validateAllWinners();
       render();
     }
@@ -1625,6 +1598,7 @@
       validateAllWinners();
 
       matches.forEach(m => {
+        // Only fill UNFILLED matches
         if(state.winners[m.id]) return;
 
         const p = resolveParticipants(m);
@@ -1650,13 +1624,16 @@
        19) Regenerate R32
     ============================== */
     function regenerateR32(){
+      // Clear ALL knockout winners for clean consistency
       state.winners = {};
+
       state.r32Generated = true;
 
+      // Build frozen third assignment snapshot
       buildR32ThirdSnapshot();
 
-      // reset dirty flag once snapshot rebuilt
-      state.thirdRankingDirty = false;
+      // NEW: R32 now synced with third ranking
+      thirdRankingDirty = false;
 
       validateAllWinners();
       render();
@@ -1703,10 +1680,7 @@
       col.innerHTML = `
         <div class="column-header">
           <div class="column-title">${title}${subtitle ? ` • ${subtitle}` : ""}</div>
-          <div class="header-right">
-            <span class="tag" data-usermoved-for="${zoneKey}" style="display:none">User moved</span>
-            <div class="count" data-count-for="${zoneKey}"></div>
-          </div>
+          <div class="count" data-count-for="${zoneKey}"></div>
         </div>
         <div class="zone" data-zone="${zoneKey}"></div>
       `;
@@ -1760,29 +1734,21 @@
           ]
         )
       );
-      board.appendChild(makeColumn("Third Place Team Ranking", "third-ranking", "A3 → L3"));
-      board.appendChild(makeColumn("Group Champions", "champions-view", "A1 → L1"));
-      board.appendChild(makeColumn("Group Runners", "runners-view", "A2 → L2"));
-      board.appendChild(makeColumn("Top-8 Third Placed Teams", "top8-third-view", "auto"));
+      board.appendChild(makeColumn("Third Place Team Ranking", THIRD_RANK_ZONE, "A3 → L3"));
+      board.appendChild(makeColumn("Group Champions", CHAMP_ZONE, "A1 → L1"));
+      board.appendChild(makeColumn("Group Runners", RUNNERS_ZONE, "A2 → L2"));
+      board.appendChild(makeColumn("Top-8 Third Placed Teams", TOP8_ZONE, "auto"));
 
-      // R32 separator with your required note ABOVE regenerate button
-      const r32Sep = makeSeparator(
-        "Round of 32",
-        [
-          { id:"regenerateR32Btn", text:"Regenerate R32", orange:true },
-          { id:"autoR32Btn", text:"Auto Select R32 winners", orange:true }
-        ]
+      // R32
+      board.appendChild(
+        makeSeparator(
+          "Round of 32",
+          [
+            { id:"regenerateR32Btn", text:"Regenerate R32", orange:true },
+            { id:"autoR32Btn", text:"Auto Select R32 winners", orange:true }
+          ]
+        )
       );
-
-      const right = r32Sep.querySelector(".stage-right");
-      if(right){
-        const note = document.createElement("div");
-        note.className = "stage-note";
-        note.textContent = "You must regenarate R32 everytime you have changed Third position table.";
-        right.insertBefore(note, right.firstChild);
-      }
-
-      board.appendChild(r32Sep);
       board.appendChild(makeKoGrid("r32"));
 
       // R16
@@ -1845,7 +1811,7 @@
        21) Render standard zones
     ============================== */
     function applyRankHighlight(cardEl, zone, idx, team){
-      cardEl.classList.remove("rank-strong", "rank-mild", "qualified", "eliminated", "third-user-moved");
+      cardEl.classList.remove("rank-strong", "rank-mild", "qualified", "eliminated");
 
       if(isPathZone(zone)){
         if(idx === 0) cardEl.classList.add("rank-strong");
@@ -1864,7 +1830,6 @@
 
       if(zone === THIRD_RANK_ZONE){
         if(idx < 8) cardEl.classList.add("rank-strong");
-        if(team.userMoved) cardEl.classList.add("third-user-moved");
         return;
       }
 
@@ -1950,21 +1915,6 @@
         if(countEl){
           countEl.textContent = `${arr.length} team${arr.length !== 1 ? "s" : ""}`;
         }
-
-        // NEW: show "User moved" tag for groups and pools (safe + helpful)
-        const userMovedChip = document.querySelector(`[data-usermoved-for="${zone}"]`);
-        if(userMovedChip){
-          let show = false;
-          if(isGroupZone(zone)){
-            const g = groupKeyFromZone(zone);
-            show = !!state.userMovedGroups[g];
-          }
-          if(isPathZone(zone)){
-            const pid = pathIdFromZone(zone);
-            show = !!state.userMovedPools[pid];
-          }
-          userMovedChip.style.display = show ? "inline-block" : "none";
-        }
       });
     }
 
@@ -1977,6 +1927,7 @@
     };
 
     function parseDateStr(dateStr){
+      // "June 28, 2026"
       const m = String(dateStr).match(/^([A-Za-z]+)\s+(\d{1,2}),\s+(\d{4})$/);
       if(!m) return null;
       const month = MONTHS[m[1].toLowerCase()];
@@ -1987,6 +1938,7 @@
     }
 
     function parseTime12h(timeStr){
+      // "4:30 p.m." or "12:00 p.m."
       const s = String(timeStr).toLowerCase().replace(/\s+/g," ").trim();
       const m = s.match(/^(\d{1,2}):(\d{2})\s*(a\.m\.|p\.m\.)$/);
       if(!m) return null;
@@ -2004,6 +1956,8 @@
       const t = parseTime12h(info.time);
       if(!d || !t) return null;
 
+      // venue local time = UTC + offsetHours
+      // => UTC = venueLocal - offsetHours
       const utcHour = t.h - info.offsetHours;
 
       return Date.UTC(d.year, d.month, d.day, utcHour, t.min, 0);
@@ -2015,6 +1969,7 @@
 
       const dt = new Date(ms);
 
+      // Display in viewer's local timezone
       const fmt = new Intl.DateTimeFormat(undefined, {
         dateStyle: "medium",
         timeStyle: "short"
@@ -2037,23 +1992,28 @@
       card.className = "match-card";
       card.dataset.matchId = match.id;
 
+      // Match index top-left
       const idx = document.createElement("div");
       idx.className = "match-index";
       idx.textContent = `Match ${match.id}`;
       card.appendChild(idx);
 
+      // Center "XX vs XX" label above mid box (uses slot labels)
       const vs = document.createElement("div");
       vs.className = "match-vs";
       vs.textContent = `${L.label} vs ${R.label}`;
       card.appendChild(vs);
 
+      // Left team
       const leftBtn = document.createElement("div");
       leftBtn.className = "match-team";
       leftBtn.innerHTML = nameWithFlagHTML(L.name);
 
+      // Mid abbrev
       const mid = document.createElement("div");
       mid.className = "match-mid";
 
+      // Right team
       const rightBtn = document.createElement("div");
       rightBtn.className = "match-team";
       rightBtn.innerHTML = nameWithFlagHTML(R.name);
@@ -2083,6 +2043,7 @@
       card.appendChild(mid);
       card.appendChild(rightBtn);
 
+      // Bottom meta
       const bottom = document.createElement("div");
       bottom.className = "match-bottom";
 
@@ -2130,9 +2091,6 @@
         if(!state.r32Generated){
           note.textContent =
             "R32 not generated yet. Third-place slots are placeholders from the mapping sets.";
-        } else if(state.thirdRankingDirty){
-          note.textContent =
-            "Third ranking changed since last snapshot. R32 will update only after Regenerate.";
         } else {
           note.textContent =
             "R32 3rd-place teams are frozen from your last Regenerate click.";
@@ -2154,7 +2112,23 @@
     }
 
     /* ==============================
-       24) Stage pill + buttons
+       24) R32 badge updater
+    ============================== */
+    function updateRegenerateR32Badge(){
+      const btn = document.getElementById("regenerateR32Btn");
+      if(!btn) return;
+
+      const base = "Regenerate R32";
+
+      if(thirdRankingDirty){
+        btn.innerHTML = `${base}<span class="outofdate-badge">R32 out-of-date</span>`;
+      } else {
+        btn.textContent = base;
+      }
+    }
+
+    /* ==============================
+       25) Stage pill + buttons
     ============================== */
     function updateStagePillAndButtons(){
       const pill = document.getElementById("stagePill");
@@ -2170,6 +2144,9 @@
       if(placeBtn){
         placeBtn.disabled = (editMode !== "pools");
       }
+
+      // NEW
+      updateRegenerateR32Badge();
     }
 
     function wireButtons(){
@@ -2205,6 +2182,10 @@
           state = initialState();
           editMode = "pools";
           swapSelection = null;
+
+          // NEW
+          thirdRankingDirty = false;
+
           buildBoard();
           render();
           wireButtons();
@@ -2236,7 +2217,7 @@
     }
 
     /* ==============================
-       25) Render orchestrator
+       26) Render orchestrator
     ============================== */
     function render(){
       syncThirdRankingNames();
@@ -2246,7 +2227,7 @@
     }
 
     /* ==============================
-       26) Boot
+       27) Boot
     ============================== */
     document.addEventListener("DOMContentLoaded", () => {
       buildBoard();
