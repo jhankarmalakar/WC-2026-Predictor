@@ -200,7 +200,7 @@
       cursor: grab;
       user-select: none;
 
-      /* Allow scrolling unless a real drag is detected */
+      /* Allow scroll unless a real drag is detected */
       touch-action: pan-y;
 
       transition: background 120ms ease, border-color 120ms ease, transform 80ms ease, box-shadow 120ms ease;
@@ -268,6 +268,16 @@
       background: var(--swap-bg);
       border-color: var(--swap-br);
       box-shadow: 0 0 0 1px rgba(255,184,107,0.18) inset;
+    }
+
+    /* Tiny snap animation on reorder */
+    @keyframes snap-pop{
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.035); }
+      100% { transform: scale(1); }
+    }
+    .snap-pop{
+      animation: snap-pop 180ms ease-out;
     }
 
     .footer{
@@ -350,6 +360,9 @@
     ============================== */
     let stage = "pools";
     let swapSelection = null; // { teamId, zone }
+
+    /* Snap animation marker */
+    let lastReorder = null; // { zone, movedId, targetId }
 
     /* ==============================
        4) State
@@ -546,6 +559,9 @@
       if(formBtn) formBtn.disabled = (stage === "groups");
 
       updateStagePill();
+
+      // After DOM is in place, apply snap animation if needed
+      applySnapAnimation();
     }
 
     function applyRankHighlight(cardEl, zone, idx, team){
@@ -567,7 +583,32 @@
     }
 
     /* ==============================
-       9) Tap-to-swap
+       9) Snap animation on reorder
+    ============================== */
+    function applySnapAnimation(){
+      if(!lastReorder) return;
+
+      const { zone, movedId, targetId } = lastReorder;
+      lastReorder = null;
+
+      const selBase = `.dropzone[data-zone="${zone}"] .card[data-id="`;
+      const ids = [movedId, targetId].filter(Boolean);
+
+      // Use rAF to ensure styles apply reliably
+      requestAnimationFrame(() => {
+        ids.forEach(id => {
+          const el = document.querySelector(`${selBase}${id}"]`);
+          if(!el) return;
+          el.classList.add("snap-pop");
+          el.addEventListener("animationend", () => {
+            el.classList.remove("snap-pop");
+          }, { once: true });
+        });
+      });
+    }
+
+    /* ==============================
+       10) Tap-to-swap
     ============================== */
     function handleTapSwap(teamId, zone){
       if(!swapSelection){
@@ -590,6 +631,10 @@
 
       swapTeamsInZone(zone, swapSelection.teamId, teamId);
       swapSelection = null;
+
+      // tiny snap for tap swaps too
+      lastReorder = { zone, movedId: teamId, targetId: swapSelection?.teamId };
+
       render();
     }
 
@@ -606,19 +651,6 @@
       card.addEventListener("click", () => {
         handleTapSwap(card.dataset.id, card.dataset.zone);
       });
-    }
-
-    /* ==============================
-       10) Find helper
-    ============================== */
-    function findTeamAndZone(teamId){
-      for(const z of zones){
-        const arr = getZoneArray(z);
-        if(!arr) continue;
-        const idx = arr.findIndex(t => t.id === teamId);
-        if(idx !== -1) return { zone: z, index: idx, team: arr[idx] };
-      }
-      return null;
     }
 
     /* ==============================
@@ -650,7 +682,6 @@
       const targetId = cardEl.dataset.id;
       const targetZone = cardEl.dataset.zone;
 
-      // must be same zone as origin + not itself
       if(targetZone !== dragging.fromZone || targetId === dragging.teamId){
         dragging.targetId = null;
         return;
@@ -679,7 +710,6 @@
       const targetIndex =
         fromIndex < targetIndexOrig ? targetIndexOrig - 1 : targetIndexOrig;
 
-      // Insert into the target's slot
       arr.splice(targetIndex, 0, team);
     }
 
@@ -790,7 +820,6 @@
           dragging.moved = true;
         }
 
-        // Only prevent scroll once it's clearly a drag
         if(dragging.moved){
           e.preventDefault();
 
@@ -832,19 +861,20 @@
       clone.remove();
 
       if(!cancelled){
-        // Tap without movement -> tap-to-swap
         if(!moved){
           handleTapSwap(teamId, fromZone);
           dragging = null;
           return;
         }
 
-        // Reorder only within same zone using the touched target
         if(targetId){
           reorderToTarget(teamId, fromZone, targetId);
+
+          // Mark for snap animation after render
+          lastReorder = { zone: fromZone, movedId: teamId, targetId };
+
           render();
         } else {
-          // No touched target -> no reorder
           render();
         }
       }
@@ -870,6 +900,7 @@
           state = initialState();
           stage = "pools";
           swapSelection = null;
+          lastReorder = null;
           buildBoard();
           render();
           wireButtons();
