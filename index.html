@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>World Cup 2026 Mini Predictor (Groups + 3rd Rank + Knockouts)</title>
+  <title>World Cup 2026 hello Mini Predictor (Groups + 3rd Rank + Knockouts)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -174,6 +174,10 @@
       opacity: 0.5;
       background: rgba(122,162,255,0.12);
       border-color: rgba(122,162,255,0.5);
+    }
+
+    .team-item, .third-item, .team-chip{
+      touch-action: none;
     }
     .handle{
       width: 14px;
@@ -1103,42 +1107,35 @@
 
 <script>
 
-  function applySkyHighlights() {
-  // 1) Winners in knockout/wiki brackets
-  // Assumption: your winner selection sets something like:
-  // state.knockoutPicks[matchId] = "FR" (team code)
-  // We'll highlight any element that declares data-team-code + data-match-id.
+function applySkyHighlights(){
+  // 1) Highlight top 2 in each group list
+  document.querySelectorAll(".team-list").forEach(ul => {
+    const gid = ul.dataset.group;
+    const top2 = (groupsState[gid] || []).slice(0, 2).map(x => (x || "").trim());
 
+    Array.from(ul.children).forEach(li => {
+      const n = (li.dataset.teamName || li.querySelector(".team-text")?.textContent || "").trim();
+      li.classList.toggle("sky-highlight", top2.includes(n));
+    });
+  });
+
+  // 2) Highlight top 8 3rd-place items in the 3rd list
+  const top8ThirdGroups = getTop8Thirds().map(t => t.group);
+  document.querySelectorAll("#thirdList .third-item").forEach((li, idx) => {
+    const g = li.dataset.group;
+    li.classList.toggle("sky-highlight", top8ThirdGroups.includes(g));
+  });
+
+  // 3) If you later add data attributes for KO chips, keep this hook safe:
+  // (no-op unless attributes exist)
   document.querySelectorAll("[data-match-id][data-team-code]").forEach(el => {
-    const mid = el.getAttribute("data-match-id");
-    const t = el.getAttribute("data-team-code");
-    const picked = state?.knockoutPicks?.[mid];
-
-    el.classList.toggle("sky-highlight", picked === t);
-  });
-
-  // 2) Third-place pool top 8
-  // Assumption: you already compute a sorted array in state.thirdPlaceRanked
-  // containing team codes in rank order.
-  const top8 = (state?.thirdPlaceRanked || []).slice(0, 8);
-  document.querySelectorAll("[data-third-place-team]").forEach(el => {
-    const t = el.getAttribute("data-third-place-team");
-    el.classList.toggle("sky-highlight", top8.includes(t));
-  });
-
-  // 3) Group top 2 qualifiers
-  // Assumption: you already compute group standings in state.groupStandings[groupId]
-  // as array of objects with { code, ... } sorted by rank.
-  document.querySelectorAll("[data-group-id][data-team-code][data-group-team]").forEach(el => {
-    const gid = el.getAttribute("data-group-id");
-    const t = el.getAttribute("data-team-code");
-
-    const arr = state?.groupStandings?.[gid] || [];
-    const top2 = arr.slice(0, 2).map(x => x.code);
-
-    el.classList.toggle("sky-highlight", top2.includes(t));
+    const mid = Number(el.getAttribute("data-match-id"));
+    const tcode = el.getAttribute("data-team-code");
+    const picked = koWinners?.[mid]?.code;
+    el.classList.toggle("sky-highlight", picked === tcode);
   });
 }
+
 
 /* =========================================================
    DEFAULT GROUPS
@@ -2048,7 +2045,9 @@ function refreshGroupPositionTags(){
    ========================================================= */
 function enableSortableList(listEl, onUpdate){
   let dragged = null;
+  let pointerActive = false;
 
+  // ----- Desktop HTML5 drag -----
   listEl.addEventListener("dragstart", e => {
     const li = e.target.closest("li");
     if(!li) return;
@@ -2065,20 +2064,59 @@ function enableSortableList(listEl, onUpdate){
 
   listEl.addEventListener("dragover", e => {
     e.preventDefault();
-    const after = getDragAfterElement(listEl, e.clientY);
     if(!dragged) return;
-    if(after == null){
-      listEl.appendChild(dragged);
-    } else {
-      listEl.insertBefore(dragged, after);
-    }
+    const after = getDragAfterElement(listEl, e.clientY);
+    if(after == null) listEl.appendChild(dragged);
+    else listEl.insertBefore(dragged, after);
   });
 
   listEl.addEventListener("drop", e => {
     e.preventDefault();
     if(typeof onUpdate === "function") onUpdate(listEl);
   });
+
+  // ----- Mobile / Pointer fallback -----
+  listEl.addEventListener("pointerdown", e => {
+    if(e.pointerType === "mouse") return; // let HTML5 path handle mouse
+    const li = e.target.closest("li");
+    if(!li || !listEl.contains(li)) return;
+
+    pointerActive = true;
+    dragged = li;
+    li.classList.add("dragging");
+    li.draggable = false; // avoid conflicts on some browsers
+
+    try { li.setPointerCapture(e.pointerId); } catch(_){}
+    e.preventDefault();
+  });
+
+  listEl.addEventListener("pointermove", e => {
+    if(!pointerActive || !dragged) return;
+
+    const after = getDragAfterElement(listEl, e.clientY);
+    if(after == null) listEl.appendChild(dragged);
+    else listEl.insertBefore(dragged, after);
+
+    e.preventDefault();
+  });
+
+  function endPointerDrag(e){
+    if(!pointerActive) return;
+    pointerActive = false;
+
+    if(dragged){
+      dragged.classList.remove("dragging");
+      dragged.draggable = true;
+    }
+
+    if(typeof onUpdate === "function") onUpdate(listEl);
+    dragged = null;
+  }
+
+  listEl.addEventListener("pointerup", endPointerDrag);
+  listEl.addEventListener("pointercancel", endPointerDrag);
 }
+
 
 function getDragAfterElement(container, y){
   const els = [...container.querySelectorAll("li:not(.dragging)")];
@@ -2769,26 +2807,24 @@ function makeWikiMatchBox(matchId){
   return box;
 }
 
-function makeWikiRoundCol(title, items, extraClass = "") {
+function makeWikiRoundCol(title, matchIds, extraClass = ""){
   const col = document.createElement("div");
   col.className = `wiki-round-col ${extraClass || ""}`.trim();
 
   const head = document.createElement("div");
-  head.className = "wiki-round-head";
+  head.className = "wiki-round-title";
   head.textContent = title;
 
   const body = document.createElement("div");
-  body.className = "wiki-round-body"; // <-- important new/standard class
+  body.className = "wiki-round-body";
 
-  // Whatever you currently do to append match/team nodes:
-  // items.forEach(x => body.appendChild(makeWikiMatchBox(x)));
-  items.forEach(node => body.appendChild(node));
+  matchIds.forEach(mid => body.appendChild(makeWikiMatchBox(mid)));
 
   col.appendChild(head);
   col.appendChild(body);
-
   return col;
 }
+
 
 function renderWikiBracket(){
   if(!wikiBracket) return;
@@ -2808,7 +2844,8 @@ function renderWikiBracket(){
   const sides = splitBracketSides();
 
   const outer = document.createElement("div");
-  outer.className = "wiki-bracket-outer";
+ outer.className = "wiki-bracket wiki-bracket-outer";
+
 
   // Winner banner
   const banner = document.createElement("div");
@@ -2880,14 +2917,28 @@ function makeChampionCard(team){
   left.appendChild(flag);
   left.appendChild(txt);
 
-  const right = document.createElement("span");
-  right.className = "badge good";
-  right.textContent = "Champion";
+  // Optional right-side actions (if you want)
+  const right = document.createElement("div");
+  right.className = "row";
+  right.style.gap = "8px";
+
+  // Example: add a small reset just for convenience
+  const btn = document.createElement("button");
+  btn.className = "btn tiny";
+  btn.textContent = "Reset winner";
+  btn.addEventListener("click", () => {
+    delete koWinners[104];
+    renderKnockouts();
+  });
+
+  right.appendChild(btn);
 
   wrap.appendChild(left);
   wrap.appendChild(right);
+
   return wrap;
 }
+
 
 /* =========================================================
    MATCH CARD WITH DRAGGABLE TEAMS + WINNER ZONE
@@ -2926,6 +2977,11 @@ function makeMatchCard({matchId, date, venue, home, away}){
 
   card.appendChild(head);
   card.appendChild(body);
+
+  chip.addEventListener("click", () => {
+      setWinner(matchId, teamObj);
+      });
+
 
   return card;
 }
@@ -2985,6 +3041,13 @@ function makeTeamChip(team, matchId, side){
 function deepClone(obj){
   return JSON.parse(JSON.stringify(obj));
 }
+
+function setWinner(matchId, team){
+  if(!team || !team.name || team.name === "TBD") return;
+  koWinners[matchId] = team;
+  renderKnockouts();
+}
+
 
 function escapeHtml(str){
   return String(str ?? "")
