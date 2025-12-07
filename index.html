@@ -34,6 +34,11 @@
       /* Click-swap armed styling (amber) */
       --swap-bg: rgba(255, 184, 107, 0.14);
       --swap-br: rgba(255, 184, 107, 0.55);
+
+      /* KO winner highlight */
+      --win-bg: rgba(94, 230, 168, 0.18);
+      --win-br: rgba(94, 230, 168, 0.75);
+      --win-glow: rgba(94, 230, 168, 0.35);
     }
 
     *{box-sizing:border-box}
@@ -61,7 +66,7 @@
     header .hint{
       color:var(--muted);
       font-size: 11.5px;
-      max-width: 80ch;
+      max-width: 90ch;
     }
 
     .actions{
@@ -118,7 +123,7 @@
       align-items:center;
       justify-content: space-between;
       gap: 10px;
-      padding: 10px 6px 2px 6px;
+      padding: 12px 6px 6px 6px;
     }
     .stage-left{
       display:flex;
@@ -129,9 +134,9 @@
     }
     .stage-title{
       font-size: 11px;
-      letter-spacing: 0.35px;
+      letter-spacing: 0.45px;
       text-transform: uppercase;
-      color: rgba(255,255,255,0.55);
+      color: rgba(255,255,255,0.6);
       white-space: nowrap;
     }
     .stage-line{
@@ -139,6 +144,22 @@
       background: var(--border);
       flex: 1;
       min-width: 30px;
+    }
+
+    /* Stronger KO round separators */
+    .round-separator{
+      margin-top: 10px;
+      padding-top: 18px;
+    }
+    .round-separator .stage-title{
+      color: rgba(255,255,255,0.8);
+      font-weight: 650;
+      letter-spacing: 0.6px;
+    }
+    .round-separator .stage-line{
+      height: 2px;
+      background: linear-gradient(90deg, rgba(122,162,255,0.0), rgba(122,162,255,0.35), rgba(122,162,255,0.0));
+      border-radius: 2px;
     }
 
     /* Column (used for pools/groups/tools only) */
@@ -216,10 +237,7 @@
       align-items: center;
       box-shadow: var(--shadow);
     }
-
-    .r32-tile{
-      width: 100%;
-    }
+    .r32-tile{ width: 100%; }
 
     .match-team{
       padding: 8px 10px;
@@ -230,16 +248,28 @@
       cursor: pointer;
       text-align: center;
       user-select: none;
+      transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
     }
     .match-team.locked{
       cursor: default;
       opacity: 0.9;
     }
 
+    /* Winner glow (persistent) */
+    .match-team.winner{
+      background: var(--win-bg);
+      border-color: var(--win-br);
+      box-shadow:
+        0 0 0 1px var(--win-glow) inset,
+        0 0 18px rgba(94,230,168,0.18);
+      transform: translateY(-1px);
+      font-weight: 650;
+    }
+
     .match-mid{
       min-width: 48px;
       text-align: center;
-      font-weight: 800;
+      font-weight: 900;
       font-size: 12px;
       padding: 6px 8px;
       border-radius: 8px;
@@ -331,6 +361,35 @@
       text-align: center;
       background: rgba(255,255,255,0.03);
     }
+
+    /* =========================
+       Centering KO late rounds
+       ========================= */
+
+    /* Semis: center the pair on 4-col layout */
+    @media (min-width: 1400px){
+      .center-col-2{ grid-column: 2; }
+      .center-col-3{ grid-column: 3; }
+
+      /* Single late matches: occupy middle two columns */
+      .center-span-2{ grid-column: 2 / span 2; }
+    }
+
+    /* 3-col layout: put centered singles in col 2 */
+    @media (min-width: 1100px) and (max-width: 1399px){
+      .center-span-2{ grid-column: 2; }
+      .center-col-2, .center-col-3{ grid-column: auto; }
+    }
+
+    /* 2-col & 1-col: full width feels best */
+    @media (max-width: 1099px){
+      .center-span-2,
+      .center-col-2,
+      .center-col-3{
+        grid-column: 1 / -1;
+      }
+    }
+
   </style>
 </head>
 
@@ -401,7 +460,91 @@
       name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
     /* ==============================
-       2) Edit mode + click-swap state
+       2) FLAGS
+       - Add more anytime you want
+    ============================== */
+    const FLAG_BY_NAME = {
+      "Mexico":"🇲🇽",
+      "South Africa":"🇿🇦",
+      "South Korea":"🇰🇷",
+      "Canada":"🇨🇦",
+      "Qatar":"🇶🇦",
+      "Switzerland":"🇨🇭",
+      "Brazil":"🇧🇷",
+      "Morocco":"🇲🇦",
+      "Haiti":"🇭🇹",
+      "Scotland":"🇬🇧",
+      "United States":"🇺🇸",
+      "United States of America":"🇺🇸",
+      "Paraguay":"🇵🇾",
+      "Australia":"🇦🇺",
+      "Germany":"🇩🇪",
+      "Curaçao":"🇨🇼",
+      "Ivory Coast":"🇨🇮",
+      "Ecuador":"🇪🇨",
+      "Netherlands":"🇳🇱",
+      "Japan":"🇯🇵",
+      "Tunisia":"🇹🇳",
+      "Belgium":"🇧🇪",
+      "Egypt":"🇪🇬",
+      "Iran":"🇮🇷",
+      "New Zealand":"🇳🇿",
+      "Spain":"🇪🇸",
+      "Cape Verde":"🇨🇻",
+      "Saudi Arabia":"🇸🇦",
+      "Uruguay":"🇺🇾",
+      "France":"🇫🇷",
+      "Senegal":"🇸🇳",
+      "Norway":"🇳🇴",
+      "Argentina":"🇦🇷",
+      "Algeria":"🇩🇿",
+      "Austria":"🇦🇹",
+      "Jordan":"🇯🇴",
+      "Portugal":"🇵🇹",
+      "Uzbekistan":"🇺🇿",
+      "Colombia":"🇨🇴",
+      "England":"🇬🇧",
+      "Croatia":"🇭🇷",
+      "Ghana":"🇬🇭",
+      "Panama":"🇵🇦",
+
+      // Path candidates
+      "Wales":"🇬🇧",
+      "Bosnia and Herzegovina":"🇧🇦",
+      "Italy":"🇮🇹",
+      "Northern Ireland":"🇬🇧",
+      "Ukraine":"🇺🇦",
+      "Sweden":"🇸🇪",
+      "Poland":"🇵🇱",
+      "Albania":"🇦🇱",
+      "Slovakia":"🇸🇰",
+      "Kosovo":"🇽🇰",
+      "Turkey":"🇹🇷",
+      "Romania":"🇷🇴",
+      "Czech Republic":"🇨🇿",
+      "Republic of Ireland":"🇮🇪",
+      "Denmark":"🇩🇰",
+      "North Macedonia":"🇲🇰",
+      "New Caledonia":"🇳🇨",
+      "Jamaica":"🇯🇲",
+      "DR Congo":"🇨🇩",
+      "Bolivia":"🇧🇴",
+      "Suriname":"🇸🇷",
+      "Iraq":"🇮🇶"
+    };
+
+    function flagEmoji(name){
+      if(!name) return "";
+      if(name.startsWith("UEFA Path") || name.startsWith("FIFA IC Path") || name.includes("Path")) return "";
+      return FLAG_BY_NAME[name] ? `${FLAG_BY_NAME[name]} ` : "";
+    }
+
+    function nameWithFlag(name){
+      return `${flagEmoji(name)}${name}`;
+    }
+
+    /* ==============================
+       3) Edit mode + click-swap state
     ============================== */
     let editMode = "pools";
     let swapSelection = null;
@@ -410,7 +553,7 @@
     let usedThirdFallback = false;
 
     /* ==============================
-       3) Build initial state
+       4) Build initial state
     ============================== */
     function buildGroupsFromDefaults(){
       const groups = {};
@@ -499,20 +642,19 @@
 
         // R32
         r32Winners: {},
-        r32Teams: {},      // store resolved L/R names for loser logic
+        r32Teams: {},
         r32Generated: false,
 
         // Later KO
         koWinners: {},
-        koTeams: {}        // store resolved L/R names for loser logic
+        koTeams: {}
       };
     };
 
     let state = initialState();
 
     /* ==============================
-       4) Zones for swap-UI columns
-         (KO is board-level tiles)
+       5) Zones (swap columns only)
     ============================== */
     const pathZones  = PATHS.map(p => `path-${p.id}`);
     const groupZones = GROUP_KEYS.map(g => `group-${g}`);
@@ -541,7 +683,7 @@
     };
 
     /* ==============================
-       5) R32 DATA
+       6) R32 DATA
     ============================== */
     function getGroupPosTeam(g, idx){
       const t = state.groups[g]?.[idx];
@@ -600,10 +742,9 @@
     ];
 
     /* ==============================
-       6) LATER KO DATA (from your list)
+       7) LATER KO DATA (your list)
     ============================== */
     const KO_INFO = {
-      // Round of 16
       89:  { stage:"R16", date:"July 4, 2026", time:"5:00 p.m. (UTC−4)", stadium:"Lincoln Financial Field", city:"Philadelphia" },
       90:  { stage:"R16", date:"July 4, 2026", time:"12:00 p.m. (UTC−5)", stadium:"NRG Stadium", city:"Houston" },
       91:  { stage:"R16", date:"July 5, 2026", time:"4:00 p.m. (UTC−4)", stadium:"MetLife Stadium", city:"East Rutherford" },
@@ -613,27 +754,19 @@
       95:  { stage:"R16", date:"July 7, 2026", time:"12:00 p.m. (UTC−4)", stadium:"Mercedes-Benz Stadium", city:"Atlanta" },
       96:  { stage:"R16", date:"July 7, 2026", time:"1:00 p.m. (UTC−7)", stadium:"BC Place", city:"Vancouver" },
 
-      // Quarterfinals
       97:  { stage:"QF",  date:"July 9, 2026", time:"4:00 p.m. (UTC−4)", stadium:"Gillette Stadium", city:"Foxborough" },
       98:  { stage:"QF",  date:"July 10, 2026", time:"12:00 p.m. (UTC−7)", stadium:"SoFi Stadium", city:"Inglewood" },
       99:  { stage:"QF",  date:"July 11, 2026", time:"5:00 p.m. (UTC−4)", stadium:"Hard Rock Stadium", city:"Miami Gardens" },
       100: { stage:"QF",  date:"July 11, 2026", time:"8:00 p.m. (UTC−5)", stadium:"Arrowhead Stadium", city:"Kansas City" },
 
-      // Semifinals
       101: { stage:"SF",  date:"July 14, 2026", time:"2:00 p.m. (UTC−5)", stadium:"AT&T Stadium", city:"Arlington" },
       102: { stage:"SF",  date:"July 15, 2026", time:"3:00 p.m. (UTC−4)", stadium:"Mercedes-Benz Stadium", city:"Atlanta" },
 
-      // Third place
       103: { stage:"3P",  date:"July 18, 2026", time:"5:00 p.m. (UTC−4)", stadium:"Hard Rock Stadium", city:"Miami Gardens" },
 
-      // Final
       104: { stage:"F",   date:"July 19, 2026", time:"3:00 p.m. (UTC−4)", stadium:"MetLife Stadium", city:"East Rutherford" }
     };
 
-    // Slot types:
-    //  W/RU/3SET = group-based
-    //  WM = Winner Match <id>
-    //  LM = Loser Match <id>
     const R16_MATCHES = [
       { id: 90, left:{ type:"WM", m:73 }, right:{ type:"WM", m:75 } },
       { id: 89, left:{ type:"WM", m:74 }, right:{ type:"WM", m:77 } },
@@ -674,12 +807,12 @@
     ];
 
     /* ==============================
-       7) Third-place mapping hook
+       8) Third-place mapping hook
     ============================== */
-    const THIRD_TABLE = {}; // optional future FIFA mapping table
+    const THIRD_TABLE = {};
 
     /* ==============================
-       8) Third tools logic
+       9) Third tools logic
     ============================== */
     function getThirdTeamForGroup(g){
       const arr = state.groups[g] ?? [];
@@ -806,7 +939,7 @@
     }
 
     /* ==============================
-       9) Abbreviations
+       10) Abbreviations
     ============================== */
     const ABBR_SPECIAL = {
       "United States": "USA",
@@ -846,7 +979,16 @@
     }
 
     /* ==============================
-       10) Zone array getter
+       11) Edit rules
+    ============================== */
+    function isClickSwapEnabledForZone(zoneKey){
+      if(editMode === "pools") return isPathZone(zoneKey);
+      if(editMode === "groups") return isGroupZone(zoneKey) || zoneKey === THIRD_RANK_ZONE;
+      return false;
+    }
+
+    /* ==============================
+       12) Zone array getter
     ============================== */
     function getZoneArray(zoneKey){
       if(isPathZone(zoneKey)){
@@ -859,20 +1001,14 @@
         syncThirdRankingNames();
         return state.thirdRanking;
       }
-      if(zoneKey === CHAMP_ZONE){
-        return computeChampions();
-      }
-      if(zoneKey === RUNNERS_ZONE){
-        return computeRunners();
-      }
-      if(zoneKey === TOP8_ZONE){
-        return computeTop8ThirdPlaced();
-      }
+      if(zoneKey === "champions-view") return computeChampions();
+      if(zoneKey === "runners-view") return computeRunners();
+      if(zoneKey === "top8-third-view") return computeTop8ThirdPlaced();
       return null;
     }
 
     /* ==============================
-       11) Pool status display
+       13) Pool status display
     ============================== */
     function clearPoolStatus(){
       PATHS.forEach(p => {
@@ -898,15 +1034,11 @@
     }
 
     /* ==============================
-       12) KO Winner/Loser helpers
+       14) Winner/Loser helpers
     ============================== */
     function getWinnerOfMatch(matchId){
-      if(state.r32Winners && state.r32Winners[matchId]){
-        return state.r32Winners[matchId];
-      }
-      if(state.koWinners && state.koWinners[matchId]){
-        return state.koWinners[matchId];
-      }
+      if(state.r32Winners && state.r32Winners[matchId]) return state.r32Winners[matchId];
+      if(state.koWinners && state.koWinners[matchId]) return state.koWinners[matchId];
       return null;
     }
 
@@ -919,17 +1051,14 @@
     function getLoserOfMatch(matchId){
       const w = getWinnerOfMatch(matchId);
       const teams = getTeamsOfMatch(matchId);
-
-      if(!w || !teams){
-        return null;
-      }
+      if(!w || !teams) return null;
 
       const loserName = (w.side === "L") ? teams.R : teams.L;
       return { name: loserName, abbrev: teamAbbrev(loserName) };
     }
 
     /* ==============================
-       13) Slot resolver for KO tiles
+       15) Slot resolver
     ============================== */
     function resolveSlot(slot, matchId){
       if(slot.type === "W"){
@@ -974,59 +1103,153 @@
       if(slot.type === "WM"){
         const w = getWinnerOfMatch(slot.m);
         if(!w){
-          return {
-            name: `Winner Match ${slot.m}`,
-            label: `W${slot.m}`,
-            groupKey: "?",
-            placeholder: true,
-            source: "placeholder"
-          };
+          return { name: `Winner Match ${slot.m}`, label: `W${slot.m}`, groupKey: "?", placeholder: true };
         }
-        return {
-          name: w.name,
-          label: `W${slot.m}`,
-          groupKey: "?",
-          placeholder: false,
-          source: "winner"
-        };
+        return { name: w.name, label: `W${slot.m}`, groupKey: "?", placeholder: false, source: "winner" };
       }
 
       if(slot.type === "LM"){
         const l = getLoserOfMatch(slot.m);
         if(!l){
-          return {
-            name: `Loser Match ${slot.m}`,
-            label: `L${slot.m}`,
-            groupKey: "?",
-            placeholder: true,
-            source: "placeholder"
-          };
+          return { name: `Loser Match ${slot.m}`, label: `L${slot.m}`, groupKey: "?", placeholder: true };
         }
-        return {
-          name: l.name,
-          label: `L${slot.m}`,
-          groupKey: "?",
-          placeholder: false,
-          source: "loser"
-        };
+        return { name: l.name, label: `L${slot.m}`, groupKey: "?", placeholder: false, source: "loser" };
       }
 
       return { name: "TBD", label: "---", groupKey: "?", placeholder: true };
     }
 
     /* ==============================
-       14) Click-to-swap rules
+       16) Board builders
     ============================== */
-    function isClickSwapEnabledForZone(zoneKey){
-      if(editMode === "pools"){
-        return isPathZone(zoneKey);
+    function makeSeparator(text, buttonOptions=null, extraClass=""){
+      const sep = document.createElement("div");
+      sep.className = `stage-separator ${extraClass}`.trim();
+
+      const left = document.createElement("div");
+      left.className = "stage-left";
+      left.innerHTML = `
+        <span class="stage-title">${text}</span>
+        <span class="stage-line"></span>
+      `;
+      sep.appendChild(left);
+
+      if(buttonOptions){
+        const btn = document.createElement("button");
+        btn.id = buttonOptions.id;
+        btn.textContent = buttonOptions.text;
+        sep.appendChild(btn);
       }
-      if(editMode === "groups"){
-        return isGroupZone(zoneKey) || zoneKey === THIRD_RANK_ZONE;
-      }
-      return false;
+
+      return sep;
     }
 
+    function makeColumn(title, zoneKey, subtitle = ""){
+      const col = document.createElement("section");
+      col.className = "column";
+      col.innerHTML = `
+        <div class="column-header">
+          <div class="column-title">${title}${subtitle ? ` • ${subtitle}` : ""}</div>
+          <div class="count" data-count-for="${zoneKey}"></div>
+        </div>
+        <div class="zone" data-zone="${zoneKey}"></div>
+      `;
+      return col;
+    }
+
+    function makeKOTile(match, stageKey, extraClass=""){
+      const tile = document.createElement("div");
+      tile.className = `match-card r32-tile ${extraClass}`.trim();
+      tile.dataset.matchId = String(match.id);
+      tile.dataset.stage = stageKey;
+      return tile;
+    }
+
+    function buildBoard(){
+      const board = document.getElementById("board");
+      board.innerHTML = "";
+
+      // Pools
+      board.appendChild(makeSeparator("Qualifier Pools (click-swap in Pool mode)"));
+      PATHS.forEach(p => {
+        board.appendChild(makeColumn(p.label, `path-${p.id}`, `feeds Group ${p.group}`));
+      });
+
+      // Groups
+      board.appendChild(
+        makeSeparator(
+          "Groups (click-swap in Group mode)",
+          { id:"formGroupsBtn", text:"Form Groups" }
+        )
+      );
+      GROUP_KEYS.forEach(g => {
+        board.appendChild(makeColumn(`Group ${g}`, `group-${g}`));
+      });
+
+      // Tools
+      board.appendChild(makeSeparator("Group Tools & Third-Place Logic"));
+      board.appendChild(makeColumn("Third Place Team Ranking", "third-ranking", "A3 → L3"));
+      board.appendChild(makeColumn("Group Champions", "champions-view", "A1 → L1"));
+      board.appendChild(makeColumn("Group Runners", "runners-view", "A2 → L2"));
+      board.appendChild(makeColumn("Top-8 Third Placed Teams", "top8-third-view", "auto"));
+
+      // R32
+      board.appendChild(
+        makeSeparator(
+          "Round of 32 (placeholder → generate → pick winners)",
+          { id:"generateR32Btn", text:"Generate R32" },
+          "round-separator"
+        )
+      );
+      R32_MATCHES.forEach(m => board.appendChild(makeKOTile(m, "r32")));
+
+      // R16 → Final with strong round separators
+      KO_STAGES.forEach(stage => {
+        board.appendChild(makeSeparator(stage.label, null, "round-separator"));
+
+        if(stage.key === "sf"){
+          // center two semis on large screens
+          stage.matches.forEach((m, idx) => {
+            const cls = (idx === 0) ? "center-col-2" : "center-col-3";
+            board.appendChild(makeKOTile(m, stage.key, cls));
+          });
+          return;
+        }
+
+        if(stage.key === "3p" || stage.key === "f"){
+          // single centered tile
+          stage.matches.forEach(m => {
+            board.appendChild(makeKOTile(m, stage.key, "center-span-2"));
+          });
+          return;
+        }
+
+        stage.matches.forEach(m => board.appendChild(makeKOTile(m, stage.key)));
+      });
+    }
+
+    /* ==============================
+       17) Derived data
+    ============================== */
+    function computeChampions(){
+      return GROUP_KEYS.map(g => {
+        const t = state.groups[g]?.[0];
+        const name = (!t || t.isPlaceholder) ? fallbackPathNameForGroup(g) : t.name;
+        return { id: toId(`champ-${g}-${name}`), name, groupKey: g };
+      });
+    }
+
+    function computeRunners(){
+      return GROUP_KEYS.map(g => {
+        const t = state.groups[g]?.[1];
+        const name = (!t || t.isPlaceholder) ? fallbackPathNameForGroup(g) : t.name;
+        return { id: toId(`runner-${g}-${name}`), name, groupKey: g };
+      });
+    }
+
+    /* ==============================
+       18) Click-to-swap logic
+    ============================== */
     function swapTeamsInArray(arr, id1, id2){
       const i1 = arr.findIndex(t => t.id === id1);
       const i2 = arr.findIndex(t => t.id === id2);
@@ -1036,9 +1259,7 @@
     }
 
     function handleClickSwap(teamId, zone){
-      if(!isClickSwapEnabledForZone(zone)){
-        return;
-      }
+      if(!isClickSwapEnabledForZone(zone)) return;
 
       if(!swapSelection){
         swapSelection = { teamId, zone };
@@ -1061,13 +1282,8 @@
       const arr = getZoneArray(zone);
       if(!arr) return;
 
-      const ok = swapTeamsInArray(arr, swapSelection.teamId, teamId);
+      swapTeamsInArray(arr, swapSelection.teamId, teamId);
       swapSelection = null;
-
-      if(ok){
-        // derived will refresh on render
-      }
-
       render();
     }
 
@@ -1078,7 +1294,7 @@
     }
 
     /* ==============================
-       15) Form Groups
+       19) Form Groups
     ============================== */
     function upsertPathTeamInGroup(groupKey, pathId, chosenTeam){
       const arr = state.groups[groupKey];
@@ -1140,138 +1356,11 @@
     }
 
     /* ==============================
-       16) Board builders
-    ============================== */
-    function makeSeparator(text, buttonOptions=null){
-      const sep = document.createElement("div");
-      sep.className = "stage-separator";
-
-      const left = document.createElement("div");
-      left.className = "stage-left";
-      left.innerHTML = `
-        <span class="stage-title">${text}</span>
-        <span class="stage-line"></span>
-      `;
-      sep.appendChild(left);
-
-      if(buttonOptions){
-        const btn = document.createElement("button");
-        btn.id = buttonOptions.id;
-        btn.textContent = buttonOptions.text;
-        sep.appendChild(btn);
-      }
-
-      return sep;
-    }
-
-    function makeColumn(title, zoneKey, subtitle = ""){
-      const col = document.createElement("section");
-      col.className = "column";
-      col.innerHTML = `
-        <div class="column-header">
-          <div class="column-title">${title}${subtitle ? ` • ${subtitle}` : ""}</div>
-          <div class="count" data-count-for="${zoneKey}"></div>
-        </div>
-        <div class="zone" data-zone="${zoneKey}"></div>
-      `;
-      return col;
-    }
-
-    function makeKOTile(match, stageKey){
-      const tile = document.createElement("div");
-      tile.className = "match-card r32-tile";
-      tile.dataset.matchId = String(match.id);
-      tile.dataset.stage = stageKey;
-      return tile;
-    }
-
-    function buildBoard(){
-      const board = document.getElementById("board");
-      board.innerHTML = "";
-
-      // Pools
-      board.appendChild(makeSeparator("Qualifier Pools (click-swap in Pool mode)"));
-      PATHS.forEach(p => {
-        board.appendChild(makeColumn(p.label, `path-${p.id}`, `feeds Group ${p.group}`));
-      });
-
-      // Groups
-      board.appendChild(
-        makeSeparator(
-          "Groups (click-swap in Group mode)",
-          { id:"formGroupsBtn", text:"Form Groups" }
-        )
-      );
-
-      GROUP_KEYS.forEach(g => {
-        board.appendChild(makeColumn(`Group ${g}`, `group-${g}`));
-      });
-
-      // Tools
-      board.appendChild(makeSeparator("Group Tools & Third-Place Logic"));
-      board.appendChild(makeColumn("Third Place Team Ranking", THIRD_RANK_ZONE, "A3 → L3"));
-      board.appendChild(makeColumn("Group Champions", CHAMP_ZONE, "A1 → L1"));
-      board.appendChild(makeColumn("Group Runners", RUNNERS_ZONE, "A2 → L2"));
-      board.appendChild(makeColumn("Top-8 Third Placed Teams", TOP8_ZONE, "auto"));
-
-      // R32
-      board.appendChild(
-        makeSeparator(
-          "Round of 32 (placeholder → generate → pick winners)",
-          { id:"generateR32Btn", text:"Generate R32" }
-        )
-      );
-      R32_MATCHES.forEach(m => board.appendChild(makeKOTile(m, "r32")));
-
-      // R16 → Final
-      KO_STAGES.forEach(stage => {
-        board.appendChild(makeSeparator(stage.label));
-        stage.matches.forEach(m => board.appendChild(makeKOTile(m, stage.key)));
-      });
-    }
-
-    /* ==============================
-       17) Render swap columns
-    ============================== */
-    function applyRankHighlight(cardEl, zone, idx, team){
-      cardEl.classList.remove("rank-strong", "rank-mild", "qualified", "eliminated");
-
-      if(isPathZone(zone)){
-        if(idx === 0) cardEl.classList.add("rank-strong");
-
-        if(editMode === "groups"){
-          if(team.isQualified) cardEl.classList.add("qualified");
-          if(team.isEliminated) cardEl.classList.add("eliminated");
-        }
-        return;
-      }
-
-      if(isGroupZone(zone)){
-        if(idx === 0 || idx === 1) cardEl.classList.add("rank-strong");
-        else if(idx === 2) cardEl.classList.add("rank-mild");
-        return;
-      }
-
-      if(zone === THIRD_RANK_ZONE){
-        if(idx < 8) cardEl.classList.add("rank-strong");
-        return;
-      }
-
-      if(zone === TOP8_ZONE){
-        cardEl.classList.add("rank-strong");
-        return;
-      }
-    }
-
-    /* ==============================
-       18) KO tile rendering
+       20) KO rendering
     ============================== */
     function renderAllKOTiles(){
       renderKOTileSet(R32_MATCHES, true);
-
-      KO_STAGES.forEach(stage => {
-        renderKOTileSet(stage.matches, false);
-      });
+      KO_STAGES.forEach(stage => renderKOTileSet(stage.matches, false));
     }
 
     function renderKOTileSet(matches, isR32){
@@ -1291,11 +1380,11 @@
 
         const leftBtn = document.createElement("div");
         leftBtn.className = "match-team";
-        leftBtn.textContent = L.name;
+        leftBtn.textContent = nameWithFlag(L.name);
 
         const rightBtn = document.createElement("div");
         rightBtn.className = "match-team";
-        rightBtn.textContent = R.name;
+        rightBtn.textContent = nameWithFlag(R.name);
 
         const mid = document.createElement("div");
         mid.className = "match-mid";
@@ -1304,7 +1393,6 @@
           (isR32 ? state.r32Generated : true) &&
           !L.placeholder && !R.placeholder;
 
-        // Store both teams when resolvable (this enables real loser names)
         if(canPick){
           teamsMap[m.id] = { L: L.name, R: R.name };
         }
@@ -1329,6 +1417,10 @@
           mid.textContent = winner ? winner.abbrev : "---";
         }
 
+        // Persistent winner highlight
+        if(winner && winner.side === "L") leftBtn.classList.add("winner");
+        if(winner && winner.side === "R") rightBtn.classList.add("winner");
+
         const meta = document.createElement("div");
         meta.className = "match-meta";
 
@@ -1338,7 +1430,6 @@
         const metaRight = document.createElement("span");
         metaRight.textContent = "";
 
-        // For R32 3SET source labels
         if(isR32 && (m.right.type === "3SET" || m.left.type === "3SET")){
           if(!state.r32Generated){
             metaRight.textContent = "3rd-place: placeholder";
@@ -1387,7 +1478,39 @@
     }
 
     /* ==============================
-       19) Main render
+       21) Rank highlights
+    ============================== */
+    function applyRankHighlight(cardEl, zone, idx, team){
+      cardEl.classList.remove("rank-strong", "rank-mild", "qualified", "eliminated");
+
+      if(isPathZone(zone)){
+        if(idx === 0) cardEl.classList.add("rank-strong");
+        if(editMode === "groups"){
+          if(team.isQualified) cardEl.classList.add("qualified");
+          if(team.isEliminated) cardEl.classList.add("eliminated");
+        }
+        return;
+      }
+
+      if(isGroupZone(zone)){
+        if(idx === 0 || idx === 1) cardEl.classList.add("rank-strong");
+        else if(idx === 2) cardEl.classList.add("rank-mild");
+        return;
+      }
+
+      if(zone === THIRD_RANK_ZONE){
+        if(idx < 8) cardEl.classList.add("rank-strong");
+        return;
+      }
+
+      if(zone === TOP8_ZONE){
+        cardEl.classList.add("rank-strong");
+        return;
+      }
+    }
+
+    /* ==============================
+       22) Main render
     ============================== */
     function render(){
       syncThirdRankingNames();
@@ -1450,7 +1573,7 @@
           }
 
           card.innerHTML = `
-            <span class="name">${team.name}</span>
+            <span class="name">${nameWithFlag(team.name)}</span>
             <span class="tag">${tagText}</span>
           `;
 
@@ -1479,7 +1602,7 @@
     }
 
     /* ==============================
-       20) Buttons + stage UI
+       23) Buttons UI
     ============================== */
     function updateStagePillAndButtons(){
       const pill = document.getElementById("stagePill");
@@ -1547,7 +1670,7 @@
     }
 
     /* ==============================
-       21) Boot
+       24) Boot
     ============================== */
     document.addEventListener("DOMContentLoaded", () => {
       buildBoard();
