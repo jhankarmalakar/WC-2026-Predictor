@@ -252,6 +252,17 @@
       color: var(--muted);
       font-size: 11px;
     }
+
+    .top8-summary{
+      margin-top: 8px;
+      padding: 8px 10px;
+      font-size: 11px;
+      color: var(--muted);
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
   </style>
 </head>
 
@@ -327,6 +338,8 @@
     ============================== */
     let editMode = "pools";
     let swapSelection = null; // { teamId, zone }
+    let qualifiedThirdGroupLetters = "";
+
 
     /* ==============================
        3) State
@@ -558,14 +571,31 @@
       });
     }
 
-    function computeTop8ThirdPlaced(){
-      syncThirdRankingNames();
-      return state.thirdRanking.slice(0, 8).map((x, i) => ({
-        id: toId(`top8-third-${i}-${x.groupKey}-${x.name}`),
-        name: x.name,
-        groupKey: x.groupKey
-      }));
-    }
+   function computeTop8ThirdPlaced(){
+        syncThirdRankingNames();
+      
+        // 1) Take top 8 from manual ranking order
+        const top8Source = state.thirdRanking.slice(0, 8);
+      
+        // 2) Save qualified group letters for later use
+        qualifiedThirdGroupLetters = top8Source
+          .map(x => x.groupKey)
+          .sort((a,b) => a.localeCompare(b))
+          .join("");
+      
+        // 3) Build display objects
+        const top8 = top8Source.map((x, i) => ({
+          id: toId(`top8-third-${i}-${x.groupKey}-${x.name}`),
+          name: x.name,
+          groupKey: x.groupKey
+        }));
+      
+        // 4) Display in alphabetical group order (A→L)
+        top8.sort((a, b) => a.groupKey.localeCompare(b.groupKey));
+      
+        return top8;
+      }
+
 
     /* ==============================
        8) Zone arrays
@@ -688,6 +718,15 @@
 
           dz.appendChild(card);
         });
+
+        // Extra summary line for Top-8 Third Placed column
+                if(zone === TOP8_ZONE){
+                  const summary = document.createElement("div");
+                  summary.className = "top8-summary";
+                  summary.textContent = qualifiedThirdGroupLetters || "—";
+                  dz.appendChild(summary);
+                }
+
 
         const countEl = document.querySelector(`[data-count-for="${zone}"]`);
         if(countEl){
