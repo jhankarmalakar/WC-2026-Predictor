@@ -17,21 +17,21 @@
       --shadow: 0 10px 30px rgba(0,0,0,0.35);
       --radius: 14px;
 
-      /* Highlight tokens */
+      /* Rank highlights */
       --hl-strong-bg: rgba(94, 230, 168, 0.14);
       --hl-strong-br: rgba(94, 230, 168, 0.45);
       --hl-mild-bg:   rgba(122, 162, 255, 0.10);
       --hl-mild-br:   rgba(122, 162, 255, 0.35);
 
-      /* Status border/glow for qualified */
+      /* Qualified styling */
       --qualified-br: rgba(94, 230, 168, 0.55);
       --qualified-glow: rgba(94, 230, 168, 0.18);
 
-      /* Eliminated styling token */
+      /* Eliminated styling */
       --elim-bg: rgba(255, 107, 122, 0.08);
       --elim-br: rgba(255, 107, 122, 0.35);
 
-      /* Swap armed styling */
+      /* Swap/preview styling (amber) */
       --swap-bg: rgba(255, 184, 107, 0.14);
       --swap-br: rgba(255, 184, 107, 0.55);
     }
@@ -82,7 +82,7 @@
       letter-spacing: 0.2px;
     }
 
-    /* Bigger buttons (Form + Reset) */
+    /* Bigger buttons */
     button{
       background: rgba(122,162,255,0.12);
       color: var(--text);
@@ -93,13 +93,8 @@
       cursor: pointer;
       white-space: nowrap;
     }
-    button:hover{
-      background: rgba(122,162,255,0.18);
-    }
-    button:disabled{
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
+    button:hover{ background: rgba(122,162,255,0.18); }
+    button:disabled{ opacity: 0.6; cursor: not-allowed; }
 
     /* Board grid */
     .board{
@@ -148,7 +143,7 @@
       min-width: 30px;
     }
 
-    /* Column containers */
+    /* Column */
     .column{
       background: linear-gradient(180deg, var(--panel), var(--panel-2));
       border:1px solid var(--border);
@@ -159,7 +154,6 @@
       display:flex;
       flex-direction:column;
     }
-
     .column-header{
       padding: 12px 14px;
       display:flex;
@@ -199,7 +193,7 @@
       outline-offset: -6px;
     }
 
-    /* Cards */
+    /* Card */
     .card{
       background: rgba(255,255,255,0.04);
       border:1px solid var(--border);
@@ -211,7 +205,10 @@
       gap: 10px;
       cursor: grab;
       user-select: none;
+
+      /* Mobile drag fix */
       touch-action: none;
+
       transition: background 120ms ease, border-color 120ms ease, transform 80ms ease, box-shadow 120ms ease;
     }
     .card:active{ cursor: grabbing; }
@@ -247,7 +244,7 @@
       backdrop-filter: blur(8px);
     }
 
-    /* Highlights */
+    /* Rank highlights */
     .rank-strong{
       background: var(--hl-strong-bg);
       border-color: var(--hl-strong-br);
@@ -257,7 +254,7 @@
       border-color: var(--hl-mild-br);
     }
 
-    /* Qualified: do NOT override strong highlight background */
+    /* Qualified: doesn't override strong bg */
     .qualified{
       border-color: var(--qualified-br);
       box-shadow: 0 0 0 1px var(--qualified-glow) inset;
@@ -269,8 +266,15 @@
       border-color: var(--elim-br);
     }
 
-    /* Swap armed */
+    /* First-click armed swap */
     .swap-armed{
+      background: var(--swap-bg);
+      border-color: var(--swap-br);
+      box-shadow: 0 0 0 1px rgba(255,184,107,0.18) inset;
+    }
+
+    /* Live drag target preview */
+    .drag-target{
       background: var(--swap-bg);
       border-color: var(--swap-br);
       box-shadow: 0 0 0 1px rgba(255,184,107,0.18) inset;
@@ -303,12 +307,12 @@
   <main class="board" id="board"></main>
 
   <div class="footer">
-    Drag reorder uses a 50% drop rule. Tap/click two teams in the same zone to swap.
+    50% reorder works both directions. Tap/click two teams in the same zone to swap.
   </div>
 
   <script>
     /* ==============================
-       1) GROUPS with renamed placeholders
+       1) GROUPS
     ============================== */
     const DEFAULT_GROUPS = {
       A: ["Mexico","South Africa","South Korea","UFEA Path D"],
@@ -326,7 +330,7 @@
     };
 
     /* ==============================
-       2) QUALIFIER PATHS (Pools)
+       2) PATHS (Pools)
     ============================== */
     const PATHS = [
       { id: "ufeapath-a", label: "UFEA Path A",
@@ -351,17 +355,13 @@
       name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
     /* ==============================
-       3) Stage control
+       3) Stage + swap state
     ============================== */
     let stage = "pools"; // "pools" -> "groups"
-
-    /* ==============================
-       4) Swap selection state (tap-to-swap)
-    ============================== */
     let swapSelection = null; // { teamId, zone }
 
     /* ==============================
-       5) State
+       4) State
     ============================== */
     const initialState = () => {
       const paths = {};
@@ -405,7 +405,9 @@
 
     let state = initialState();
 
-    /* Zones */
+    /* ==============================
+       5) Zones
+    ============================== */
     const pathZones = PATHS.map(p => `path-${p.id}`);
     const groupZones = GROUP_KEYS.map(g => `group-${g}`);
     const zones = [...pathZones, ...groupZones];
@@ -419,7 +421,7 @@
     };
 
     /* ==============================
-       6) UI Builder
+       6) UI build
     ============================== */
     function makeSeparator(text, withFormButton=false){
       const sep = document.createElement("div");
@@ -439,7 +441,6 @@
         btn.textContent = "Form Groups";
         sep.appendChild(btn);
       }
-
       return sep;
     }
 
@@ -472,7 +473,7 @@
     }
 
     /* ==============================
-       7) Data access + Render
+       7) Data access
     ============================== */
     function getZoneArray(zoneKey){
       if(isPathZone(zoneKey)){
@@ -496,6 +497,9 @@
       pill.textContent = stage === "pools" ? "Stage: Pools" : "Stage: Groups";
     }
 
+    /* ==============================
+       8) Render
+    ============================== */
     function render(){
       zones.forEach(zone => {
         const dz = document.querySelector(`.dropzone[data-zone="${zone}"]`);
@@ -513,18 +517,18 @@
 
           applyRankHighlight(card, zone, idx, team);
 
-          // swap-armed visual
           if(swapSelection && swapSelection.teamId === team.id && swapSelection.zone === zone){
             card.classList.add("swap-armed");
           }
 
-          // Tag text rules
           let tagText = team.tag ?? "";
 
           if(isPathZone(zone)){
-            tagText = (stage === "groups")
-              ? (idx === 0 ? "Qualified" : "Eliminated")
-              : (team.tag ?? "");
+            if(stage === "groups"){
+              tagText = team.isQualified ? "Qualified" : "Eliminated";
+            } else {
+              tagText = team.tag ?? "";
+            }
           }
 
           if(isGroupZone(zone)){
@@ -540,9 +544,6 @@
             <span class="tag">${tagText}</span>
           `;
 
-          // Attach behavior:
-          // - If zone is draggable in this stage, attach drag (tap-to-swap handled via drag system for tap)
-          // - Else attach tap-only swap
           const canDrag = !team.isPlaceholder && isDragEnabledForZone(zone);
 
           if(canDrag){
@@ -572,11 +573,13 @@
       cardEl.classList.remove("rank-strong", "rank-mild", "qualified", "eliminated");
 
       if(isPathZone(zone)){
+        // Pool topper strong highlight always
         if(idx === 0) cardEl.classList.add("rank-strong");
 
+        // After Form Groups, use flags for status styling
         if(stage === "groups"){
-          if(idx === 0) cardEl.classList.add("qualified");
-          else cardEl.classList.add("eliminated");
+          if(team.isQualified) cardEl.classList.add("qualified");
+          if(team.isEliminated) cardEl.classList.add("eliminated");
         }
         return;
       }
@@ -588,31 +591,27 @@
     }
 
     /* ==============================
-       8) Swap logic (tap/click)
+       9) Tap-to-swap logic
     ============================== */
     function handleTapSwap(teamId, zone){
-      // If nothing selected yet
       if(!swapSelection){
         swapSelection = { teamId, zone };
         render();
         return;
       }
 
-      // If tapping the same team again -> clear
       if(swapSelection.teamId === teamId && swapSelection.zone === zone){
         swapSelection = null;
         render();
         return;
       }
 
-      // If different zone -> switch "first click" to new team
       if(swapSelection.zone !== zone){
         swapSelection = { teamId, zone };
         render();
         return;
       }
 
-      // Same zone -> swap
       swapTeamsInZone(zone, swapSelection.teamId, teamId);
       swapSelection = null;
       render();
@@ -636,11 +635,7 @@
     }
 
     /* ==============================
-       9) Reorder logic (50% drop rule)
-       FIX:
-       - Removed the old "insertIndex adjustment" entirely.
-       - The index from DOM excluding dragging already matches
-         the array after removal.
+       10) Reorder logic (correct 50% both directions)
     ============================== */
     function findTeamAndZone(teamId){
       for(const z of zones){
@@ -652,24 +647,41 @@
       return null;
     }
 
-    function getInsertIndexByDrop(zoneEl, clientY){
-      const cards = [...zoneEl.querySelectorAll(".card:not(.dragging)")];
+    // Compute insertion index in ORIGINAL array coordinates
+    function getInsertIndexByDrop(zoneEl, clientY, arr, draggedId){
+      const cards = [...zoneEl.querySelectorAll(".card")]
+        .filter(c => c.dataset.id && c.dataset.id !== draggedId);
 
-      for(let i = 0; i < cards.length; i++){
-        const r = cards[i].getBoundingClientRect();
+      if(cards.length === 0) return 0;
+
+      // 1) Direct overlap rule (upper half/bottom half)
+      for(const card of cards){
+        const r = card.getBoundingClientRect();
         if(clientY >= r.top && clientY <= r.bottom){
           const mid = r.top + r.height / 2;
-          return clientY > mid ? i + 1 : i;
+          const targetId = card.dataset.id;
+          const targetIndex = arr.findIndex(t => t.id === targetId);
+          if(targetIndex === -1) continue;
+
+          return clientY > mid ? targetIndex + 1 : targetIndex;
         }
       }
 
-      // fallback scan
-      for(let i = 0; i < cards.length; i++){
-        const r = cards[i].getBoundingClientRect();
+      // 2) Fallback: midpoint scan
+      for(const card of cards){
+        const r = card.getBoundingClientRect();
         const mid = r.top + r.height / 2;
-        if(clientY < mid) return i;
+        const targetId = card.dataset.id;
+        const targetIndex = arr.findIndex(t => t.id === targetId);
+        if(targetIndex === -1) continue;
+
+        if(clientY < mid){
+          return targetIndex;
+        }
       }
-      return cards.length;
+
+      // 3) End
+      return arr.length;
     }
 
     function reorderWithinZone(teamId, zoneEl, clientY){
@@ -681,16 +693,58 @@
       if(!found) return;
       if(found.zone !== toZone) return;
 
-      const [team] = arr.splice(found.index, 1);
+      const fromIndex = found.index;
 
-      const insertIndex = getInsertIndexByDrop(zoneEl, clientY);
+      const insertIndexRaw = getInsertIndexByDrop(zoneEl, clientY, arr, teamId);
 
-      // IMPORTANT FIX: no index-shift correction here
+      const [team] = arr.splice(fromIndex, 1);
+
+      const insertIndex =
+        insertIndexRaw > fromIndex ? insertIndexRaw - 1 : insertIndexRaw;
+
       arr.splice(insertIndex, 0, team);
     }
 
     /* ==============================
-       10) Feeding logic (COPY, don't move)
+       11) Drag target preview helpers
+    ============================== */
+    function clearDragTargets(){
+      document.querySelectorAll(".drag-target")
+        .forEach(el => el.classList.remove("drag-target"));
+    }
+
+    function markDragTarget(zoneEl, clientY, draggedId){
+      clearDragTargets();
+
+      const cards = [...zoneEl.querySelectorAll(".card")]
+        .filter(c => c.dataset.id && c.dataset.id !== draggedId);
+
+      // Overlap target
+      for(const card of cards){
+        const r = card.getBoundingClientRect();
+        if(clientY >= r.top && clientY <= r.bottom){
+          card.classList.add("drag-target");
+          return;
+        }
+      }
+
+      // Midpoint fallback
+      for(const card of cards){
+        const r = card.getBoundingClientRect();
+        const mid = r.top + r.height / 2;
+        if(clientY < mid){
+          card.classList.add("drag-target");
+          return;
+        }
+      }
+
+      if(cards.length){
+        cards[cards.length - 1].classList.add("drag-target");
+      }
+    }
+
+    /* ==============================
+       12) Form Groups (COPY, don't move)
     ============================== */
     function groupHasPlaceholder(groupKey, pathId){
       return state.groups[groupKey].some(t => t.isPlaceholder && t.pathId === pathId);
@@ -698,6 +752,7 @@
 
     function replacePlaceholderWithTeam(groupKey, pathId, chosenTeam){
       const arr = state.groups[groupKey];
+
       const idx = arr.findIndex(t => t.isPlaceholder && t.pathId === pathId);
       const insertionIndex = (idx === -1) ? arr.length : idx;
 
@@ -729,7 +784,6 @@
         if(!pathArr || pathArr.length === 0) return;
 
         const chosen = pathArr[0];
-
         if(!groupHasPlaceholder(p.group, p.id)) return;
 
         replacePlaceholderWithTeam(p.group, p.id, chosen);
@@ -742,10 +796,7 @@
     }
 
     /* ==============================
-       11) Pointer drag engine
-       - Adds "tap detection":
-         if you don't move beyond threshold,
-         it behaves as a tap for swap-selection.
+       13) Pointer drag engine with tap detection
     ============================== */
     function zoneFromPoint(x, y){
       const all = [...document.querySelectorAll(".dropzone")];
@@ -761,7 +812,6 @@
     function attachPointerDrag(card){
       card.addEventListener("pointerdown", (e) => {
         if(e.button !== undefined && e.button !== 0) return;
-
         e.preventDefault();
 
         const teamId = card.dataset.id;
@@ -785,7 +835,6 @@
           fromZone,
           offsetX: e.clientX - (rect.left + rect.width / 2),
           offsetY: e.clientY - (rect.top + rect.height / 2),
-          lastZoneEl: null,
           startX: e.clientX,
           startY: e.clientY,
           moved: false
@@ -797,8 +846,8 @@
 
       card.addEventListener("pointermove", (e) => {
         if(!dragging || dragging.pointerId !== e.pointerId) return;
-
         e.preventDefault();
+
         positionClone(e.clientX, e.clientY);
 
         const dx = Math.abs(e.clientX - dragging.startX);
@@ -810,13 +859,14 @@
         if(dragging.moved){
           const zoneEl = zoneFromPoint(e.clientX, e.clientY);
 
-          if(zoneEl !== dragging.lastZoneEl){
-            document.querySelectorAll(".dropzone")
-              .forEach(z => z.classList.remove("over"));
+          document.querySelectorAll(".dropzone")
+            .forEach(z => z.classList.remove("over"));
 
-            if(zoneEl) zoneEl.classList.add("over");
-
-            dragging.lastZoneEl = zoneEl;
+          if(zoneEl && zoneEl.dataset.zone === dragging.fromZone){
+            zoneEl.classList.add("over");
+            markDragTarget(zoneEl, e.clientY, dragging.teamId);
+          } else {
+            clearDragTargets();
           }
         }
       });
@@ -842,6 +892,7 @@
     function finishDrag(x, y, cancelled=false){
       const { teamId, originCard, clone, fromZone, moved } = dragging;
 
+      clearDragTargets();
       document.querySelectorAll(".dropzone")
         .forEach(z => z.classList.remove("over"));
 
@@ -849,7 +900,7 @@
       clone.remove();
 
       if(!cancelled){
-        // Tap-without-move -> treat as swap tap
+        // Tap without movement = swap selection
         if(!moved){
           handleTapSwap(teamId, fromZone);
           dragging = null;
@@ -873,7 +924,7 @@
     }
 
     /* ==============================
-       12) Buttons + Boot
+       14) Buttons + boot
     ============================== */
     function wireButtons(){
       const formBtn = document.getElementById("formGroupsBtn");
@@ -892,7 +943,7 @@
           swapSelection = null;
           buildBoard();
           render();
-          wireButtons();
+          wireButtons(); // Form button is rebuilt
         });
       }
     }
