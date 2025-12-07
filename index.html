@@ -831,6 +831,8 @@
           }
 
           updateTouchedTarget(e.clientX, e.clientY);
+          console.log("dragging", dragging.teamId, "target", dragging.targetId);
+
         }
       });
 
@@ -880,6 +882,9 @@
       }
 
       dragging = null;
+
+      console.log("DROP reorder", teamId, "->", targetId);
+
     }
 
     /* ==============================
