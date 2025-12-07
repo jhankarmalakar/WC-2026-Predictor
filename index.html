@@ -67,7 +67,7 @@
     header .hint{
       color:var(--muted);
       font-size: 11.5px;
-      max-width: 80ch;
+      max-width: 90ch;
     }
 
     .actions{
@@ -246,24 +246,12 @@
     }
 
     /* Rank highlights */
-    .rank-strong{
-      background: var(--hl-strong-bg);
-      border-color: var(--hl-strong-br);
-    }
-    .rank-mild{
-      background: var(--hl-mild-bg);
-      border-color: var(--hl-mild-br);
-    }
+    .rank-strong{ background: var(--hl-strong-bg); border-color: var(--hl-strong-br); }
+    .rank-mild{ background: var(--hl-mild-bg); border-color: var(--hl-mild-br); }
 
     /* Qualified/Eliminated */
-    .qualified{
-      border-color: var(--qualified-br);
-      box-shadow: 0 0 0 1px var(--qualified-glow) inset;
-    }
-    .eliminated{
-      background: var(--elim-bg);
-      border-color: var(--elim-br);
-    }
+    .qualified{ border-color: var(--qualified-br); box-shadow: 0 0 0 1px var(--qualified-glow) inset; }
+    .eliminated{ background: var(--elim-bg); border-color: var(--elim-br); }
 
     /* First-click armed swap */
     .swap-armed{
@@ -332,11 +320,12 @@
       width: min(760px, 100%);
     }
 
+    /* Match card structure */
     .match-card{
       background: rgba(255,255,255,0.035);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 12px 12px 10px 12px;
+      padding: 14px 12px 10px 12px;
       display: grid;
       grid-template-columns: 1fr auto 1fr;
       gap: 10px 10px;
@@ -344,21 +333,26 @@
       position: relative;
     }
 
-    /* Header row for KO cards */
-    .match-head{
+    /* Top-left index */
+    .match-index{
+      position: absolute;
+      top: 8px;
+      left: 10px;
+      font-size: 10.5px;
+      color: var(--muted);
+      letter-spacing: 0.3px;
+    }
+
+    /* Centered fixture label just above mid box */
+    .match-fixture{
       grid-column: 1 / -1;
       text-align: center;
       font-weight: 800;
-      font-size: 12.5px;
-      letter-spacing: 0.4px;
-      color: rgba(255,255,255,0.85);
-      padding: 4px 6px 2px 6px;
-    }
-    .match-head .sub{
-      font-weight: 600;
-      font-size: 11.5px;
-      color: var(--muted);
-      margin-left: 6px;
+      font-size: 12.6px;
+      letter-spacing: 0.35px;
+      color: rgba(255,255,255,0.92);
+      margin-top: 2px;
+      margin-bottom: -2px;
     }
 
     .match-team{
@@ -389,7 +383,7 @@
       min-width: 56px;
       text-align: center;
       font-weight: 900;
-      font-size: 12.5px;
+      font-size: 12.8px;
       padding: 8px 10px;
       border-radius: 10px;
       border: 1px solid var(--border);
@@ -435,7 +429,8 @@
       <div class="hint">
         Click/tap two teams in the same editable zone to swap.
         Use “Form Groups” to copy pool winners into groups.
-        Knockout winners are validated every render — changing an early result automatically clears later winners.
+        Knockout winners are validated every render — changing an early input automatically clears later winners.
+        Auto buttons fill ONLY unfilled results.
       </div>
     </div>
 
@@ -572,17 +567,14 @@
 
     function rankOf(name){
       if(!name) return 999;
-      // strip flag placeholders or labels
       return RANK_BY_NAME[name] ?? 999;
     }
 
     function impliedProbFromPositiveOdds(x){
-      // +400 => 100/(400+100) = 0.2
       return 100 / (x + 100);
     }
 
     function pickWinnerNameAuto(a, b){
-      // deterministic for all unless BOTH are in odds set
       const aOdds = ODDS_POSITIVE[a];
       const bOdds = ODDS_POSITIVE[b];
 
@@ -594,11 +586,9 @@
         return Math.random() < ra ? a : b;
       }
 
-      // otherwise deterministic by rank
       const ra = rankOf(a);
       const rb = rankOf(b);
       if(ra === rb){
-        // stable tie-break
         return String(a).localeCompare(String(b)) <= 0 ? a : b;
       }
       return ra < rb ? a : b;
@@ -684,13 +674,11 @@
 
     function flagHTML(name){
       if(!name) return "";
-      // skip placeholders/path labels
       if(
         name.startsWith("UEFA Path") ||
         name.startsWith("FIFA IC Path") ||
         name.includes("UFEA Path") ||
-        name.includes("FIFA IC Path") ||
-        name.includes("Path") && name.length <= 16
+        name.includes("FIFA IC Path")
       ) return "";
 
       const code = FLAG_CODE_BY_NAME[name];
@@ -798,7 +786,9 @@
 
         // Knockout
         r32Generated: false,
-        winners: {} // matchId -> { side, name, abbrev }
+
+        // winners[matchId] = { side, name, abbrev, leftAtPick, rightAtPick }
+        winners: {}
       };
     };
 
@@ -904,7 +894,7 @@
       { id: 88, left: {type:"RU", g:"D"}, right:{type:"RU", g:"G"} }
     ];
 
-    // R16 pairings per user text
+    // R16 pairings per your earlier paste
     const R16_MATCHES = [
       { id: 90, left:{type:"WM", id:73}, right:{type:"WM", id:75} },
       { id: 89, left:{type:"WM", id:74}, right:{type:"WM", id:77} },
@@ -1030,95 +1020,35 @@
       return spec.split("/").map(s => s.trim()).filter(Boolean);
     }
 
-    // You can fill this later if you want exact FIFA mapping.
-    // You will fill this later based on FIFA's third-place mapping table.
-
-// IMPORTANT:
-// The 8 outputs in each table row must map to the 8 R32 matches that use 3rd-place teams.
-// In YOUR code, those are the matches where slot.type === "3SET".
-//
-// You listed them as:
-// 74, 77, 79, 80, 81, 82, 85, 87
-//
-// The official table columns should match this order IF your source table columns are arranged
-// in the same sequence. If your source header shows a different match order, change this array.
-
-    // Third-place mapping table (from the HTML rows you pasted)
-    // IMPORTANT:
-    // The 8 outputs in each table row must map to the 8 R32 matches that use 3rd-place teams.
-    // In this code, those are the matches where slot.type === "3SET":
-    // 74, 77, 79, 80, 81, 82, 85, 87 (see THIRD_MATCH_ID_ORDER).
-
+    /* ==============================
+       9) Optional FIFA third table support
+       (you can extend later)
+    ============================== */
     const THIRD_MATCH_ID_ORDER = [74, 77, 79, 80, 81, 82, 85, 87];
 
-    /*
-      Compact input:
-      key = the 8 qualified third-place group letters sorted A→L
-      value = 8 tags in the SAME order as THIRD_MATCH_ID_ORDER
-    */
     const THIRD_TABLE_RAW = {
-      // Row 1: E F G H I J K L
       "EFGHIJKL": ["3E","3J","3I","3F","3H","3G","3L","3K"],
-
-      // Row 2: D F G H I J K L
       "DFGHIJKL": ["3H","3G","3I","3D","3J","3F","3L","3K"],
-
-      // Row 3: D E G H I J K L
       "DEGHIJKL": ["3E","3J","3I","3D","3H","3G","3L","3K"],
-
-      // Row 4: D E F H I J K L
       "DEFHIJKL": ["3E","3J","3I","3D","3H","3F","3L","3K"],
-
-      // Row 5: D E F G I J K L
       "DEFGIJKL": ["3E","3G","3I","3D","3J","3F","3L","3K"],
-
-      // Row 6: D E F G H J K L
       "DEFGHJKL": ["3E","3G","3J","3D","3H","3F","3L","3K"],
-
-      // Row 7: D E F G H I K L
       "DEFGHIKL": ["3E","3G","3I","3D","3H","3F","3L","3K"],
-
-      // Row 8: D E F G H I J L
       "DEFGHIJL": ["3E","3G","3J","3D","3H","3F","3L","3I"],
-
-      // Row 9: D E F G H I J K
       "DEFGHIJK": ["3E","3G","3J","3D","3H","3F","3I","3K"],
-
-      // Row 10: C F G H I J K L
       "CFGHIJKL": ["3H","3G","3I","3C","3J","3F","3L","3K"],
-
-      // Row 11: C E G H I J K L
       "CEGHIJKL": ["3E","3J","3I","3C","3H","3G","3L","3K"],
-
-      // Row 12: C E F H I J K L
       "CEFHIJKL": ["3E","3J","3I","3C","3H","3F","3L","3K"],
-
-      // Row 13: C E F G I J K L
       "CEFGIJKL": ["3E","3G","3I","3C","3J","3F","3L","3K"],
-
-      // Row 14: C E F G H J K L
       "CEFGHJKL": ["3E","3G","3J","3C","3H","3F","3L","3K"],
-
-      // Row 15: C E F G H I K L
       "CEFGHIKL": ["3E","3G","3I","3C","3H","3F","3L","3K"],
-
-      // Row 16: C E F G H I J L
       "CEFGHIJL": ["3E","3G","3J","3C","3H","3F","3L","3I"],
-
-      // Row 17: C E F G H I J K
       "CEFGHIJK": ["3E","3G","3J","3C","3H","3F","3I","3K"],
-
-      // Row 18: C D G H I J K L
       "CDGHIJKL": ["3H","3G","3I","3C","3J","3D","3L","3K"],
-
-      // Row 19: C D F H I J K L
       "CDFHIJKL": ["3C","3J","3I","3D","3H","3F","3L","3K"],
-
-      // Row 20: C D F G I J K L
       "CDFGIJKL": ["3C","3G","3I","3D","3J","3F","3L","3K"],
     };
 
-    // Expand compact rows into per-match mapping
     const THIRD_TABLE = Object.fromEntries(
       Object.entries(THIRD_TABLE_RAW).map(([key, arr]) => {
         const matchMap = {};
@@ -1128,7 +1058,6 @@
         return [key, matchMap];
       })
     );
-
 
     function resolveThirdFromRankingOnly(){
       computeTop8ThirdPlaced();
@@ -1151,20 +1080,13 @@
         return { groupKey: g, name, source: "table", tableKey: key, fallback: false };
       }
 
-      // Requirement #4: after R32 generated, remove "allowed-set" emphasis.
-      if(state.r32Generated){
-        const res = resolveThirdFromRankingOnly();
-        return { groupKey: res.groupKey, name: res.name, source:"ranking", tableKey:key, fallback: res.fallback };
-      }
-
-      // Before generation we never reach here (placeholder shown).
-      // But keep a safe fallback.
+      // After R32 generation: ranking-only (per your rule)
       const res = resolveThirdFromRankingOnly();
       return { groupKey: res.groupKey, name: res.name, source:"ranking", tableKey:key, fallback: res.fallback };
     }
 
     /* ==============================
-       9) KO slot resolution
+       10) KO slot resolution
     ============================== */
     function getGroupPosTeam(g, idx){
       const t = state.groups[g]?.[idx];
@@ -1205,6 +1127,14 @@
       return s.slice(0,3);
     }
 
+    function findMatchById(id){
+      for(const k of Object.keys(ALL_ROUNDS)){
+        const m = ALL_ROUNDS[k].find(x => x.id === id);
+        if(m) return m;
+      }
+      return null;
+    }
+
     function resolveSlot(slot, matchId){
       if(slot.type === "W"){
         const t = getGroupPosTeam(slot.g, 0);
@@ -1238,27 +1168,21 @@
       if(slot.type === "LM"){
         const w = state.winners[slot.id];
         if(!w) return { name:`Loser ${slot.id}`, label:`L${slot.id}`, placeholder:true };
-        // loser name isn't stored; infer from resolved participants
+
         const prev = findMatchById(slot.id);
         if(!prev) return { name:`Loser ${slot.id}`, label:`L${slot.id}`, placeholder:true };
 
         const p = resolveParticipants(prev);
         const loserName = (p.left.name === w.name) ? p.right.name : p.left.name;
-        if(!loserName || loserName.startsWith("Winner") || loserName.startsWith("Loser")){
+
+        if(!loserName || p.left.placeholder || p.right.placeholder){
           return { name:`Loser ${slot.id}`, label:`L${slot.id}`, placeholder:true };
         }
+
         return { name: loserName, label:`L${slot.id}`, placeholder:false };
       }
 
       return { name:"TBD", label:"---", placeholder:true };
-    }
-
-    function findMatchById(id){
-      for(const k of Object.keys(ALL_ROUNDS)){
-        const m = ALL_ROUNDS[k].find(x => x.id === id);
-        if(m) return m;
-      }
-      return null;
     }
 
     function resolveParticipants(match){
@@ -1268,13 +1192,10 @@
     }
 
     /* ==============================
-       10) Winner validation (Feature #1)
+       11) Winner validation (strict)
+       Fixes your #1 complaint.
     ============================== */
     function validateAllWinners(){
-      // Ensure stored winners always match currently resolved participants.
-      // If not, delete them. This naturally cascades.
-
-      // Keep iterating once is enough because later matches depend on earlier winners.
       const order = [
         ...R32_MATCHES.map(m=>m.id),
         ...R16_MATCHES.map(m=>m.id),
@@ -1293,42 +1214,67 @@
 
         const p = resolveParticipants(match);
 
-        const names = [p.left.name, p.right.name];
-
-        // Must be concrete names
+        // if current participants aren't real yet, clear winner
         if(p.left.placeholder || p.right.placeholder){
           delete state.winners[id];
           return;
         }
 
-        if(!names.includes(stored.name)){
+        const currentLeft = p.left.name;
+        const currentRight = p.right.name;
+
+        // if stored winner isn't one of current participants, clear
+        if(![currentLeft, currentRight].includes(stored.name)){
           delete state.winners[id];
+          return;
+        }
+
+        // STRICT SNAPSHOT CHECK:
+        // if the participant pair changed since pick, clear
+        if(
+          stored.leftAtPick && stored.rightAtPick &&
+          (stored.leftAtPick !== currentLeft || stored.rightAtPick !== currentRight)
+        ){
+          delete state.winners[id];
+          return;
         }
       });
     }
 
     function setWinner(matchId, side, name){
+      const match = findMatchById(matchId);
+      if(!match) return;
+
+      const p = resolveParticipants(match);
+      if(p.left.placeholder || p.right.placeholder) return;
+
       const ab = teamAbbrev(name);
-      state.winners[matchId] = { side, name, abbrev: ab };
+
+      state.winners[matchId] = {
+        side,
+        name,
+        abbrev: ab,
+        leftAtPick: p.left.name,
+        rightAtPick: p.right.name
+      };
+
       validateAllWinners();
       render();
     }
 
     /* ==============================
-       11) Edit rules
+       12) Edit rules
     ============================== */
     function isClickSwapEnabledForZone(zoneKey){
       if(editMode === "pools") return isPathZone(zoneKey);
       if(editMode === "groups"){
-        // After R32 generated, keep third ranking visible but still editable if you want.
-        // If you want it hard-locked, change to: && !state.r32Generated
         return isGroupZone(zoneKey) || zoneKey === THIRD_RANK_ZONE;
       }
       return false;
     }
 
     /* ==============================
-       12) Zone arrays
+       13) Zone arrays
     ============================== */
     function getZoneArray(zoneKey){
       if(isPathZone(zoneKey)) return state.paths[pathIdFromZone(zoneKey)];
@@ -1341,7 +1287,7 @@
     }
 
     /* ==============================
-       13) Pool status display
+       14) Pool status display
     ============================== */
     function clearPoolStatus(){
       PATHS.forEach(p => {
@@ -1363,7 +1309,7 @@
     }
 
     /* ==============================
-       14) Click-to-swap logic
+       15) Click-to-swap logic
     ============================== */
     function swapTeamsInArray(arr, id1, id2){
       const i1 = arr.findIndex(t => t.id === id1);
@@ -1400,7 +1346,7 @@
       swapTeamsInArray(arr, swapSelection.teamId, teamId);
       swapSelection = null;
 
-      // Any group change can affect KO resolution
+      // This can change 3rd mapping + KO participants
       validateAllWinners();
       render();
     }
@@ -1412,7 +1358,7 @@
     }
 
     /* ==============================
-       15) Form Groups (COPY)
+       16) Form Groups (COPY)
     ============================== */
     function upsertPathTeamInGroup(groupKey, pathId, chosenTeam){
       const arr = state.groups[groupKey];
@@ -1475,7 +1421,9 @@
     }
 
     /* ==============================
-       16) AUTO buttons (Feature #2)
+       17) AUTO buttons
+       Fixes your #3 complaint:
+       auto fills ONLY unfilled winners.
     ============================== */
     function sortArrayByRank(arr){
       arr.sort((a,b) => {
@@ -1498,15 +1446,17 @@
       GROUP_KEYS.forEach(g => {
         const arr = state.groups[g];
         if(!arr) return;
-        // keep placeholders at end
+
         const real = arr.filter(x => !x.isPlaceholder);
         const ph   = arr.filter(x => x.isPlaceholder);
+
         real.sort((a,b) => {
           const ra = rankOf(a.name);
           const rb = rankOf(b.name);
           if(ra === rb) return String(a.name).localeCompare(String(b.name));
           return ra - rb;
         });
+
         state.groups[g] = [...real, ...ph].slice(0,4);
       });
 
@@ -1527,19 +1477,27 @@
       render();
     }
 
-    function canAutoRound(match){
-      const p = resolveParticipants(match);
-      return !p.left.placeholder && !p.right.placeholder;
-    }
-
     function autoRound(matches){
       matches.forEach(m => {
-        const p = resolveParticipants(m);
+        const match = findMatchById(m.id);
+        if(!match) return;
+
+        const p = resolveParticipants(match);
         if(p.left.placeholder || p.right.placeholder) return;
+
+        // ONLY fill if unfilled
+        if(state.winners[m.id]) return;
 
         const winnerName = pickWinnerNameAuto(p.left.name, p.right.name);
         const side = (winnerName === p.left.name) ? "L" : "R";
-        state.winners[m.id] = { side, name: winnerName, abbrev: teamAbbrev(winnerName) };
+
+        state.winners[m.id] = {
+          side,
+          name: winnerName,
+          abbrev: teamAbbrev(winnerName),
+          leftAtPick: p.left.name,
+          rightAtPick: p.right.name
+        };
       });
 
       validateAllWinners();
@@ -1547,14 +1505,16 @@
     }
 
     function generateR32(){
-      state.winners = {}; // reset all knockouts on generation for clean logic
+      // Only affects R32 generation state.
+      // Do NOT wipe user picks globally.
       state.r32Generated = true;
+
       validateAllWinners();
       render();
     }
 
     /* ==============================
-       17) UI build
+       18) UI build
     ============================== */
     function makeSeparator(text, buttonOptions=null){
       const sep = document.createElement("div");
@@ -1615,9 +1575,7 @@
       board.appendChild(
         makeSeparator(
           "Qualifier Pools",
-          [
-            { id:"autoPoolsBtn", text:"Auto Pools" },
-          ]
+          [{ id:"autoPoolsBtn", text:"Auto Pools" }]
         )
       );
       PATHS.forEach(p => {
@@ -1642,9 +1600,7 @@
       board.appendChild(
         makeSeparator(
           "Group Tools & Third-Place Logic",
-          [
-            { id:"autoThirdBtn", text:"Auto Third Ranking" }
-          ]
+          [{ id:"autoThirdBtn", text:"Auto Third Ranking" }]
         )
       );
       board.appendChild(makeColumn("Third Place Team Ranking", THIRD_RANK_ZONE, "A3 → L3"));
@@ -1662,72 +1618,56 @@
           ]
         )
       );
-      const r32Grid = makeKoGrid("r32");
-      board.appendChild(r32Grid);
+      board.appendChild(makeKoGrid("r32"));
 
       // R16
       board.appendChild(
         makeSeparator(
           "Round of 16",
-          [
-            { id:"autoR16Btn", text:"Auto R16" }
-          ]
+          [{ id:"autoR16Btn", text:"Auto R16" }]
         )
       );
-      const r16Grid = makeKoGrid("r16");
-      board.appendChild(r16Grid);
+      board.appendChild(makeKoGrid("r16"));
 
       // QF
       board.appendChild(
         makeSeparator(
           "Quarterfinals",
-          [
-            { id:"autoQFBtn", text:"Auto QF" }
-          ]
+          [{ id:"autoQFBtn", text:"Auto QF" }]
         )
       );
-      const qfGrid = makeKoGrid("qf");
-      board.appendChild(qfGrid);
+      board.appendChild(makeKoGrid("qf"));
 
       // SF (centered)
       board.appendChild(
         makeSeparator(
           "Semifinals",
-          [
-            { id:"autoSFBtn", text:"Auto SF" }
-          ]
+          [{ id:"autoSFBtn", text:"Auto SF" }]
         )
       );
-      const sfGrid = makeKoGrid("sf", "centered");
-      board.appendChild(sfGrid);
+      board.appendChild(makeKoGrid("sf", "centered"));
 
       // Third place (centered)
       board.appendChild(
         makeSeparator(
           "Third Place",
-          [
-            { id:"autoThirdMatchBtn", text:"Auto Third" }
-          ]
+          [{ id:"autoThirdMatchBtn", text:"Auto Third" }]
         )
       );
-      const tGrid = makeKoGrid("third", "centered");
-      board.appendChild(tGrid);
+      board.appendChild(makeKoGrid("third", "centered"));
 
       // Final (centered)
       board.appendChild(
         makeSeparator(
           "Final",
-          [
-            { id:"autoFinalBtn", text:"Auto Final" }
-          ]
+          [{ id:"autoFinalBtn", text:"Auto Final" }]
         )
       );
-      const fGrid = makeKoGrid("final", "centered");
-      board.appendChild(fGrid);
+      board.appendChild(makeKoGrid("final", "centered"));
     }
 
     /* ==============================
-       18) Render groups/pools/tools
+       19) Render standard zones
     ============================== */
     function applyRankHighlight(cardEl, zone, idx, team){
       cardEl.classList.remove("rank-strong", "rank-mild", "qualified", "eliminated");
@@ -1838,7 +1778,8 @@
     }
 
     /* ==============================
-       19) Render KO rounds
+       20) Render KO rounds
+       Fixes your #2 header layout.
     ============================== */
     function buildMatchCard(match){
       const p = resolveParticipants(match);
@@ -1852,16 +1793,17 @@
       card.className = "match-card";
       card.dataset.matchId = match.id;
 
-      // header
-      const head = document.createElement("div");
-      head.className = "match-head";
+      // match index top-left
+      const idx = document.createElement("div");
+      idx.className = "match-index";
+      idx.textContent = `Match ${match.id}`;
+      card.appendChild(idx);
 
-      // label for header (examples: 1A vs 3C)
-      const headerLabel = `Match ${match.id}`;
-      const subLabel = `${L.label} vs ${R.label}`;
-
-      head.innerHTML = `${headerLabel} <span class="sub">• ${subLabel}</span>`;
-      card.appendChild(head);
+      // fixture label centered above mid box
+      const fixture = document.createElement("div");
+      fixture.className = "match-fixture";
+      fixture.textContent = `${L.label} vs ${R.label}`;
+      card.appendChild(fixture);
 
       // left team
       const leftBtn = document.createElement("div");
@@ -1877,8 +1819,9 @@
       rightBtn.className = "match-team";
       rightBtn.innerHTML = nameWithFlagHTML(R.name);
 
+      const isR32 = (match.id >= 73 && match.id <= 88);
       const canPick =
-        (match.id >= 73 && match.id <= 88 ? state.r32Generated : true) &&
+        (!isR32 || state.r32Generated) &&
         !L.placeholder && !R.placeholder;
 
       if(!canPick){
@@ -1924,7 +1867,6 @@
 
       bottom.appendChild(leftMeta);
       bottom.appendChild(rightMeta);
-
       card.appendChild(bottom);
 
       return card;
@@ -1937,12 +1879,10 @@
       grid.innerHTML = "";
 
       const matches = ALL_ROUNDS[roundKey] ?? [];
-
       matches.forEach(m => {
         grid.appendChild(buildMatchCard(m));
       });
 
-      // R32 note about 3rd-place source
       if(roundKey === "r32"){
         const note = document.createElement("div");
         note.className = "r32-fallback-note";
@@ -1951,9 +1891,8 @@
           note.textContent =
             "R32 not generated yet. Third-place slots are placeholders from the mapping sets.";
         } else {
-          // After generation we no longer show ALLOWED/FALLBACK wording.
           note.textContent =
-            "3rd-place mapping source: RANKING (add FIFA table later if desired).";
+            "3rd-place mapping source: TABLE if provided, otherwise RANKING.";
         }
 
         grid.appendChild(note);
@@ -1962,7 +1901,6 @@
 
     function renderAllKo(){
       validateAllWinners();
-
       renderKoRound("r32");
       renderKoRound("r16");
       renderKoRound("qf");
@@ -1972,13 +1910,12 @@
     }
 
     /* ==============================
-       20) Stage pill + buttons
+       21) Stage pill + buttons
     ============================== */
     function updateStagePillAndButtons(){
       const pill = document.getElementById("stagePill");
       const reformBtn = document.getElementById("reformPoolBtn");
       const formBtn = document.getElementById("formGroupsBtn");
-      const genR32Btn = document.getElementById("generateR32Btn");
 
       if(pill){
         pill.textContent = editMode === "pools" ? "Edit: Pools" : "Edit: Groups";
@@ -1988,10 +1925,6 @@
       }
       if(formBtn){
         formBtn.disabled = (editMode !== "pools");
-      }
-      if(genR32Btn){
-        // allow generation only after groups exist
-        genR32Btn.disabled = false;
       }
     }
 
@@ -2055,19 +1988,17 @@
     }
 
     /* ==============================
-       21) Render orchestrator
+       22) Render orchestrator
     ============================== */
     function render(){
-      // derived sync
       syncThirdRankingNames();
-
       renderStandardZones();
       renderAllKo();
       updateStagePillAndButtons();
     }
 
     /* ==============================
-       22) Boot
+       23) Boot
     ============================== */
     document.addEventListener("DOMContentLoaded", () => {
       buildBoard();
