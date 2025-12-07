@@ -147,7 +147,7 @@
       border:1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
-      overflow: hidden;
+      overflow: visible;
       min-height: 160px;
       display:flex;
       flex-direction:column;
@@ -185,33 +185,21 @@
       flex: 1;
     }
 
+    /* Make R32 column span full board width */
+.column.r32-wide{
+  grid-column: 1 / -1;
+  overflow: visible; /* avoids clipping just in case */
+}
+
+
     /* R32 zone: show match cards as a responsive grid */
-      .zone[data-zone="r32-fixtures"]{
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 10px;
-      }
-      
-      /* 2-up */
-      @media (min-width: 780px){
-        .zone[data-zone="r32-fixtures"]{
-          grid-template-columns: 1fr 1fr;
-        }
-      }
-      
-      /* 3-up */
-      @media (min-width: 1100px){
-        .zone[data-zone="r32-fixtures"]{
-          grid-template-columns: 1fr 1fr 1fr;
-        }
-      }
-      
-      /* 4-up */
-      @media (min-width: 1400px){
-        .zone[data-zone="r32-fixtures"]{
-          grid-template-columns: 1fr 1fr 1fr 1fr;
-        }
-      }
+     /* R32 zone: responsive grid based on available column width */
+.zone[data-zone="r32-fixtures"]{
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
 
 
     /* Card */
@@ -654,8 +642,10 @@ function fallbackPathNameForGroup(g){
               );
 
       
-      board.appendChild(makeColumn("R32 Fixtures", R32_ZONE, "winners by click"));
-    //  board.appendChild(makeColumn("Team Abbreviations", ABBR_ZONE, "auto"));
+      const r32Col = makeColumn("R32 Fixtures", R32_ZONE, "winners by click");
+              r32Col.classList.add("r32-wide");
+              board.appendChild(r32Col);
+
 
     }
 
