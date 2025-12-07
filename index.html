@@ -1288,24 +1288,35 @@ if(rl <= 9 && rw >= 18) {
         if(!match) return;
 
         const stored = state.winners[id];
-        if(!stored) return;
+          if(!stored) return;
+          
+          const p = resolveParticipants(match);
+          
+          // if current participants aren't real yet, clear winner
+          if(p.left.placeholder || p.right.placeholder){
+            delete state.winners[id];
+            return;
+          }
+          
+          const currentLeft = p.left.name;
+          const currentRight = p.right.name;
+          
+          // NEW: if participants changed since the pick, clear winner
+          // (requires setWinner to store leftAtPick/rightAtPick)
+          if(
+            stored.leftAtPick !== currentLeft ||
+            stored.rightAtPick !== currentRight
+          ){
+            delete state.winners[id];
+            return;
+          }
+          
+          // if stored winner isn't one of current participants, clear
+          if(![currentLeft, currentRight].includes(stored.name)){
+            delete state.winners[id];
+            return;
+          }
 
-        const p = resolveParticipants(match);
-
-        // if current participants aren't real yet, clear winner
-        if(p.left.placeholder || p.right.placeholder){
-          delete state.winners[id];
-          return;
-        }
-
-        const currentLeft = p.left.name;
-        const currentRight = p.right.name;
-
-        // if stored winner isn't one of current participants, clear
-        if(![currentLeft, currentRight].includes(stored.name)){
-          delete state.winners[id];
-          return;
-        }
 
         // STRICT SNAPSHOT CHECK:
         // if the participant pair changed since pick, clear
@@ -1696,7 +1707,7 @@ if(rl <= 9 && rw >= 18) {
         makeSeparator(
           "Round of 32",
           [
-            { id:"generateR32Btn", text:"Generate R32" },
+           { id:"generateR32Btn", text:"Generate / Regenerate R32" },
             { id:"autoR32Btn", text:"Auto R32" }
           ]
         )
