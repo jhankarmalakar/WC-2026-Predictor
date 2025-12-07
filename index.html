@@ -40,6 +40,11 @@
       --win-bg: rgba(122, 255, 187, 0.18);
       --win-br: rgba(122, 255, 187, 0.70);
       --win-glow: rgba(122, 255, 187, 0.22);
+
+      /* Orange action buttons */
+      --orange-bg-1: rgba(255, 168, 64, 0.28);
+      --orange-bg-2: rgba(255, 122, 64, 0.18);
+      --orange-br:   rgba(255, 170, 90, 0.70);
     }
 
     *{box-sizing:border-box}
@@ -67,7 +72,7 @@
     header .hint{
       color:var(--muted);
       font-size: 11.5px;
-      max-width: 90ch;
+      max-width: 95ch;
     }
 
     .actions{
@@ -87,7 +92,7 @@
       letter-spacing: 0.2px;
     }
 
-    /* Bright buttons */
+    /* Base buttons */
     button{
       background: linear-gradient(135deg, rgba(122,162,255,0.22), rgba(94,230,255,0.12));
       color: var(--text);
@@ -99,13 +104,27 @@
       white-space: nowrap;
       box-shadow: 0 0 0 1px rgba(122,162,255,0.08) inset;
     }
-    button:hover{ background: linear-gradient(135deg, rgba(122,162,255,0.30), rgba(94,230,255,0.18)); }
+    button:hover{
+      background: linear-gradient(135deg, rgba(122,162,255,0.30), rgba(94,230,255,0.18));
+    }
     button:disabled{ opacity: 0.55; cursor: not-allowed; }
 
     .btn-mini{
       padding: 8px 10px;
       font-size: 11px;
       border-radius: 10px;
+    }
+
+    /* Orange action buttons */
+    .btn-orange{
+      background: linear-gradient(135deg, var(--orange-bg-1), var(--orange-bg-2));
+      border: 1px solid var(--orange-br);
+      box-shadow:
+        0 0 0 1px rgba(255,170,90,0.10) inset,
+        0 6px 16px rgba(0,0,0,0.18);
+    }
+    .btn-orange:hover{
+      background: linear-gradient(135deg, rgba(255, 180, 90, 0.35), rgba(255, 120, 70, 0.22));
     }
 
     /* Board grid */
@@ -246,12 +265,24 @@
     }
 
     /* Rank highlights */
-    .rank-strong{ background: var(--hl-strong-bg); border-color: var(--hl-strong-br); }
-    .rank-mild{ background: var(--hl-mild-bg); border-color: var(--hl-mild-br); }
+    .rank-strong{
+      background: var(--hl-strong-bg);
+      border-color: var(--hl-strong-br);
+    }
+    .rank-mild{
+      background: var(--hl-mild-bg);
+      border-color: var(--hl-mild-br);
+    }
 
     /* Qualified/Eliminated */
-    .qualified{ border-color: var(--qualified-br); box-shadow: 0 0 0 1px var(--qualified-glow) inset; }
-    .eliminated{ background: var(--elim-bg); border-color: var(--elim-br); }
+    .qualified{
+      border-color: var(--qualified-br);
+      box-shadow: 0 0 0 1px var(--qualified-glow) inset;
+    }
+    .eliminated{
+      background: var(--elim-bg);
+      border-color: var(--elim-br);
+    }
 
     /* First-click armed swap */
     .swap-armed{
@@ -320,7 +351,6 @@
       width: min(760px, 100%);
     }
 
-    /* Match card structure */
     .match-card{
       background: rgba(255,255,255,0.035);
       border: 1px solid var(--border);
@@ -331,28 +361,34 @@
       gap: 10px 10px;
       align-items: center;
       position: relative;
+      overflow: hidden;
     }
 
-    /* Top-left index */
+    /* Match index top-left */
     .match-index{
-      position: absolute;
+      position:absolute;
       top: 8px;
       left: 10px;
-      font-size: 10.5px;
-      color: var(--muted);
-      letter-spacing: 0.3px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      color: rgba(255,255,255,0.7);
+      padding: 2px 6px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
     }
 
-    /* Centered fixture label just above mid box */
-    .match-fixture{
+    /* Center label above the mid box */
+    .match-vs{
       grid-column: 1 / -1;
       text-align: center;
       font-weight: 800;
-      font-size: 12.6px;
+      font-size: 12.2px;
       letter-spacing: 0.35px;
-      color: rgba(255,255,255,0.92);
+      color: rgba(255,255,255,0.9);
       margin-top: 2px;
-      margin-bottom: -2px;
+      margin-bottom: 2px;
     }
 
     .match-team{
@@ -383,7 +419,7 @@
       min-width: 56px;
       text-align: center;
       font-weight: 900;
-      font-size: 12.8px;
+      font-size: 12.5px;
       padding: 8px 10px;
       border-radius: 10px;
       border: 1px solid var(--border);
@@ -398,7 +434,6 @@
       justify-content: space-between;
       gap: 10px;
       margin-top: 2px;
-      font-size: 11.2px;
       color: var(--muted);
       flex-wrap: wrap;
     }
@@ -408,58 +443,29 @@
       border: 1px solid var(--border);
       border-radius: 999px;
       background: rgba(255,255,255,0.04);
-      font-size: 10.6px;
+      font-size: 10.8px;
       white-space: nowrap;
     }
 
-    .r32-fallback-note{
+    .r32-note{
       grid-column: 1 / -1;
       margin-top: 2px;
       font-size: 10.5px;
       color: var(--muted);
       opacity: 0.9;
     }
-
-          /* ==========================
-           Upset reaction toast
-        ========================== */
-        .upset-toast{
-          position: fixed;
-          top: 14px;
-          right: 14px;
-          z-index: 9999;
-          max-width: min(420px, 92vw);
-          padding: 10px 12px;
-          border-radius: 12px;
-          font-size: 12.5px;
-          font-weight: 650;
-          letter-spacing: 0.2px;
-          color: var(--text);
-          background: linear-gradient(135deg, rgba(255,184,107,0.18), rgba(122,162,255,0.14));
-          border: 1px solid rgba(255,184,107,0.55);
-          box-shadow: 0 10px 28px rgba(0,0,0,0.35);
-          opacity: 0;
-          transform: translateY(-6px);
-          pointer-events: none;
-          transition: opacity 160ms ease, transform 160ms ease;
-        }
-        .upset-toast.show{
-          opacity: 1;
-          transform: translateY(0);
-        }
-
   </style>
 </head>
 
 <body>
   <header>
     <div>
-      <h1>Qualifier Pools → Form Groups → Group Tools → Knockouts</h1>
+      <h1>Qualifier Pools → Groups → Third Ranking → Knockouts</h1>
       <div class="hint">
         Click/tap two teams in the same editable zone to swap.
-        Use “Form Groups” to copy pool winners into groups.
-        Knockout winners are validated every render — changing an early input automatically clears later winners.
-        Auto buttons fill ONLY unfilled results.
+        Use “Place qualifiers to the groups” to copy pool winners into groups.
+        R32 third-place assignments are frozen once generated — reordering the Third Ranking won’t change R32
+        until you click “Regenerate R32”.
       </div>
     </div>
 
@@ -723,6 +729,7 @@
     ============================== */
     let editMode = "pools";
     let swapSelection = null;
+
     let qualifiedThirdGroupLetters = "";
     let qualifiedThirdPlacedTeams = [];
 
@@ -779,12 +786,10 @@
         const n = map[letter] ?? letter.toUpperCase();
         return `UEFA Path ${n}`;
       }
-
       if(p.id.startsWith("fifaicpath-")){
         const n = p.id.replace("fifaicpath-","");
         return `FIFA IC Path ${n}`;
       }
-
       return p.label;
     }
 
@@ -816,8 +821,11 @@
         // Knockout
         r32Generated: false,
 
-        // winners[matchId] = { side, name, abbrev, leftAtPick, rightAtPick }
-        winners: {}
+        // winners for ALL KO matches
+        winners: {},
+
+        // SNAPSHOTS for R32 third-place assignment
+        r32ThirdSnapshot: null,   // { letters, top8, assignment }
       };
     };
 
@@ -854,54 +862,56 @@
     /* ==============================
        7) KO structure
     ============================== */
+    // Store venue-time + offset so we can render LOCAL user time.
+    // offsetHours example: -7 means venue time is UTC-7.
     const R32_INFO = {
-      73: { date: "June 28, 2026", time: "12:00 p.m. (UTC−7)", stadium: "SoFi Stadium", city: "Inglewood" },
-      74: { date: "June 29, 2026", time: "4:30 p.m. (UTC−4)", stadium: "Gillette Stadium", city: "Foxborough" },
-      75: { date: "June 29, 2026", time: "7:00 p.m. (UTC−6)", stadium: "Estadio BBVA", city: "Guadalupe" },
-      76: { date: "June 29, 2026", time: "12:00 p.m. (UTC−5)", stadium: "NRG Stadium", city: "Houston" },
-      77: { date: "June 30, 2026", time: "5:00 p.m. (UTC−4)", stadium: "MetLife Stadium", city: "East Rutherford" },
-      78: { date: "June 30, 2026", time: "12:00 p.m. (UTC−5)", stadium: "AT&T Stadium", city: "Arlington" },
-      79: { date: "June 30, 2026", time: "7:00 p.m. (UTC−6)", stadium: "Estadio Azteca", city: "Mexico City" },
-      80: { date: "July 1, 2026", time: "12:00 p.m. (UTC−4)", stadium: "Mercedes-Benz Stadium", city: "Atlanta" },
-      81: { date: "July 1, 2026", time: "5:00 p.m. (UTC−7)", stadium: "Levi's Stadium", city: "Santa Clara" },
-      82: { date: "July 1, 2026", time: "1:00 p.m. (UTC−7)", stadium: "Lumen Field", city: "Seattle" },
-      83: { date: "July 2, 2026", time: "7:00 p.m. (UTC−4)", stadium: "BMO Field", city: "Toronto" },
-      84: { date: "July 2, 2026", time: "12:00 p.m. (UTC−7)", stadium: "SoFi Stadium", city: "Inglewood" },
-      85: { date: "July 2, 2026", time: "8:00 p.m. (UTC−7)", stadium: "BC Place", city: "Vancouver" },
-      86: { date: "July 3, 2026", time: "6:00 p.m. (UTC−4)", stadium: "Hard Rock Stadium", city: "Miami Gardens" },
-      87: { date: "July 3, 2026", time: "8:30 p.m. (UTC−5)", stadium: "Arrowhead Stadium", city: "Kansas City" },
-      88: { date: "July 3, 2026", time: "1:00 p.m. (UTC−5)", stadium: "AT&T Stadium", city: "Arlington" }
+      73: { date: "June 28, 2026", time: "12:00 p.m.", offsetHours:-7, stadium: "SoFi Stadium", city: "Inglewood" },
+      74: { date: "June 29, 2026", time: "4:30 p.m.",  offsetHours:-4, stadium: "Gillette Stadium", city: "Foxborough" },
+      75: { date: "June 29, 2026", time: "7:00 p.m.",  offsetHours:-6, stadium: "Estadio BBVA", city: "Guadalupe" },
+      76: { date: "June 29, 2026", time: "12:00 p.m.", offsetHours:-5, stadium: "NRG Stadium", city: "Houston" },
+      77: { date: "June 30, 2026", time: "5:00 p.m.",  offsetHours:-4, stadium: "MetLife Stadium", city: "East Rutherford" },
+      78: { date: "June 30, 2026", time: "12:00 p.m.", offsetHours:-5, stadium: "AT&T Stadium", city: "Arlington" },
+      79: { date: "June 30, 2026", time: "7:00 p.m.",  offsetHours:-6, stadium: "Estadio Azteca", city: "Mexico City" },
+      80: { date: "July 1, 2026",  time: "12:00 p.m.", offsetHours:-4, stadium: "Mercedes-Benz Stadium", city: "Atlanta" },
+      81: { date: "July 1, 2026",  time: "5:00 p.m.",  offsetHours:-7, stadium: "Levi's Stadium", city: "Santa Clara" },
+      82: { date: "July 1, 2026",  time: "1:00 p.m.",  offsetHours:-7, stadium: "Lumen Field", city: "Seattle" },
+      83: { date: "July 2, 2026",  time: "7:00 p.m.",  offsetHours:-4, stadium: "BMO Field", city: "Toronto" },
+      84: { date: "July 2, 2026",  time: "12:00 p.m.", offsetHours:-7, stadium: "SoFi Stadium", city: "Inglewood" },
+      85: { date: "July 2, 2026",  time: "8:00 p.m.",  offsetHours:-7, stadium: "BC Place", city: "Vancouver" },
+      86: { date: "July 3, 2026",  time: "6:00 p.m.",  offsetHours:-4, stadium: "Hard Rock Stadium", city: "Miami Gardens" },
+      87: { date: "July 3, 2026",  time: "8:30 p.m.",  offsetHours:-5, stadium: "Arrowhead Stadium", city: "Kansas City" },
+      88: { date: "July 3, 2026",  time: "1:00 p.m.",  offsetHours:-5, stadium: "AT&T Stadium", city: "Arlington" }
     };
 
     const R16_INFO = {
-      89: { date:"July 4, 2026", time:"5:00 p.m. (UTC−4)", stadium:"Lincoln Financial Field", city:"Philadelphia" },
-      90: { date:"July 4, 2026", time:"12:00 p.m. (UTC−5)", stadium:"NRG Stadium", city:"Houston" },
-      91: { date:"July 5, 2026", time:"4:00 p.m. (UTC−4)", stadium:"MetLife Stadium", city:"East Rutherford" },
-      92: { date:"July 5, 2026", time:"6:00 p.m. (UTC−6)", stadium:"Estadio Azteca", city:"Mexico City" },
-      93: { date:"July 6, 2026", time:"2:00 p.m. (UTC−5)", stadium:"AT&T Stadium", city:"Arlington" },
-      94: { date:"July 6, 2026", time:"5:00 p.m. (UTC−7)", stadium:"Lumen Field", city:"Seattle" },
-      95: { date:"July 7, 2026", time:"12:00 p.m. (UTC−4)", stadium:"Mercedes-Benz Stadium", city:"Atlanta" },
-      96: { date:"July 7, 2026", time:"1:00 p.m. (UTC−7)", stadium:"BC Place", city:"Vancouver" }
+      89: { date:"July 4, 2026", time:"5:00 p.m.",  offsetHours:-4, stadium:"Lincoln Financial Field", city:"Philadelphia" },
+      90: { date:"July 4, 2026", time:"12:00 p.m.", offsetHours:-5, stadium:"NRG Stadium", city:"Houston" },
+      91: { date:"July 5, 2026", time:"4:00 p.m.",  offsetHours:-4, stadium:"MetLife Stadium", city:"East Rutherford" },
+      92: { date:"July 5, 2026", time:"6:00 p.m.",  offsetHours:-6, stadium:"Estadio Azteca", city:"Mexico City" },
+      93: { date:"July 6, 2026", time:"2:00 p.m.",  offsetHours:-5, stadium:"AT&T Stadium", city:"Arlington" },
+      94: { date:"July 6, 2026", time:"5:00 p.m.",  offsetHours:-7, stadium:"Lumen Field", city:"Seattle" },
+      95: { date:"July 7, 2026", time:"12:00 p.m.", offsetHours:-4, stadium:"Mercedes-Benz Stadium", city:"Atlanta" },
+      96: { date:"July 7, 2026", time:"1:00 p.m.",  offsetHours:-7, stadium:"BC Place", city:"Vancouver" }
     };
 
     const QF_INFO = {
-      97: { date:"July 9, 2026", time:"4:00 p.m. (UTC−4)", stadium:"Gillette Stadium", city:"Foxborough" },
-      98: { date:"July 10, 2026", time:"12:00 p.m. (UTC−7)", stadium:"SoFi Stadium", city:"Inglewood" },
-      99: { date:"July 11, 2026", time:"5:00 p.m. (UTC−4)", stadium:"Hard Rock Stadium", city:"Miami Gardens" },
-      100:{ date:"July 11, 2026", time:"8:00 p.m. (UTC−5)", stadium:"Arrowhead Stadium", city:"Kansas City" }
+      97: { date:"July 9, 2026",  time:"4:00 p.m.",  offsetHours:-4, stadium:"Gillette Stadium", city:"Foxborough" },
+      98: { date:"July 10, 2026", time:"12:00 p.m.", offsetHours:-7, stadium:"SoFi Stadium", city:"Inglewood" },
+      99: { date:"July 11, 2026", time:"5:00 p.m.",  offsetHours:-4, stadium:"Hard Rock Stadium", city:"Miami Gardens" },
+      100:{ date:"July 11, 2026", time:"8:00 p.m.",  offsetHours:-5, stadium:"Arrowhead Stadium", city:"Kansas City" }
     };
 
     const SF_INFO = {
-      101:{ date:"July 14, 2026", time:"2:00 p.m. (UTC−5)", stadium:"AT&T Stadium", city:"Arlington" },
-      102:{ date:"July 15, 2026", time:"3:00 p.m. (UTC−4)", stadium:"Mercedes-Benz Stadium", city:"Atlanta" }
+      101:{ date:"July 14, 2026", time:"2:00 p.m.", offsetHours:-5, stadium:"AT&T Stadium", city:"Arlington" },
+      102:{ date:"July 15, 2026", time:"3:00 p.m.", offsetHours:-4, stadium:"Mercedes-Benz Stadium", city:"Atlanta" }
     };
 
     const THIRD_INFO = {
-      103:{ date:"July 18, 2026", time:"5:00 p.m. (UTC−4)", stadium:"Hard Rock Stadium", city:"Miami Gardens" }
+      103:{ date:"July 18, 2026", time:"5:00 p.m.", offsetHours:-4, stadium:"Hard Rock Stadium", city:"Miami Gardens" }
     };
 
     const FINAL_INFO = {
-      104:{ date:"July 19, 2026", time:"3:00 p.m. (UTC−4)", stadium:"MetLife Stadium", city:"East Rutherford" }
+      104:{ date:"July 19, 2026", time:"3:00 p.m.", offsetHours:-4, stadium:"MetLife Stadium", city:"East Rutherford" }
     };
 
     const R32_MATCHES = [
@@ -923,7 +933,6 @@
       { id: 88, left: {type:"RU", g:"D"}, right:{type:"RU", g:"G"} }
     ];
 
-    // R16 pairings per your earlier paste
     const R16_MATCHES = [
       { id: 90, left:{type:"WM", id:73}, right:{type:"WM", id:75} },
       { id: 89, left:{type:"WM", id:74}, right:{type:"WM", id:77} },
@@ -969,7 +978,46 @@
     };
 
     /* ==============================
-       8) Third-place logic
+       8) Third-place mapping table
+       - partial (your paste)
+    ============================== */
+    const THIRD_MATCH_ID_ORDER = [74, 77, 79, 80, 81, 82, 85, 87];
+
+    const THIRD_TABLE_RAW = {
+      "EFGHIJKL": ["3E","3J","3I","3F","3H","3G","3L","3K"],
+      "DFGHIJKL": ["3H","3G","3I","3D","3J","3F","3L","3K"],
+      "DEGHIJKL": ["3E","3J","3I","3D","3H","3G","3L","3K"],
+      "DEFHIJKL": ["3E","3J","3I","3D","3H","3F","3L","3K"],
+      "DEFGIJKL": ["3E","3G","3I","3D","3J","3F","3L","3K"],
+      "DEFGHJKL": ["3E","3G","3J","3D","3H","3F","3L","3K"],
+      "DEFGHIKL": ["3E","3G","3I","3D","3H","3F","3L","3K"],
+      "DEFGHIJL": ["3E","3G","3J","3D","3H","3F","3L","3I"],
+      "DEFGHIJK": ["3E","3G","3J","3D","3H","3F","3I","3K"],
+      "CFGHIJKL": ["3H","3G","3I","3C","3J","3F","3L","3K"],
+      "CEGHIJKL": ["3E","3J","3I","3C","3H","3G","3L","3K"],
+      "CEFHIJKL": ["3E","3J","3I","3C","3H","3F","3L","3K"],
+      "CEFGIJKL": ["3E","3G","3I","3C","3J","3F","3L","3K"],
+      "CEFGHJKL": ["3E","3G","3J","3C","3H","3F","3L","3K"],
+      "CEFGHIKL": ["3E","3G","3I","3C","3H","3F","3L","3K"],
+      "CEFGHIJL": ["3E","3G","3J","3C","3H","3F","3L","3I"],
+      "CEFGHIJK": ["3E","3G","3J","3C","3H","3F","3I","3K"],
+      "CDGHIJKL": ["3H","3G","3I","3C","3J","3D","3L","3K"],
+      "CDFHIJKL": ["3C","3J","3I","3D","3H","3F","3L","3K"],
+      "CDFGIJKL": ["3C","3G","3I","3D","3J","3F","3L","3K"]
+    };
+
+    const THIRD_TABLE = Object.fromEntries(
+      Object.entries(THIRD_TABLE_RAW).map(([key, arr]) => {
+        const matchMap = {};
+        THIRD_MATCH_ID_ORDER.forEach((mid, i) => {
+          matchMap[mid] = arr[i];
+        });
+        return [key, matchMap];
+      })
+    );
+
+    /* ==============================
+       9) Third-place derived data
     ============================== */
     function getThirdTeamForGroup(g){
       const arr = state.groups[g] ?? [];
@@ -1050,72 +1098,76 @@
     }
 
     /* ==============================
-       9) Optional FIFA third table support
-       (you can extend later)
+       10) Build R32 third snapshot
+       - FREEZE until Regenerate
     ============================== */
-    const THIRD_MATCH_ID_ORDER = [74, 77, 79, 80, 81, 82, 85, 87];
+    function buildR32ThirdSnapshot(){
+      // Uses current thirdRanking order.
+      const top8 = computeTop8ThirdPlaced(); // also fills qualifiedThirdGroupLetters / teams
+      const letters = qualifiedThirdGroupLetters;
 
-    const THIRD_TABLE_RAW = {
-      "EFGHIJKL": ["3E","3J","3I","3F","3H","3G","3L","3K"],
-      "DFGHIJKL": ["3H","3G","3I","3D","3J","3F","3L","3K"],
-      "DEGHIJKL": ["3E","3J","3I","3D","3H","3G","3L","3K"],
-      "DEFHIJKL": ["3E","3J","3I","3D","3H","3F","3L","3K"],
-      "DEFGIJKL": ["3E","3G","3I","3D","3J","3F","3L","3K"],
-      "DEFGHJKL": ["3E","3G","3J","3D","3H","3F","3L","3K"],
-      "DEFGHIKL": ["3E","3G","3I","3D","3H","3F","3L","3K"],
-      "DEFGHIJL": ["3E","3G","3J","3D","3H","3F","3L","3I"],
-      "DEFGHIJK": ["3E","3G","3J","3D","3H","3F","3I","3K"],
-      "CFGHIJKL": ["3H","3G","3I","3C","3J","3F","3L","3K"],
-      "CEGHIJKL": ["3E","3J","3I","3C","3H","3G","3L","3K"],
-      "CEFHIJKL": ["3E","3J","3I","3C","3H","3F","3L","3K"],
-      "CEFGIJKL": ["3E","3G","3I","3C","3J","3F","3L","3K"],
-      "CEFGHJKL": ["3E","3G","3J","3C","3H","3F","3L","3K"],
-      "CEFGHIKL": ["3E","3G","3I","3C","3H","3F","3L","3K"],
-      "CEFGHIJL": ["3E","3G","3J","3C","3H","3F","3L","3I"],
-      "CEFGHIJK": ["3E","3G","3J","3C","3H","3F","3I","3K"],
-      "CDGHIJKL": ["3H","3G","3I","3C","3J","3D","3L","3K"],
-      "CDFHIJKL": ["3C","3J","3I","3D","3H","3F","3L","3K"],
-      "CDFGIJKL": ["3C","3G","3I","3D","3J","3F","3L","3K"],
-    };
+      const tableRow = THIRD_TABLE[letters];
 
-    const THIRD_TABLE = Object.fromEntries(
-      Object.entries(THIRD_TABLE_RAW).map(([key, arr]) => {
-        const matchMap = {};
-        THIRD_MATCH_ID_ORDER.forEach((mid, i) => {
-          matchMap[mid] = arr[i];
+      const assignment = {}; // matchId -> { groupKey, name, source }
+
+      if(tableRow){
+        // Use table mapping
+        THIRD_MATCH_ID_ORDER.forEach(mid => {
+          const tag = tableRow[mid]; // "3E"
+          const g = tag.replace("3","");
+          const found = state.thirdRanking.find(x => x.groupKey === g);
+          assignment[mid] = {
+            groupKey: g,
+            name: found ? found.name : tag,
+            source: "table"
+          };
         });
-        return [key, matchMap];
-      })
-    );
+      } else {
+        // Greedy UNIQUE fallback using allowed sets
+        const rankedTop8 = state.thirdRanking.slice(0,8);
+        const used = new Set();
 
-    function resolveThirdFromRankingOnly(){
-      computeTop8ThirdPlaced();
-      const ranked = state.thirdRanking.slice(0, 8);
-      const first = ranked[0];
-      if(first) return { groupKey:first.groupKey, name:first.name, fallback:false };
-      return { groupKey:"?", name:"UEFA/FIFA Path", fallback:true };
-    }
+        function pickAllowedUnique(allowed){
+          // 1) try highest ranked within allowed
+          const cand1 = rankedTop8.find(x => allowed.includes(x.groupKey) && !used.has(x.groupKey));
+          if(cand1) return cand1;
+          // 2) else highest ranked unused overall
+          const cand2 = rankedTop8.find(x => !used.has(x.groupKey));
+          return cand2 || null;
+        }
 
-    function resolveThirdForMatch(matchId, allowedLetters){
-      computeTop8ThirdPlaced();
-      const key = qualifiedThirdGroupLetters;
-      const row = THIRD_TABLE[key];
+        // find matches that actually need 3SET in your R32 list
+        const thirdMatches = R32_MATCHES.filter(m =>
+          m.left.type === "3SET" || m.right.type === "3SET"
+        );
 
-      if(row && row[matchId]){
-        const tag = row[matchId];
-        const g = tag.replace("3", "");
-        const third = state.thirdRanking.find(x => x.groupKey === g);
-        const name = third ? third.name : tag;
-        return { groupKey: g, name, source: "table", tableKey: key, fallback: false };
+        thirdMatches.forEach(m => {
+          const slot = (m.left.type === "3SET") ? m.left : m.right;
+          const allowed = parseAllowedThird(slot.set);
+          const pick = pickAllowedUnique(allowed);
+
+          if(pick){
+            used.add(pick.groupKey);
+            assignment[m.id] = {
+              groupKey: pick.groupKey,
+              name: pick.name,
+              source: "greedy"
+            };
+          } else {
+            assignment[m.id] = {
+              groupKey: "?",
+              name: "3rd TBD",
+              source: "greedy"
+            };
+          }
+        });
       }
 
-      // After R32 generation: ranking-only (per your rule)
-      const res = resolveThirdFromRankingOnly();
-      return { groupKey: res.groupKey, name: res.name, source:"ranking", tableKey:key, fallback: res.fallback };
+      state.r32ThirdSnapshot = { letters, top8: qualifiedThirdPlacedTeams.slice(), assignment };
     }
 
     /* ==============================
-       10) KO slot resolution
+       11) KO slot resolution
     ============================== */
     function getGroupPosTeam(g, idx){
       const t = state.groups[g]?.[idx];
@@ -1123,55 +1175,6 @@
       return { name: t.name, groupKey: g };
     }
 
-    
-    /* ==============================
-   Upset reactions (R16+)
-============================== */
-let upsetToastTimer = null;
-
-function showUpsetToast(msg){
-  const el = document.getElementById("upsetToast");
-  if(!el) return;
-
-  el.textContent = msg;
-  el.classList.add("show");
-
-  if(upsetToastTimer) clearTimeout(upsetToastTimer);
-  upsetToastTimer = setTimeout(() => {
-    el.classList.remove("show");
-  }, 1600);
-}
-
-function maybeShowUpsetReaction(matchId, winnerName, loserName){
-  // R16 onwards: match ids 89+
-  if(matchId < 89) return;
-
-  const rw = rankOf(winnerName);
-  const rl = rankOf(loserName);
-
-  // avoid unknown-rank noise
-  if(rw >= 900 || rl >= 900) return;
-
-  const delta = rw - rl; // positive => winner is worse-ranked
-  if(delta < 7) return;
-
-  const lines = [
-    `My god. ${winnerName} over ${loserName}?`,
-    `${winnerName} really said “watch this.”`,
-    `Bold. Unhinged. Beautiful. ${winnerName}.`,
-    `That’s… a choice. ${winnerName} ✅`,
-    `Football heritage just fainted.`,
-    `${loserName} fans are logging off as we speak.`,
-    `The rankings are crying right now.`,
-    `Chaos has entered the chat.`,
-    `This bracket is officially spicy.`
-  ];
-if(rl <= 9 && rw >= 18) {
-  showUpsetToast(lines[Math.floor(Math.random() * lines.length)]);
-}
-}
-
-    
     function teamAbbrev(name){
       if(!name) return "---";
       const SPECIAL = {
@@ -1205,14 +1208,6 @@ if(rl <= 9 && rw >= 18) {
       return s.slice(0,3);
     }
 
-    function findMatchById(id){
-      for(const k of Object.keys(ALL_ROUNDS)){
-        const m = ALL_ROUNDS[k].find(x => x.id === id);
-        if(m) return m;
-      }
-      return null;
-    }
-
     function resolveSlot(slot, matchId){
       if(slot.type === "W"){
         const t = getGroupPosTeam(slot.g, 0);
@@ -1230,13 +1225,21 @@ if(rl <= 9 && rw >= 18) {
           return { name: ph, label: ph, placeholder:true, source:"placeholder", allowed };
         }
 
-        const res = resolveThirdForMatch(matchId, allowed);
-        return {
-          name: res.name,
-          label: `3${res.groupKey}`,
-          placeholder:false,
-          source: res.source
-        };
+        // AFTER generation: USE SNAPSHOT ONLY
+        const snap = state.r32ThirdSnapshot;
+        const assign = snap?.assignment?.[matchId];
+
+        if(assign){
+          return {
+            name: assign.name,
+            label: `3${assign.groupKey}`,
+            placeholder:false,
+            source: assign.source
+          };
+        }
+
+        // Safety fallback
+        return { name:"3rd TBD", label:"3?", placeholder:true, source:"fallback", allowed };
       }
       if(slot.type === "WM"){
         const w = state.winners[slot.id];
@@ -1263,6 +1266,14 @@ if(rl <= 9 && rw >= 18) {
       return { name:"TBD", label:"---", placeholder:true };
     }
 
+    function findMatchById(id){
+      for(const k of Object.keys(ALL_ROUNDS)){
+        const m = ALL_ROUNDS[k].find(x => x.id === id);
+        if(m) return m;
+      }
+      return null;
+    }
+
     function resolveParticipants(match){
       const L = resolveSlot(match.left, match.id);
       const R = resolveSlot(match.right, match.id);
@@ -1270,8 +1281,7 @@ if(rl <= 9 && rw >= 18) {
     }
 
     /* ==============================
-       11) Winner validation (strict)
-       Fixes your #1 complaint.
+       12) Winner validation (cascade)
     ============================== */
     function validateAllWinners(){
       const order = [
@@ -1288,76 +1298,54 @@ if(rl <= 9 && rw >= 18) {
         if(!match) return;
 
         const stored = state.winners[id];
-          if(!stored) return;
-          
-          const p = resolveParticipants(match);
-          
-          // if current participants aren't real yet, clear winner
-          if(p.left.placeholder || p.right.placeholder){
-            delete state.winners[id];
-            return;
-          }
-          
-          const currentLeft = p.left.name;
-          const currentRight = p.right.name;
-          
-          // NEW: if participants changed since the pick, clear winner
-          // (requires setWinner to store leftAtPick/rightAtPick)
-          if(
-            stored.leftAtPick !== currentLeft ||
-            stored.rightAtPick !== currentRight
-          ){
-            delete state.winners[id];
-            return;
-          }
-          
-          // if stored winner isn't one of current participants, clear
-          if(![currentLeft, currentRight].includes(stored.name)){
-            delete state.winners[id];
-            return;
-          }
+        if(!stored) return;
 
+        const p = resolveParticipants(match);
 
-        // STRICT SNAPSHOT CHECK:
-        // if the participant pair changed since pick, clear
-        if(
-          stored.leftAtPick && stored.rightAtPick &&
-          (stored.leftAtPick !== currentLeft || stored.rightAtPick !== currentRight)
-        ){
+        if(p.left.placeholder || p.right.placeholder){
+          delete state.winners[id];
+          return;
+        }
+
+        const currentLeft = p.left.name;
+        const currentRight = p.right.name;
+
+        // Clear if matchup changed since pick
+        if(stored.leftAtPick !== currentLeft || stored.rightAtPick !== currentRight){
+          delete state.winners[id];
+          return;
+        }
+
+        if(![currentLeft, currentRight].includes(stored.name)){
           delete state.winners[id];
           return;
         }
       });
     }
 
-   function setWinner(matchId, side, name){
-        const match = findMatchById(matchId);
-        if(!match) return;
-      
-        const p = resolveParticipants(match);
-        if(p.left.placeholder || p.right.placeholder) return;
-      
-        const ab = teamAbbrev(name);
-      
-        state.winners[matchId] = {
-          side,
-          name,
-          abbrev: ab,
-          leftAtPick: p.left.name,
-          rightAtPick: p.right.name
-        };
-      
-        // Upset reaction logic
-        const loserName = (name === p.left.name) ? p.right.name : p.left.name;
-        maybeShowUpsetReaction(matchId, name, loserName);
-      
-        validateAllWinners();
-        render();
-      }
-      
+    function setWinner(matchId, side, name){
+      const match = findMatchById(matchId);
+      if(!match) return;
+
+      const p = resolveParticipants(match);
+      if(p.left.placeholder || p.right.placeholder) return;
+
+      const ab = teamAbbrev(name);
+
+      state.winners[matchId] = {
+        side,
+        name,
+        abbrev: ab,
+        leftAtPick: p.left.name,
+        rightAtPick: p.right.name
+      };
+
+      validateAllWinners();
+      render();
+    }
 
     /* ==============================
-       12) Edit rules
+       13) Edit rules
     ============================== */
     function isClickSwapEnabledForZone(zoneKey){
       if(editMode === "pools") return isPathZone(zoneKey);
@@ -1368,7 +1356,7 @@ if(rl <= 9 && rw >= 18) {
     }
 
     /* ==============================
-       13) Zone arrays
+       14) Zone arrays
     ============================== */
     function getZoneArray(zoneKey){
       if(isPathZone(zoneKey)) return state.paths[pathIdFromZone(zoneKey)];
@@ -1381,7 +1369,7 @@ if(rl <= 9 && rw >= 18) {
     }
 
     /* ==============================
-       14) Pool status display
+       15) Pool status display
     ============================== */
     function clearPoolStatus(){
       PATHS.forEach(p => {
@@ -1403,7 +1391,7 @@ if(rl <= 9 && rw >= 18) {
     }
 
     /* ==============================
-       15) Click-to-swap logic
+       16) Click-to-swap logic
     ============================== */
     function swapTeamsInArray(arr, id1, id2){
       const i1 = arr.findIndex(t => t.id === id1);
@@ -1437,11 +1425,15 @@ if(rl <= 9 && rw >= 18) {
       const arr = getZoneArray(zone);
       if(!arr) return;
 
-      swapTeamsInArray(arr, swapSelection.teamId, teamId);
+      const ok = swapTeamsInArray(arr, swapSelection.teamId, teamId);
       swapSelection = null;
 
-      // This can change 3rd mapping + KO participants
-      validateAllWinners();
+      if(ok){
+        // Group changes can affect KO immediately.
+        // Third-order changes should NOT affect R32 until Regenerate.
+        validateAllWinners();
+      }
+
       render();
     }
 
@@ -1452,7 +1444,7 @@ if(rl <= 9 && rw >= 18) {
     }
 
     /* ==============================
-       16) Form Groups (COPY)
+       17) Place qualifiers to groups
     ============================== */
     function upsertPathTeamInGroup(groupKey, pathId, chosenTeam){
       const arr = state.groups[groupKey];
@@ -1491,7 +1483,7 @@ if(rl <= 9 && rw >= 18) {
       });
     }
 
-    function formGroupsFromPools(){
+    function placeQualifiersToGroups(){
       PATHS.forEach(p => {
         const pathArr = state.paths[p.id];
         if(!pathArr || pathArr.length === 0) return;
@@ -1515,9 +1507,7 @@ if(rl <= 9 && rw >= 18) {
     }
 
     /* ==============================
-       17) AUTO buttons
-       Fixes your #3 complaint:
-       auto fills ONLY unfilled winners.
+       18) AUTO select (partial fill)
     ============================== */
     function sortArrayByRank(arr){
       arr.sort((a,b) => {
@@ -1540,17 +1530,14 @@ if(rl <= 9 && rw >= 18) {
       GROUP_KEYS.forEach(g => {
         const arr = state.groups[g];
         if(!arr) return;
-
         const real = arr.filter(x => !x.isPlaceholder);
         const ph   = arr.filter(x => x.isPlaceholder);
-
         real.sort((a,b) => {
           const ra = rankOf(a.name);
           const rb = rankOf(b.name);
           if(ra === rb) return String(a.name).localeCompare(String(b.name));
           return ra - rb;
         });
-
         state.groups[g] = [...real, ...ph].slice(0,4);
       });
 
@@ -1567,20 +1554,20 @@ if(rl <= 9 && rw >= 18) {
         return ra - rb;
       });
 
+      // IMPORTANT: does NOT rebuild R32 assignment unless regenerate clicked.
       validateAllWinners();
       render();
     }
 
     function autoRound(matches){
+      validateAllWinners();
+
       matches.forEach(m => {
-        const match = findMatchById(m.id);
-        if(!match) return;
-
-        const p = resolveParticipants(match);
-        if(p.left.placeholder || p.right.placeholder) return;
-
-        // ONLY fill if unfilled
+        // Only fill UNFILLED matches
         if(state.winners[m.id]) return;
+
+        const p = resolveParticipants(m);
+        if(p.left.placeholder || p.right.placeholder) return;
 
         const winnerName = pickWinnerNameAuto(p.left.name, p.right.name);
         const side = (winnerName === p.left.name) ? "L" : "R";
@@ -1598,17 +1585,24 @@ if(rl <= 9 && rw >= 18) {
       render();
     }
 
-    function generateR32(){
-      // Only affects R32 generation state.
-      // Do NOT wipe user picks globally.
+    /* ==============================
+       19) Regenerate R32
+    ============================== */
+    function regenerateR32(){
+      // Clear ALL knockout winners for clean consistency
+      state.winners = {};
+
       state.r32Generated = true;
+
+      // Build frozen third assignment snapshot
+      buildR32ThirdSnapshot();
 
       validateAllWinners();
       render();
     }
 
     /* ==============================
-       18) UI build
+       20) UI build
     ============================== */
     function makeSeparator(text, buttonOptions=null){
       const sep = document.createElement("div");
@@ -1632,6 +1626,7 @@ if(rl <= 9 && rw >= 18) {
           btn.id = opt.id;
           btn.textContent = opt.text;
           if(opt.mini) btn.classList.add("btn-mini");
+          if(opt.orange) btn.classList.add("btn-orange");
           right.appendChild(btn);
         });
 
@@ -1669,7 +1664,9 @@ if(rl <= 9 && rw >= 18) {
       board.appendChild(
         makeSeparator(
           "Qualifier Pools",
-          [{ id:"autoPoolsBtn", text:"Auto Pools" }]
+          [
+            { id:"autoPoolsBtn", text:"Auto Select Pool positions", orange:true },
+          ]
         )
       );
       PATHS.forEach(p => {
@@ -1681,8 +1678,8 @@ if(rl <= 9 && rw >= 18) {
         makeSeparator(
           "Groups",
           [
-            { id:"formGroupsBtn", text:"Form Groups" },
-            { id:"autoGroupsBtn", text:"Auto Groups" }
+            { id:"placeQualifiersBtn", text:"Place qualifiers to the groups" },
+            { id:"autoGroupsBtn", text:"Auto Select Group positions", orange:true }
           ]
         )
       );
@@ -1693,8 +1690,10 @@ if(rl <= 9 && rw >= 18) {
       // Tools
       board.appendChild(
         makeSeparator(
-          "Group Tools & Third-Place Logic",
-          [{ id:"autoThirdBtn", text:"Auto Third Ranking" }]
+          "Group Tools & Third-Place Ordering",
+          [
+            { id:"autoThirdBtn", text:"Auto Select 3rd place positions", orange:true }
+          ]
         )
       );
       board.appendChild(makeColumn("Third Place Team Ranking", THIRD_RANK_ZONE, "A3 → L3"));
@@ -1707,8 +1706,8 @@ if(rl <= 9 && rw >= 18) {
         makeSeparator(
           "Round of 32",
           [
-           { id:"generateR32Btn", text:"Generate / Regenerate R32" },
-            { id:"autoR32Btn", text:"Auto R32" }
+            { id:"regenerateR32Btn", text:"Regenerate R32", orange:true },
+            { id:"autoR32Btn", text:"Auto Select R32 winners", orange:true }
           ]
         )
       );
@@ -1718,7 +1717,9 @@ if(rl <= 9 && rw >= 18) {
       board.appendChild(
         makeSeparator(
           "Round of 16",
-          [{ id:"autoR16Btn", text:"Auto R16" }]
+          [
+            { id:"autoR16Btn", text:"Auto Select R16 winners", orange:true }
+          ]
         )
       );
       board.appendChild(makeKoGrid("r16"));
@@ -1727,7 +1728,9 @@ if(rl <= 9 && rw >= 18) {
       board.appendChild(
         makeSeparator(
           "Quarterfinals",
-          [{ id:"autoQFBtn", text:"Auto QF" }]
+          [
+            { id:"autoQFBtn", text:"Auto Select QF winners", orange:true }
+          ]
         )
       );
       board.appendChild(makeKoGrid("qf"));
@@ -1736,7 +1739,9 @@ if(rl <= 9 && rw >= 18) {
       board.appendChild(
         makeSeparator(
           "Semifinals",
-          [{ id:"autoSFBtn", text:"Auto SF" }]
+          [
+            { id:"autoSFBtn", text:"Auto Select SF winners", orange:true }
+          ]
         )
       );
       board.appendChild(makeKoGrid("sf", "centered"));
@@ -1745,7 +1750,9 @@ if(rl <= 9 && rw >= 18) {
       board.appendChild(
         makeSeparator(
           "Third Place",
-          [{ id:"autoThirdMatchBtn", text:"Auto Third" }]
+          [
+            { id:"autoThirdMatchBtn", text:"Auto Select 3rd Place winner", orange:true }
+          ]
         )
       );
       board.appendChild(makeKoGrid("third", "centered"));
@@ -1754,14 +1761,16 @@ if(rl <= 9 && rw >= 18) {
       board.appendChild(
         makeSeparator(
           "Final",
-          [{ id:"autoFinalBtn", text:"Auto Final" }]
+          [
+            { id:"autoFinalBtn", text:"Auto Select Final winner", orange:true }
+          ]
         )
       );
       board.appendChild(makeKoGrid("final", "centered"));
     }
 
     /* ==============================
-       19) Render standard zones
+       21) Render standard zones
     ============================== */
     function applyRankHighlight(cardEl, zone, idx, team){
       cardEl.classList.remove("rank-strong", "rank-mild", "qualified", "eliminated");
@@ -1872,8 +1881,66 @@ if(rl <= 9 && rw >= 18) {
     }
 
     /* ==============================
-       20) Render KO rounds
-       Fixes your #2 header layout.
+       22) Local time rendering helpers
+    ============================== */
+    const MONTHS = {
+      january:0, february:1, march:2, april:3, may:4, june:5,
+      july:6, august:7, september:8, october:9, november:10, december:11
+    };
+
+    function parseDateStr(dateStr){
+      // "June 28, 2026"
+      const m = String(dateStr).match(/^([A-Za-z]+)\s+(\d{1,2}),\s+(\d{4})$/);
+      if(!m) return null;
+      const month = MONTHS[m[1].toLowerCase()];
+      const day = Number(m[2]);
+      const year = Number(m[3]);
+      if(month == null) return null;
+      return { year, month, day };
+    }
+
+    function parseTime12h(timeStr){
+      // "4:30 p.m." or "12:00 p.m."
+      const s = String(timeStr).toLowerCase().replace(/\s+/g," ").trim();
+      const m = s.match(/^(\d{1,2}):(\d{2})\s*(a\.m\.|p\.m\.)$/);
+      if(!m) return null;
+      let h = Number(m[1]);
+      const min = Number(m[2]);
+      const ampm = m[3];
+      if(ampm.startsWith("p") && h !== 12) h += 12;
+      if(ampm.startsWith("a") && h === 12) h = 0;
+      return { h, min };
+    }
+
+    function utcMillisFromVenueInfo(info){
+      if(!info || info.offsetHours == null) return null;
+      const d = parseDateStr(info.date);
+      const t = parseTime12h(info.time);
+      if(!d || !t) return null;
+
+      // venue local time = UTC + offsetHours
+      // => UTC = venueLocal - offsetHours
+      const utcHour = t.h - info.offsetHours;
+
+      return Date.UTC(d.year, d.month, d.day, utcHour, t.min, 0);
+    }
+
+    function formatLocalKickoff(info){
+      const ms = utcMillisFromVenueInfo(info);
+      if(ms == null) return info?.time ? info.time : "Time TBD";
+
+      const dt = new Date(ms);
+
+      // Display in viewer's local timezone
+      const fmt = new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short"
+      });
+      return fmt.format(dt);
+    }
+
+    /* ==============================
+       23) Render KO rounds
     ============================== */
     function buildMatchCard(match){
       const p = resolveParticipants(match);
@@ -1887,35 +1954,36 @@ if(rl <= 9 && rw >= 18) {
       card.className = "match-card";
       card.dataset.matchId = match.id;
 
-      // match index top-left
+      // Match index top-left
       const idx = document.createElement("div");
       idx.className = "match-index";
       idx.textContent = `Match ${match.id}`;
       card.appendChild(idx);
 
-      // fixture label centered above mid box
-      const fixture = document.createElement("div");
-      fixture.className = "match-fixture";
-      fixture.textContent = `${L.label} vs ${R.label}`;
-      card.appendChild(fixture);
+      // Center "XX vs XX" label above mid box (uses slot labels)
+      const vs = document.createElement("div");
+      vs.className = "match-vs";
+      vs.textContent = `${L.label} vs ${R.label}`;
+      card.appendChild(vs);
 
-      // left team
+      // Left team
       const leftBtn = document.createElement("div");
       leftBtn.className = "match-team";
       leftBtn.innerHTML = nameWithFlagHTML(L.name);
 
-      // mid abbrev
+      // Mid abbrev
       const mid = document.createElement("div");
       mid.className = "match-mid";
 
-      // right team
+      // Right team
       const rightBtn = document.createElement("div");
       rightBtn.className = "match-team";
       rightBtn.innerHTML = nameWithFlagHTML(R.name);
 
-      const isR32 = (match.id >= 73 && match.id <= 88);
+      const inR32Range = (match.id >= 73 && match.id <= 88);
+
       const canPick =
-        (!isR32 || state.r32Generated) &&
+        (!inR32Range || state.r32Generated) &&
         !L.placeholder && !R.placeholder;
 
       if(!canPick){
@@ -1928,7 +1996,6 @@ if(rl <= 9 && rw >= 18) {
         mid.textContent = winner ? winner.abbrev : "---";
       }
 
-      // winner highlight persistence
       if(winner && canPick){
         if(winner.name === L.name) leftBtn.classList.add("winning");
         if(winner.name === R.name) rightBtn.classList.add("winning");
@@ -1938,7 +2005,7 @@ if(rl <= 9 && rw >= 18) {
       card.appendChild(mid);
       card.appendChild(rightBtn);
 
-      // bottom meta
+      // Bottom meta
       const bottom = document.createElement("div");
       bottom.className = "match-bottom";
 
@@ -1948,7 +2015,7 @@ if(rl <= 9 && rw >= 18) {
       if(info){
         leftMeta.innerHTML = `
           <span class="chip">${info.date}</span>
-          <span class="chip">${info.time}</span>
+          <span class="chip">Local time: ${formatLocalKickoff(info)}</span>
         `;
         rightMeta.innerHTML = `
           <span class="chip">${info.stadium}</span>
@@ -1961,6 +2028,7 @@ if(rl <= 9 && rw >= 18) {
 
       bottom.appendChild(leftMeta);
       bottom.appendChild(rightMeta);
+
       card.appendChild(bottom);
 
       return card;
@@ -1973,20 +2041,21 @@ if(rl <= 9 && rw >= 18) {
       grid.innerHTML = "";
 
       const matches = ALL_ROUNDS[roundKey] ?? [];
+
       matches.forEach(m => {
         grid.appendChild(buildMatchCard(m));
       });
 
       if(roundKey === "r32"){
         const note = document.createElement("div");
-        note.className = "r32-fallback-note";
+        note.className = "r32-note";
 
         if(!state.r32Generated){
           note.textContent =
             "R32 not generated yet. Third-place slots are placeholders from the mapping sets.";
         } else {
           note.textContent =
-            "3rd-place mapping source: TABLE if provided, otherwise RANKING.";
+            "R32 3rd-place teams are frozen from your last Regenerate click.";
         }
 
         grid.appendChild(note);
@@ -1995,6 +2064,7 @@ if(rl <= 9 && rw >= 18) {
 
     function renderAllKo(){
       validateAllWinners();
+
       renderKoRound("r32");
       renderKoRound("r16");
       renderKoRound("qf");
@@ -2004,12 +2074,12 @@ if(rl <= 9 && rw >= 18) {
     }
 
     /* ==============================
-       21) Stage pill + buttons
+       24) Stage pill + buttons
     ============================== */
     function updateStagePillAndButtons(){
       const pill = document.getElementById("stagePill");
       const reformBtn = document.getElementById("reformPoolBtn");
-      const formBtn = document.getElementById("formGroupsBtn");
+      const placeBtn = document.getElementById("placeQualifiersBtn");
 
       if(pill){
         pill.textContent = editMode === "pools" ? "Edit: Pools" : "Edit: Groups";
@@ -2017,21 +2087,21 @@ if(rl <= 9 && rw >= 18) {
       if(reformBtn){
         reformBtn.disabled = (editMode === "pools");
       }
-      if(formBtn){
-        formBtn.disabled = (editMode !== "pools");
+      if(placeBtn){
+        placeBtn.disabled = (editMode !== "pools");
       }
     }
 
     function wireButtons(){
       const resetBtn = document.getElementById("resetBtn");
       const reformBtn = document.getElementById("reformPoolBtn");
-      const formBtn = document.getElementById("formGroupsBtn");
 
+      const placeBtn = document.getElementById("placeQualifiersBtn");
       const autoPoolsBtn = document.getElementById("autoPoolsBtn");
       const autoGroupsBtn = document.getElementById("autoGroupsBtn");
       const autoThirdBtn = document.getElementById("autoThirdBtn");
 
-      const generateR32Btn = document.getElementById("generateR32Btn");
+      const regenerateR32Btn = document.getElementById("regenerateR32Btn");
       const autoR32Btn = document.getElementById("autoR32Btn");
       const autoR16Btn = document.getElementById("autoR16Btn");
       const autoQFBtn = document.getElementById("autoQFBtn");
@@ -2039,10 +2109,10 @@ if(rl <= 9 && rw >= 18) {
       const autoThirdMatchBtn = document.getElementById("autoThirdMatchBtn");
       const autoFinalBtn = document.getElementById("autoFinalBtn");
 
-      if(formBtn){
-        formBtn.addEventListener("click", () => {
+      if(placeBtn){
+        placeBtn.addEventListener("click", () => {
           if(editMode !== "pools") return;
-          formGroupsFromPools();
+          placeQualifiersToGroups();
         });
       }
 
@@ -2065,11 +2135,15 @@ if(rl <= 9 && rw >= 18) {
       if(autoGroupsBtn) autoGroupsBtn.addEventListener("click", autoGroups);
       if(autoThirdBtn) autoThirdBtn.addEventListener("click", autoThirdRanking);
 
-      if(generateR32Btn) generateR32Btn.addEventListener("click", generateR32);
+      if(regenerateR32Btn){
+        regenerateR32Btn.addEventListener("click", () => {
+          regenerateR32();
+        });
+      }
 
       if(autoR32Btn){
         autoR32Btn.addEventListener("click", () => {
-          if(!state.r32Generated) generateR32();
+          if(!state.r32Generated) regenerateR32();
           autoRound(R32_MATCHES);
         });
       }
@@ -2082,7 +2156,7 @@ if(rl <= 9 && rw >= 18) {
     }
 
     /* ==============================
-       22) Render orchestrator
+       25) Render orchestrator
     ============================== */
     function render(){
       syncThirdRankingNames();
@@ -2092,7 +2166,7 @@ if(rl <= 9 && rw >= 18) {
     }
 
     /* ==============================
-       23) Boot
+       26) Boot
     ============================== */
     document.addEventListener("DOMContentLoaded", () => {
       buildBoard();
@@ -2100,7 +2174,5 @@ if(rl <= 9 && rw >= 18) {
       wireButtons();
     });
   </script>
-
-  <div id="upsetToast" class="upset-toast" aria-live="polite"></div>
 </body>
 </html>
