@@ -141,6 +141,59 @@
       background: linear-gradient(135deg, rgba(94,230,168,0.34), rgba(94,230,168,0.18));
     }
 
+      /* ==========================
+     Result image preview modal
+  ========================== */
+  .result-modal{
+    position: fixed;
+    inset: 0;
+    background: rgba(3,6,16,0.86);
+    backdrop-filter: blur(10px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 18px;
+  }
+  .result-modal.open{ display: flex; }
+
+  .result-modal-card{
+    width: min(1100px, 96vw);
+    max-height: 92vh;
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    box-shadow: 0 18px 60px rgba(0,0,0,0.45);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .result-modal-head{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .result-modal-head .title{
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 0.3px;
+  }
+  .result-modal-body{
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+    overflow: auto;
+  }
+  .result-modal-body img{
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
     /* ==========================
        R32 out-of-date badge
     ========================== */
@@ -2525,55 +2578,50 @@
        27) PRINT RESULT - NAME + CANVAS
     ============================== */
     /* ==============================
-   RESULT IMAGE GENERATION (FIXED)
-   - compact match cards
-   - working flag emoji
+   RESULT IMAGE GENERATION v2
+   - tighter layout
+   - more colorful
+   - robust emoji fallback
    - champion headline top-right
    - source bottom-right
+   - in-page view modal
 ============================== */
 
-// You can customize this label if you want
 const SITE_SOURCE_NAME = "World Cup 2026 Predictor";
 
-// Try to infer your site URL. Fallback to location.href.
 function getSiteUrlForImage(){
   try{
-    return (document.querySelector('link[rel="canonical"]')?.href)
-      || location.href;
+    return document.querySelector('link[rel="canonical"]')?.href || location.href;
   } catch(e){
     return "";
   }
 }
 
-// Grab user's first name from a simple prompt cache OR fallback
-// If you already have a better mechanism, replace this function only.
-function getUserFirstName(){
-  // 1) If you previously stored it
-  const stored = localStorage.getItem("wc26_user_first_name");
+/* ------------------------------
+   Name capture (restored)
+------------------------------ */
+function ensureUserFirstName(){
+  let stored = localStorage.getItem("wc26_user_first_name");
   if(stored) return stored;
 
-  // 2) Try a gentle inference from browser profile (not reliable)
-  // We'll keep it simple.
+  const raw = prompt("Enter your first name for the prediction image (optional):");
+  const clean = String(raw || "").trim();
+  if(clean){
+    const first = clean.split(/\s+/)[0];
+    localStorage.setItem("wc26_user_first_name", first);
+    return first;
+  }
   return "Your";
 }
 
-// Convert country code -> flag emoji
-function flagEmojiFromCode(code){
-  if(!code) return "";
-  const cc = String(code).toUpperCase();
-
-  // Kosovo doesn't have a universally supported emoji flag
-  if(cc === "XK") return "🏳️";
-
-  if(!/^[A-Z]{2}$/.test(cc)) return "";
-
-  const A = 0x1F1E6;
-  const chars = [...cc].map(c => String.fromCodePoint(A + (c.charCodeAt(0) - 65)));
-  return chars.join("");
+function getUserFirstName(){
+  return localStorage.getItem("wc26_user_first_name") || "Your";
 }
 
-// Use your existing FLAG_CODE_BY_NAME map
-function flagEmojiForName(name){
+/* ------------------------------
+   Flag / emoji helpers
+------------------------------ */
+function codeForName(name){
   if(!name) return "";
   if(
     name.startsWith("UEFA Path") ||
@@ -2582,113 +2630,223 @@ function flagEmojiForName(name){
     name.includes("FIFA IC Path")
   ) return "";
   const code = FLAG_CODE_BY_NAME[name];
-  return flagEmojiFromCode(code);
+  return code ? String(code).toUpperCase() : "";
 }
 
-// The badge shown inside tiny match cards
+function flagEmojiFromCode(code){
+  if(!code) return "";
+  const cc = String(code).toUpperCase();
+
+  // Kosovo emoji support is inconsistent across platforms
+  if(cc === "XK") return "";
+
+  if(!/^[A-Z]{2}$/.test(cc)) return "";
+
+  const A = 0x1F1E6;
+  return [...cc].map(c => String.fromCodePoint(A + (c.charCodeAt(0) - 65))).join("");
+}
+
+/* 
+  Laptop emoji issues:
+  We ALWAYS show "CC ABB" and add emoji only if available.
+*/
 function badgeTextForName(name){
   const ab = teamAbbrev(name);
-  const em = flagEmojiForName(name);
-  return em ? `${em} ${ab}` : ab;
+  const cc = codeForName(name);
+
+  if(cc){
+    const em = flagEmojiFromCode(cc);
+    return em ? `${em} ${cc} ${ab}` : `${cc} ${ab}`;
+  }
+  return ab;
 }
 
-// Compact landscape bracket image
+/* ------------------------------
+   Modal preview
+------------------------------ */
+function ensureResultModal(){
+  let modal = document.getElementById("resultPreviewModal");
+  if(modal) return modal;
+
+  modal = document.createElement("div");
+  modal.id = "resultPreviewModal";
+  modal.className = "result-modal";
+  modal.innerHTML = `
+    <div class="result-modal-card">
+      <div class="result-modal-head">
+        <div class="title">Your World Cup 2026 bracket image</div>
+        <div>
+          <button class="btn-mini" id="resultModalCloseBtn">Close</button>
+        </div>
+      </div>
+      <div class="result-modal-body">
+        <img id="resultModalImg" alt="Prediction image">
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  modal.addEventListener("click", (e) => {
+    if(e.target === modal) modal.classList.remove("open");
+  });
+
+  modal.querySelector("#resultModalCloseBtn")
+    .addEventListener("click", () => modal.classList.remove("open"));
+
+  return modal;
+}
+
+function showResultPreview(canvas){
+  const modal = ensureResultModal();
+  const img = modal.querySelector("#resultModalImg");
+  img.src = canvas.toDataURL("image/png");
+  modal.classList.add("open");
+}
+
+/* ------------------------------
+   Drawing helpers
+------------------------------ */
+function roundRectPath(ctx, x,y,w,h,rad){
+  const r = Math.min(rad, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
+}
+
+function centerOf(pos){
+  return { cx: pos.x + pos.w/2, cy: pos.y + pos.h/2 };
+}
+
+function normalizeLayout(posById, W, H){
+  const vals = Object.values(posById);
+  if(!vals.length) return posById;
+
+  const minX = Math.min(...vals.map(p => p.x));
+  const minY = Math.min(...vals.map(p => p.y));
+  const maxX = Math.max(...vals.map(p => p.x + p.w));
+  const maxY = Math.max(...vals.map(p => p.y + p.h));
+
+  const contentW = Math.max(1, maxX - minX);
+  const contentH = Math.max(1, maxY - minY);
+
+  const padL = 36;
+  const padR = 36;
+  const padT = 92;  // leave room for header
+  const padB = 78;  // leave room for footer
+
+  const availW = W - padL - padR;
+  const availH = H - padT - padB;
+
+  const scale = Math.min(availW / contentW, availH / contentH);
+
+  const out = {};
+  for(const [id, p] of Object.entries(posById)){
+    out[id] = {
+      x: (p.x - minX) * scale + padL,
+      y: (p.y - minY) * scale + padT,
+      w: p.w * scale,
+      h: p.h * scale
+    };
+  }
+  return out;
+}
+
+/* ------------------------------
+   Main builder
+------------------------------ */
 function buildResultsCanvas(){
-  const W = 1400;
-  const H = 820;
+  // Slightly smaller + denser than before
+  const W = 1280;
+  const H = 760;
 
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d");
 
-  // Background (dark)
-  ctx.fillStyle = "#070b18";
-  ctx.fillRect(0,0,W,H);
-
-  // Subtle vignette
-  const grd = ctx.createRadialGradient(
-    W*0.15, H*0.12, 40,
-    W*0.15, H*0.12, W*1.1
-  );
-  grd.addColorStop(0, "rgba(255,255,255,0.06)");
-  grd.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = grd;
-  ctx.fillRect(0,0,W,H);
-
+  // Ensure name prompt happened at least once for view/download
   const firstName = getUserFirstName();
-  const SITE_URL = getSiteUrlForImage();
 
-  /* ------------------------------
-     Champion headline (TOP RIGHT)
-  ------------------------------ */
+  // === Colorful background ===
+  ctx.fillStyle = "#050814";
+  ctx.fillRect(0,0,W,H);
+
+  // Soft multi-color glows
+  const glow1 = ctx.createRadialGradient(W*0.12, H*0.18, 40, W*0.12, H*0.18, W*0.55);
+  glow1.addColorStop(0, "rgba(122,162,255,0.18)");
+  glow1.addColorStop(1, "rgba(122,162,255,0)");
+  ctx.fillStyle = glow1; ctx.fillRect(0,0,W,H);
+
+  const glow2 = ctx.createRadialGradient(W*0.88, H*0.20, 40, W*0.88, H*0.20, W*0.55);
+  glow2.addColorStop(0, "rgba(94,230,168,0.16)");
+  glow2.addColorStop(1, "rgba(94,230,168,0)");
+  ctx.fillStyle = glow2; ctx.fillRect(0,0,W,H);
+
+  const glow3 = ctx.createRadialGradient(W*0.75, H*0.85, 40, W*0.75, H*0.85, W*0.60);
+  glow3.addColorStop(0, "rgba(255,184,107,0.14)");
+  glow3.addColorStop(1, "rgba(255,184,107,0)");
+  ctx.fillStyle = glow3; ctx.fillRect(0,0,W,H);
+
+  // === Headline ===
   const finalWinner = state.winners?.[104]?.name ?? "";
   const championText = finalWinner
     ? `2026 FIFA WC Champion: ${finalWinner}`
     : `2026 FIFA WC Champion: TBD`;
 
-  ctx.font = "900 28px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  ctx.fillStyle = "rgba(255,255,255,0.98)";
+  // Left title
+  ctx.font = "800 24px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillStyle = "rgba(255,255,255,0.96)";
+  ctx.fillText(`${firstName}'s World Cup 2026 Knockout Prediction`, 32, 48);
+
+  // Top-right champion
+  ctx.font = "900 30px system-ui, -apple-system, Segoe UI, Roboto, Arial";
   const champW = ctx.measureText(championText).width;
-  ctx.fillText(championText, W - champW - 34, 52);
+  ctx.fillStyle = "rgba(255,255,255,0.99)";
+  ctx.fillText(championText, W - champW - 32, 54);
 
-  // Title (TOP LEFT)
-  ctx.font = "800 22px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  ctx.fillStyle = "rgba(255,255,255,0.94)";
-  ctx.fillText(`${firstName}'s World Cup 2026 Knockout Prediction`, 32, 52);
+  // === Compact match card geometry ===
+  const boxW = 175;
+  const boxH = 52;
+  const rad = 11;
 
-  // ✅ Removed the redundant R16→QF→SF→Final line as requested
-
-  /* ------------------------------
-     Compact match card geometry
-  ------------------------------ */
-  const boxW = 165; // smaller length
-  const boxH = 50;
-  const r = 10;
-
+  // Tighter X columns
   const xR16 = 40;
-  const xQF  = 300;
-  const xSF  = 560;
-  const xF   = 820;
-  const xF2  = 1080; // for Final/3rd cluster if needed
+  const xQF  = 240;
+  const xSF  = 440;
+  const xF2  = 660;
 
   // Match lookup
   const matchById = {};
   [...R16_MATCHES, ...QF_MATCHES, ...SF_MATCHES, ...THIRD_MATCH, ...FINAL_MATCH]
     .forEach(m => matchById[m.id] = m);
 
-  function roundRect(x,y,w,h,rad){
-    const rr = Math.min(rad, w/2, h/2);
-    ctx.beginPath();
-    ctx.moveTo(x+rr, y);
-    ctx.lineTo(x+w-rr, y);
-    ctx.quadraticCurveTo(x+w, y, x+w, y+rr);
-    ctx.lineTo(x+w, y+h-rr);
-    ctx.quadraticCurveTo(x+w, y+h, x+w-rr, y+h);
-    ctx.lineTo(x+rr, y+h);
-    ctx.quadraticCurveTo(x, y+h, x, y+h-rr);
-    ctx.lineTo(x, y+rr);
-    ctx.quadraticCurveTo(x, y, x+rr, y);
-    ctx.closePath();
-  }
+  function drawBoxFrame(x,y,w,h, accentColor){
+    roundRectPath(ctx, x,y,w,h,rad);
 
-  function drawBoxFrame(x,y,w,h, winnerAccent=false){
-    roundRect(x,y,w,h,r);
-    ctx.fillStyle = "rgba(255,255,255,0.045)";
+    // subtle card fill
+    const g = ctx.createLinearGradient(x, y, x+w, y+h);
+    g.addColorStop(0, "rgba(255,255,255,0.06)");
+    g.addColorStop(1, "rgba(255,255,255,0.02)");
+    ctx.fillStyle = g;
     ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,255,0.13)";
+
+    ctx.strokeStyle = "rgba(255,255,255,0.14)";
     ctx.lineWidth = 1.1;
     ctx.stroke();
 
-    // winner accent bar
-    if(winnerAccent){
-      ctx.fillStyle = "rgba(94,230,168,0.30)";
+    // Winner accent bar
+    if(accentColor){
+      ctx.fillStyle = accentColor;
       ctx.fillRect(x + w - 7, y + 6, 3, h - 12);
     }
-  }
-
-  function centerOf(pos){
-    return { cx: pos.x + pos.w/2, cy: pos.y + pos.h/2 };
   }
 
   function drawConnector(fromPos, toPos){
@@ -2696,7 +2854,7 @@ function buildResultsCanvas(){
     const b = centerOf(toPos);
     const midX = (a.cx + b.cx) / 2;
 
-    ctx.strokeStyle = "rgba(255,255,255,0.16)";
+    ctx.strokeStyle = "rgba(122,162,255,0.22)";
     ctx.lineWidth = 2;
 
     ctx.beginPath();
@@ -2707,6 +2865,15 @@ function buildResultsCanvas(){
     ctx.stroke();
   }
 
+  function winnerAccentForRound(label){
+    if(label === "R16") return "rgba(94,230,255,0.45)";
+    if(label === "QF")  return "rgba(122,162,255,0.50)";
+    if(label === "SF")  return "rgba(255,184,107,0.55)";
+    if(label === "FINAL") return "rgba(122,255,187,0.65)";
+    if(label === "3RD PLACE") return "rgba(255,107,122,0.55)";
+    return "rgba(94,230,168,0.45)";
+  }
+
   function drawMatchBox(matchId, pos, labelPrefix){
     const match = matchById[matchId];
     if(!match) return;
@@ -2714,50 +2881,46 @@ function buildResultsCanvas(){
     const p = resolveParticipants(match);
     const winner = state.winners?.[matchId]?.name ?? null;
 
-    drawBoxFrame(pos.x, pos.y, pos.w, pos.h, !!winner);
+    const accent = winner ? winnerAccentForRound(labelPrefix) : null;
+    drawBoxFrame(pos.x, pos.y, pos.w, pos.h, accent);
 
-    // small match label
-    ctx.fillStyle = "rgba(255,255,255,0.62)";
-    ctx.font = "700 9px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-    ctx.fillText(`${labelPrefix} • ${matchId}`, pos.x + 8, pos.y + 12);
+    // Match label
+    ctx.fillStyle = "rgba(255,255,255,0.70)";
+    ctx.font = "800 9.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    ctx.fillText(`${labelPrefix} • ${matchId}`, pos.x + 9, pos.y + 13);
 
-    // badges (emoji + abbr)
+    // Badge lines
     const leftText  = badgeTextForName(p.left.name);
     const rightText = badgeTextForName(p.right.name);
 
     const leftIsWinner  = winner && winner === p.left.name;
     const rightIsWinner = winner && winner === p.right.name;
 
-    ctx.font = `${leftIsWinner ? "800" : "650"} 17px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
-    ctx.fillStyle = leftIsWinner ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.86)";
-    ctx.fillText(leftText, pos.x + 10, pos.y + 31);
+    ctx.font = `${leftIsWinner ? "900" : "700"} 17.5px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+    ctx.fillStyle = leftIsWinner ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.88)";
+    ctx.fillText(leftText, pos.x + 10, pos.y + 32);
 
-    ctx.font = `${rightIsWinner ? "800" : "650"} 17px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
-    ctx.fillStyle = rightIsWinner ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.86)";
-    ctx.fillText(rightText, pos.x + 10, pos.y + 48);
+    ctx.font = `${rightIsWinner ? "900" : "700"} 17.5px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+    ctx.fillStyle = rightIsWinner ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.88)";
+    ctx.fillText(rightText, pos.x + 10, pos.y + 50);
   }
 
-  /* ------------------------------
-     Layout positions
-     (keeps single-tree, avoids overlap)
-  ------------------------------ */
+  // IDs
   const matchIdsR16 = R16_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
   const matchIdsQF  = QF_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
   const matchIdsSF  = SF_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
-
   const finalId = FINAL_MATCH[0]?.id; // 104
   const thirdId = THIRD_MATCH[0]?.id; // 103
 
-  const posById = {};
-
-  const topY = 110;
-  const gapR16 = 86;
+  // Base placement (tight)
+  let posById = {};
+  const topY = 98;
+  const gapR16 = 76;
 
   matchIdsR16.forEach((id, i) => {
     posById[id] = { x: xR16, y: topY + i*gapR16, w: boxW, h: boxH };
   });
 
-  // QF positions based on parents
   matchIdsQF.forEach(id => {
     const m = matchById[id];
     const parents = [m.left, m.right].filter(s => s.type === "WM").map(s => s.id);
@@ -2770,7 +2933,6 @@ function buildResultsCanvas(){
     }
   });
 
-  // SF positions
   matchIdsSF.forEach(id => {
     const m = matchById[id];
     const parents = [m.left, m.right].filter(s => s.type === "WM").map(s => s.id);
@@ -2779,11 +2941,10 @@ function buildResultsCanvas(){
       const y2 = centerOf(posById[parents[1]]).cy;
       posById[id] = { x: xSF, y: (y1+y2)/2 - boxH/2, w: boxW, h: boxH };
     } else {
-      posById[id] = { x: xSF, y: topY + 230, w: boxW, h: boxH };
+      posById[id] = { x: xSF, y: topY + 220, w: boxW, h: boxH };
     }
   });
 
-  // Final position
   if(finalId){
     const m = matchById[finalId];
     const parents = [m.left, m.right].filter(s => s.type === "WM").map(s => s.id);
@@ -2792,19 +2953,19 @@ function buildResultsCanvas(){
       const y2 = centerOf(posById[parents[1]]).cy;
       posById[finalId] = { x: xF2, y: (y1+y2)/2 - boxH/2, w: boxW, h: boxH };
     } else {
-      posById[finalId] = { x: xF2, y: topY + 300, w: boxW, h: boxH };
+      posById[finalId] = { x: xF2, y: topY + 260, w: boxW, h: boxH };
     }
   }
 
-  // 3rd place just below final
   if(thirdId){
-    const baseY = finalId && posById[finalId] ? posById[finalId].y : (topY + 300);
-    posById[thirdId] = { x: xF2, y: baseY + 95, w: boxW, h: boxH };
+    const baseY = finalId && posById[finalId] ? posById[finalId].y : (topY + 260);
+    posById[thirdId] = { x: xF2, y: baseY + 88, w: boxW, h: boxH };
   }
 
-  /* ------------------------------
-     Draw connectors
-  ------------------------------ */
+  // ✅ Auto-pack & scale to reduce unused gaps
+  posById = normalizeLayout(posById, W, H);
+
+  // Connectors
   matchIdsQF.forEach(qf => {
     const m = matchById[qf];
     [m.left, m.right].forEach(s => {
@@ -2840,61 +3001,99 @@ function buildResultsCanvas(){
     });
   }
 
-  /* ------------------------------
-     Draw boxes
-  ------------------------------ */
+  // Boxes
   matchIdsR16.forEach(id => drawMatchBox(id, posById[id], "R16"));
   matchIdsQF.forEach(id  => drawMatchBox(id, posById[id], "QF"));
   matchIdsSF.forEach(id  => drawMatchBox(id, posById[id], "SF"));
   if(finalId) drawMatchBox(finalId, posById[finalId], "FINAL");
   if(thirdId) drawMatchBox(thirdId, posById[thirdId], "3RD PLACE");
 
-  /* ------------------------------
-     Optional tiny legend (bottom-left)
-     This also confirms emoji works.
-  ------------------------------ */
-  ctx.fillStyle = "rgba(255,255,255,0.50)";
-  ctx.font = "600 10px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  ctx.fillText("Legend: Flag emoji + 3-letter ABBR. Accent bar indicates selected winner.", 32, H - 26);
+  // Legend (bigger)
+  ctx.fillStyle = "rgba(255,255,255,0.62)";
+  ctx.font = "700 11.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillText(
+    "Legend: CC + 3-letter ABBR (emoji may vary by device). Accent bar indicates selected winner.",
+    32, H - 30
+  );
 
-  /* ------------------------------
-     Footer branding (BOTTOM RIGHT)
-  ------------------------------ */
+  // Footer (bigger + clearer, bottom-right)
+  const SITE_URL = getSiteUrlForImage();
   const rightPad = 32;
-
-  const sourceLine1 = "Source";
-  const sourceLine2 = SITE_SOURCE_NAME;
-  const sourceLine3 = "Get your predictions at:";
-  const sourceLine4 = SITE_URL;
 
   ctx.textAlign = "right";
 
-  ctx.fillStyle = "rgba(255,255,255,0.62)";
-  ctx.font = "700 10px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  ctx.fillText(sourceLine1, W - rightPad, H - 78);
+  ctx.fillStyle = "rgba(255,255,255,0.70)";
+  ctx.font = "800 12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillText("Source", W - rightPad, H - 90);
 
-  ctx.fillStyle = "rgba(255,255,255,0.92)";
-  ctx.font = "700 11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  ctx.fillText(sourceLine2, W - rightPad, H - 62);
+  ctx.fillStyle = "rgba(255,255,255,0.98)";
+  ctx.font = "800 13.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillText(SITE_SOURCE_NAME, W - rightPad, H - 72);
 
-  ctx.fillStyle = "rgba(255,255,255,0.60)";
-  ctx.font = "600 10px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  ctx.fillText(sourceLine3, W - rightPad, H - 44);
+  ctx.fillStyle = "rgba(255,255,255,0.72)";
+  ctx.font = "700 12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillText("Get your predictions at:", W - rightPad, H - 52);
 
-  ctx.fillStyle = "rgba(255,255,255,0.92)";
-  ctx.font = "700 10px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  ctx.fillText(sourceLine4, W - rightPad, H - 28);
+  ctx.fillStyle = "rgba(255,255,255,0.98)";
+  ctx.font = "800 12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillText(SITE_URL, W - rightPad, H - 32);
 
-  // Timestamp bottom-right corner (above URL a bit)
   const ts = new Date().toLocaleString();
-  ctx.fillStyle = "rgba(255,255,255,0.40)";
-  ctx.font = "600 9px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  ctx.fillText(ts, W - rightPad, H - 10);
+  ctx.fillStyle = "rgba(255,255,255,0.50)";
+  ctx.font = "700 10.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillText(ts, W - rightPad, H - 12);
 
   ctx.textAlign = "start";
 
   return canvas;
 }
+
+/* ------------------------------
+   Download + View helpers
+------------------------------ */
+function downloadResultImage(){
+  ensureUserFirstName();
+
+  const canvas = buildResultsCanvas();
+  const a = document.createElement("a");
+  a.href = canvas.toDataURL("image/png");
+  a.download = "wc2026-prediction.png";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+function viewResultImage(){
+  ensureUserFirstName();
+
+  const canvas = buildResultsCanvas();
+  showResultPreview(canvas);
+}
+
+/* ------------------------------
+   Button wiring (robust)
+   - adjust IDs if yours differ
+------------------------------ */
+function wireResultImageButtons(){
+  // Try common IDs you might be using
+  const viewBtn =
+    document.getElementById("viewResultBtn") ||
+    document.getElementById("printViewBtn") ||
+    document.getElementById("resultViewBtn");
+
+  const dlBtn =
+    document.getElementById("downloadResultBtn") ||
+    document.getElementById("printDownloadBtn") ||
+    document.getElementById("resultDownloadBtn");
+
+  if(viewBtn){
+    viewBtn.addEventListener("click", viewResultImage);
+  }
+  if(dlBtn){
+    dlBtn.addEventListener("click", downloadResultImage);
+  }
+}
+
 
 
 
@@ -3048,6 +3247,9 @@ function buildResultsCanvas(){
           closePrintModal();
         }
       });
+
+      wireResultImageButtons();
+
     }
 
     /* ==============================
