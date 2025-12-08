@@ -3092,7 +3092,7 @@ async function buildResultsCanvas(){
 
   if(thirdId){
     const baseY = finalId && posById[finalId] ? posById[finalId].y : (topY + 260);
-    posById[thirdId] = { x: xF2, y: baseY + 140, w: boxW, h: boxH };
+    posById[thirdId] = { x: xF2, y: baseY + 160, w: boxW, h: boxH };
   }
 
   // === NEW: Post-Final Summary Blocks ===
@@ -3172,6 +3172,8 @@ posById[SUMMARY_RUNNER_ID] = {
   if(thirdId) drawMatchBox(thirdId, posById[thirdId], "3RD PLACE");
 
   // === Draw summary blocks ===
+
+  
 function drawSummaryBox(pos, title, teamName, accent){
   drawBoxFrame(pos.x, pos.y, pos.w, pos.h, accent);
 
@@ -3183,14 +3185,23 @@ function drawSummaryBox(pos, title, teamName, accent){
   // Flag image (local SVG cached as Image)
   const img = teamName ? (_flagCanvasCache.get(teamName) ?? null) : null;
 
+  const flagW = 24;
+  const flagH = 16;
+
   const flagX = pos.x + 12;
-  const flagY = pos.y + 30;
+
+  // Name baseline - single anchor for alignment
+  const nameBaselineY = pos.y + 52;
+
+  // Place flag so it's visually centered against the text line
+  // (tweak +1/-1 if your eyes want it tighter)
+  const flagY = nameBaselineY - flagH + 2;
 
   // If flag exists, start text after it; otherwise start at left padding
-  const textStartX = img ? (flagX + 24 + 8) : flagX;
+  const textStartX = img ? (flagX + flagW + 8) : flagX;
 
   if(img){
-    ctx.drawImage(img, flagX, flagY, 24, 16);
+    ctx.drawImage(img, flagX, flagY, flagW, flagH);
   }
 
   // Only full name
@@ -3198,8 +3209,41 @@ function drawSummaryBox(pos, title, teamName, accent){
 
   ctx.fillStyle = "rgba(255,255,255,0.98)";
   ctx.font = "800 14.8px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  ctx.fillText(line, textStartX, pos.y + 50);
+  ctx.fillText(line, textStartX, nameBaselineY);
 }
+
+
+  function drawChampionSummaryBox(pos, title, teamName){
+  // Outer "margin"/halo frame
+  ctx.save();
+  ctx.shadowColor = "rgba(255, 214, 102, 0.45)";
+  ctx.shadowBlur = 18;
+
+  // Big outer rounded rect
+  roundRectPath(ctx, pos.x - 8, pos.y - 8, pos.w + 16, pos.h + 16, 14);
+  ctx.fillStyle = "rgba(255, 214, 102, 0.06)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255, 214, 102, 0.65)";
+  ctx.lineWidth = 2.2;
+  ctx.stroke();
+  ctx.restore();
+
+  // Inner main box with strong green-gold accent
+  drawSummaryBox(
+    pos,
+    title,
+    teamName,
+    "rgba(122,255,187,0.85)"
+  );
+
+  // Optional small crown-like tick mark
+  ctx.save();
+  ctx.fillStyle = "rgba(255, 214, 102, 0.95)";
+  ctx.fillRect(pos.x + pos.w - 10, pos.y + 8, 4, pos.h - 16);
+  ctx.restore();
+}
+
+  
 
 
 
@@ -3225,13 +3269,13 @@ function drawSummaryBox(pos, title, teamName, accent){
   const runnerUp    = getRunnerUpName(finalId);
 
 if(posById[SUMMARY_CHAMP_ID]){
-  drawSummaryBox(
+  drawChampionSummaryBox(
     posById[SUMMARY_CHAMP_ID],
     "2026 FIFA WC CHAMPIONS",
-    finalWinner,
-    "rgba(122,255,187,0.70)"
+    finalWinner
   );
 }
+
 
 if(posById[SUMMARY_RUNNER_ID]){
   drawSummaryBox(
