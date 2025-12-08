@@ -553,6 +553,7 @@
     </div>
 
     <div class="actions">
+      <button id="clearMovedBtn">Clear moved flags</button>
       <button id="resetBtn">Reset ALL</button>
     </div>
   </header>
@@ -1512,21 +1513,32 @@
 
     /* ==============================
        16) Click-to-swap logic (+ userMoved)
+       - Pools/Groups: FULL-ZONE lock
+       - Third Ranking: TEAM-WISE lock
     ============================== */
-    function swapTeamsInArrayAndMark(arr, id1, id2){
+    function swapTeamsInArray(arr, id1, id2){
       const i1 = arr.findIndex(t => t.id === id1);
       const i2 = arr.findIndex(t => t.id === id2);
-      if(i1 === -1 || i2 === -1) return false;
+      if(i1 === -1 || i2 === -1) return { ok:false };
 
       const t1 = arr[i1];
       const t2 = arr[i2];
 
       [arr[i1], arr[i2]] = [arr[i2], arr[i1]];
 
+      return { ok:true, t1, t2 };
+    }
+
+    function markWholeZoneMoved(arr){
+      if(!arr) return;
+      arr.forEach(t => {
+        if(t && !t.isPlaceholder) t.userMoved = true;
+      });
+    }
+
+    function markTwoMoved(t1, t2){
       if(t1) t1.userMoved = true;
       if(t2) t2.userMoved = true;
-
-      return true;
     }
 
     function handleClickSwap(teamId, zone){
@@ -1553,13 +1565,19 @@
       const arr = getZoneArray(zone);
       if(!arr) return;
 
-      const ok = swapTeamsInArrayAndMark(arr, swapSelection.teamId, teamId);
+      const res = swapTeamsInArray(arr, swapSelection.teamId, teamId);
       swapSelection = null;
 
-      if(ok){
+      if(res.ok){
         if(zone === "third-ranking"){
+          // Team-wise locking (as you wanted)
+          markTwoMoved(res.t1, res.t2);
           thirdRankingDirty = true;
+        } else if(isPathZone(zone) || isGroupZone(zone)){
+          // Whole pool/group locking
+          markWholeZoneMoved(arr);
         }
+
         validateAllWinners();
       }
 
@@ -2308,10 +2326,35 @@
     }
 
     /* ==============================
-       26) Wire Buttons
+       26) Clear moved flags (GLOBAL)
+    ============================== */
+    function clearAllUserMoved(){
+      // Paths
+      Object.values(state.paths || {}).forEach(arr => {
+        (arr || []).forEach(t => { if(t) t.userMoved = false; });
+      });
+
+      // Groups
+      Object.values(state.groups || {}).forEach(arr => {
+        (arr || []).forEach(t => { if(t) t.userMoved = false; });
+      });
+
+      // Third ranking (ensure synced objects)
+      syncThirdRankingNames();
+      (state.thirdRanking || []).forEach(t => { if(t) t.userMoved = false; });
+
+      swapSelection = null;
+
+      validateAllWinners();
+      render();
+    }
+
+    /* ==============================
+       27) Wire Buttons
     ============================== */
     function wireButtons(){
       const resetBtn = document.getElementById("resetBtn");
+      const clearMovedBtn = document.getElementById("clearMovedBtn");
 
       const reformBtn = document.getElementById("reformPoolBtn");
       const placeBtn = document.getElementById("placeQualifiersBtn");
@@ -2327,6 +2370,10 @@
       const autoSFBtn = document.getElementById("autoSFBtn");
       const autoThirdMatchBtn = document.getElementById("autoThirdMatchBtn");
       const autoFinalBtn = document.getElementById("autoFinalBtn");
+
+      if(clearMovedBtn){
+        clearMovedBtn.addEventListener("click", clearAllUserMoved);
+      }
 
       if(placeBtn){
         placeBtn.addEventListener("click", () => {
@@ -2375,7 +2422,7 @@
     }
 
     /* ==============================
-       27) Render orchestrator
+       28) Render orchestrator
     ============================== */
     function render(){
       syncThirdRankingNames();
@@ -2391,7 +2438,7 @@
     }
 
     /* ==============================
-       28) Boot
+       29) Boot
     ============================== */
     document.addEventListener("DOMContentLoaded", () => {
       buildBoard();
