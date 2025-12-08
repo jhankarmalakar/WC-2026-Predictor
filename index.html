@@ -294,37 +294,28 @@
       }
 
     /* Zone-level "User moved" badge (header) */
-.zone-moved-badge{
-  display: none; /* JS toggles to inline-block when needed */
-  margin-left: 8px;
-  padding: 2px 8px;
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.25px;
-  border-radius: 999px;
+    .zone-moved-badge{
+      display: none;
+      margin-left: 8px;
+      padding: 2px 8px;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.25px;
+      border-radius: 999px;
 
-  color: var(--text);
-  border: 1px solid rgba(122,162,255,0.45);
-  background: rgba(122,162,255,0.10);
+      color: var(--text);
+      border: 1px solid rgba(122,162,255,0.45);
+      background: rgba(122,162,255,0.10);
 
-  vertical-align: middle;
-  line-height: 1.15;
-
-  /* soft inset to match your button/card vibe */
-  box-shadow: 0 0 0 1px rgba(122,162,255,0.06) inset;
-}
-
-/* Optional: slightly warmer tone for Pools/Groups moved badge
-   (only if you want a subtle "action taken" hint)
-   Add this class in JS if desired:
-   movedBadge.classList.add("zone-moved-warm");
-*/
-.zone-moved-badge.zone-moved-warm{
-  border-color: rgba(255,184,107,0.60);
-  background: rgba(255,184,107,0.12);
-  box-shadow: 0 0 0 1px rgba(255,184,107,0.08) inset;
-}
-
+      vertical-align: middle;
+      line-height: 1.15;
+      box-shadow: 0 0 0 1px rgba(122,162,255,0.06) inset;
+    }
+    .zone-moved-badge.zone-moved-warm{
+      border-color: rgba(255,184,107,0.60);
+      background: rgba(255,184,107,0.12);
+      box-shadow: 0 0 0 1px rgba(255,184,107,0.08) inset;
+    }
 
     /* Card */
     .card{
@@ -581,6 +572,79 @@
       color: var(--muted);
       opacity: 0.9;
     }
+
+    /* ==========================
+       PRINT MODAL
+    ========================== */
+    .modal-backdrop{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 14px;
+    }
+    .modal-backdrop.show{ display: flex; }
+
+    .modal{
+      width: min(980px, 100%);
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .modal-head{
+      padding: 14px 16px;
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      gap: 10px;
+    }
+    .modal-title{
+      font-size: 13.5px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.85);
+    }
+    .modal-body{
+      padding: 14px 16px 6px 16px;
+      display:grid;
+      gap: 12px;
+    }
+    .modal-preview{
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      padding: 10px;
+      display:flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 220px;
+    }
+    .modal-preview img{
+      max-width: 100%;
+      height: auto;
+      border-radius: 10px;
+      box-shadow: 0 8px 22px rgba(0,0,0,0.28);
+    }
+    .modal-foot{
+      padding: 12px 16px 16px 16px;
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      border-top: 1px solid var(--border);
+    }
+    .modal-note{
+      font-size: 11px;
+      color: var(--muted);
+    }
   </style>
 </head>
 
@@ -608,6 +672,30 @@
 
   <div class="footer">
     Pools editable only in Pool mode. Groups + Third-place ranking editable only in Group mode.
+  </div>
+
+  <!-- ==========================
+       PRINT RESULT MODAL
+  ========================== -->
+  <div id="printModalBackdrop" class="modal-backdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="printModalTitle">
+      <div class="modal-head">
+        <div class="modal-title" id="printModalTitle">Your Knockout Bracket Image</div>
+        <button id="closePrintModal" class="btn-mini">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-note">
+          This image includes your path from <b>R16 → QF → SF → Final + 3rd Place</b> using <b>FLAG + ABBR</b>.
+        </div>
+        <div class="modal-preview">
+          <img id="printPreviewImg" alt="Prediction preview" />
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button id="viewPrintImgBtn" class="btn-orange">View image</button>
+        <button id="downloadPrintImgBtn" class="btn-green">Download PNG</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -758,7 +846,7 @@
     }
 
     /* ==============================
-       3) Flags (image-based)
+       3) Flags (image-based for DOM)
     ============================== */
     const FLAG_CODE_BY_NAME = {
       "Mexico":"mx",
@@ -853,6 +941,29 @@
     }
 
     /* ==============================
+       3b) Flags for CANVAS (emoji)
+    ============================== */
+    function isoToFlagEmoji(iso){
+      if(!iso || iso.length !== 2) return "";
+      const cc = iso.toUpperCase();
+      const A = 0x1F1E6;
+      const base = "A".charCodeAt(0);
+      const c1 = cc.charCodeAt(0) - base;
+      const c2 = cc.charCodeAt(1) - base;
+      if(c1 < 0 || c2 < 0) return "";
+      return String.fromCodePoint(A + c1, A + c2);
+    }
+    function flagEmojiForName(name){
+      if(!name) return "";
+      if(name.startsWith("UEFA Path") || name.startsWith("FIFA IC Path") || name.includes("UFEA Path")) return "";
+      const code = FLAG_CODE_BY_NAME[name];
+      // Kosovo "xk" isn't a standard flag emoji in many fonts
+      if(code === "xk") return "";
+      if(!code || code.length !== 2) return "";
+      return isoToFlagEmoji(code);
+    }
+
+    /* ==============================
        4) Edit mode + click-swap state
     ============================== */
     let editMode = "pools";
@@ -861,7 +972,6 @@
     let qualifiedThirdGroupLetters = "";
     let qualifiedThirdPlacedTeams = [];
 
-    // R32 out-of-date tracking for third ranking reorder
     let thirdRankingDirty = false;
 
     /* ==============================
@@ -927,20 +1037,19 @@
       return p.label;
     }
 
-   function buildThirdRankingFromGroups(groups){
-  const base = [];
-  GROUP_KEYS.forEach(g => {
-    const third = groups[g]?.[2];
-    base.push({
-      id: toId(`third-${g}`),          // ✅ stable id
-      groupKey: g,
-      name: third?.name ?? fallbackPathNameForGroup(g),
-      userMoved: false
-    });
-  });
-  return base;
-}
-
+    function buildThirdRankingFromGroups(groups){
+      const base = [];
+      GROUP_KEYS.forEach(g => {
+        const third = groups[g]?.[2];
+        base.push({
+          id: toId(`third-${g}`),
+          groupKey: g,
+          name: third?.name ?? fallbackPathNameForGroup(g),
+          userMoved: false
+        });
+      });
+      return base;
+    }
 
     const initialState = () => {
       const groups = buildGroupsFromDefaults();
@@ -954,14 +1063,9 @@
         qualifiedByPath,
         thirdRanking: buildThirdRankingFromGroups(groups),
 
-        // Knockout
         r32Generated: false,
-
-        // winners for ALL KO matches
         winners: {},
-
-        // SNAPSHOTS for R32 third-place assignment
-        r32ThirdSnapshot: null   // { letters, top8, assignment }
+        r32ThirdSnapshot: null
       };
     };
 
@@ -1113,7 +1217,6 @@
 
     /* ==============================
        8) Third-place mapping table
-       - keep ONLY TWO entries
     ============================== */
     const THIRD_MATCH_ID_ORDER = [74, 77, 79, 80, 81, 82, 85, 87];
 
@@ -1142,48 +1245,40 @@
       return t && !t.isPlaceholder ? t : null;
     }
 
- function syncThirdRankingNames(){
-  // Keep current ranking order
-  let arr = Array.isArray(state.thirdRanking) ? state.thirdRanking.slice() : [];
+    function syncThirdRankingNames(){
+      let arr = Array.isArray(state.thirdRanking) ? state.thirdRanking.slice() : [];
+      const byGroup = new Map(arr.map(x => [x.groupKey, x]));
 
-  // Build lookup of existing items by groupKey
-  const byGroup = new Map(arr.map(x => [x.groupKey, x]));
+      GROUP_KEYS.forEach(g => {
+        if(!byGroup.has(g)){
+          const obj = {
+            id: toId(`third-${g}`),
+            groupKey: g,
+            name: fallbackPathNameForGroup(g),
+            userMoved: false
+          };
+          arr.push(obj);
+          byGroup.set(g, obj);
+        }
+      });
 
-  // Add missing groups at the END (do not reorder existing)
-  GROUP_KEYS.forEach(g => {
-    if(!byGroup.has(g)){
-      const obj = {
-        id: toId(`third-${g}`),
-        groupKey: g,
-        name: fallbackPathNameForGroup(g),
-        userMoved: false
-      };
-      arr.push(obj);
-      byGroup.set(g, obj);
+      arr = arr.filter(x => GROUP_KEYS.includes(x.groupKey));
+
+      arr.forEach(item => {
+        const third = getThirdTeamForGroup(item.groupKey);
+        const newName = third ? third.name : fallbackPathNameForGroup(item.groupKey);
+
+        // ✅ Fix you asked for:
+        // New team replacing old one shouldn't inherit moved
+        if(item.name !== newName){
+          item.userMoved = false;
+        }
+
+        item.name = newName;
+      });
+
+      state.thirdRanking = arr;
     }
-  });
-
-  // Remove any entries that are no longer valid groups (safety)
-  arr = arr.filter(x => GROUP_KEYS.includes(x.groupKey));
-
-  // ✅ Update names from current group third positions
-  // ✅ If the underlying team identity changed, clear moved
-  arr.forEach(item => {
-    const third = getThirdTeamForGroup(item.groupKey);
-    const newName = third ? third.name : fallbackPathNameForGroup(item.groupKey);
-
-    if(item.name !== newName){
-      // New team replacing old one should not inherit "user moved"
-      item.userMoved = false;
-    }
-
-    item.name = newName;
-  });
-
-  state.thirdRanking = arr;
-}
-
-
 
     function computeChampions(){
       return GROUP_KEYS.map(g => {
@@ -1634,11 +1729,9 @@
 
       if(res.ok){
         if(zone === "third-ranking"){
-          // Team-wise locking (as you wanted)
           markTwoMoved(res.t1, res.t2);
           thirdRankingDirty = true;
         } else if(isPathZone(zone) || isGroupZone(zone)){
-          // Whole pool/group locking
           markWholeZoneMoved(arr);
         }
 
@@ -1721,7 +1814,7 @@
       arr.sort((a,b) => {
         const A = sortKeyForTeam(a);
         const B = sortKeyForTeam(b);
-        if(A.ph !== B.ph) return A.ph - B.ph; // placeholders last
+        if(A.ph !== B.ph) return A.ph - B.ph;
         if(A.r !== B.r) return A.r - B.r;
         return A.n.localeCompare(B.n);
       });
@@ -1766,10 +1859,7 @@
         let arr = state.groups[g];
         if(!arr) return;
 
-        // enforce max 4
         arr = arr.slice(0,4);
-
-        // reorder with userMoved locks
         const re = reorderRespectingUserMoved(arr);
 
         state.groups[g] = re;
@@ -1781,10 +1871,7 @@
 
     function autoThirdRanking(){
       syncThirdRankingNames();
-
-      // Reorder respecting userMoved locks
       state.thirdRanking = reorderRespectingUserMoved(state.thirdRanking);
-
       thirdRankingDirty = true;
 
       validateAllWinners();
@@ -1923,23 +2010,21 @@
       return sep;
     }
 
-function makeColumn(title, zoneKey, subtitle = ""){
-  const col = document.createElement("section");
-  col.className = "column";
-  col.innerHTML = `
-    <div class="column-header">
-      <div class="column-title">
-        ${title}${subtitle ? ` • ${subtitle}` : ""}
-        <span class="zone-moved-badge" data-zone-moved="${zoneKey}" style="display:none;"></span>
-      </div>
-      <div class="count" data-count-for="${zoneKey}"></div>
-    </div>
-    <div class="zone" data-zone="${zoneKey}"></div>
-  `;
-  return col;
-}
-
-
+    function makeColumn(title, zoneKey, subtitle = ""){
+      const col = document.createElement("section");
+      col.className = "column";
+      col.innerHTML = `
+        <div class="column-header">
+          <div class="column-title">
+            ${title}${subtitle ? ` • ${subtitle}` : ""}
+            <span class="zone-moved-badge" data-zone-moved="${zoneKey}" style="display:none;"></span>
+          </div>
+          <div class="count" data-count-for="${zoneKey}"></div>
+        </div>
+        <div class="zone" data-zone="${zoneKey}"></div>
+      `;
+      return col;
+    }
 
     function makeKoSection(roundKey, className=""){
       const section = document.createElement("div");
@@ -2082,6 +2167,16 @@ function makeColumn(title, zoneKey, subtitle = ""){
           ]
         )
       );
+
+      /* ✅ NEW: Result Actions at the end */
+      board.appendChild(
+        makeSeparator(
+          "Result",
+          [
+            { id:"printResultsBtn", text:"Print Result", green:true }
+          ]
+        )
+      );
     }
 
     /* ==============================
@@ -2115,135 +2210,108 @@ function makeColumn(title, zoneKey, subtitle = ""){
       }
     }
 
-    function movedSuffix(team){
-      return team?.userMoved ? " • moved" : "";
-    }
-
     function renderStandardZones(){
-  syncThirdRankingNames();
+      syncThirdRankingNames();
 
-  zones.forEach(zone => {
-    const dz = document.querySelector(`.zone[data-zone="${zone}"]`);
-    if(!dz) return;
+      zones.forEach(zone => {
+        const dz = document.querySelector(`.zone[data-zone="${zone}"]`);
+        if(!dz) return;
 
-    dz.innerHTML = "";
+        dz.innerHTML = "";
 
-    const arr = getZoneArray(zone) ?? [];
-    const gKey = isGroupZone(zone) ? groupKeyFromZone(zone) : null;
+        const arr = getZoneArray(zone) ?? [];
+        const gKey = isGroupZone(zone) ? groupKeyFromZone(zone) : null;
 
-    /* -----------------------------------------
-       1) ZONE-LEVEL "User moved" BADGE
-          - Pools + Groups only
-          - Hidden for Third Ranking + overview zones
-    ----------------------------------------- */
-    const movedBadge = document.querySelector(`[data-zone-moved="${zone}"]`);
-    if(movedBadge){
-      if(isPathZone(zone) || isGroupZone(zone)){
-        const movedAny = (arr || []).some(t => t && t.userMoved && !t.isPlaceholder);
-        movedBadge.textContent = movedAny ? "User moved" : "";
-        movedBadge.style.display = movedAny ? "inline-block" : "none";
-      } else {
-        movedBadge.textContent = "";
-        movedBadge.style.display = "none";
-      }
-    }
-
-    /* -----------------------------------------
-       2) Render cards
-    ----------------------------------------- */
-    arr.forEach((team, idx) => {
-      const card = document.createElement("div");
-      card.className = "card";
-      card.dataset.id = team.id;
-      card.dataset.zone = zone;
-
-      const editable =
-        isClickSwapEnabledForZone(zone) &&
-        !team.isPlaceholder &&
-        zone !== "champions-view" &&
-        zone !== "runners-view" &&
-        zone !== "top8-third-view";
-
-      if(!editable) card.classList.add("locked");
-
-      applyRankHighlight(card, zone, idx, team);
-
-      if(swapSelection && swapSelection.teamId === team.id && swapSelection.zone === zone){
-        card.classList.add("swap-armed");
-      }
-
-      /* -----------------------------------------
-         3) Tag text rules
-            - Pools: NO team-level "moved"
-            - Groups: NO team-level "moved"
-            - Third ranking: YES team-level "• moved"
-      ----------------------------------------- */
-      let tagText = "";
-
-      if(isPathZone(zone)){
-        if(editMode === "groups"){
-          // Qualified/Eliminated view after placement
-          tagText = (team.isQualified ? "Qualified" : "Eliminated");
-        } else {
-          // Pool mode tags (no moved here)
-          tagText = team.tag ?? PATH_BY_ID[pathIdFromZone(zone)]?.label ?? "";
+        /* ZONE-LEVEL "User moved" BADGE (Pools + Groups only) */
+        const movedBadge = document.querySelector(`[data-zone-moved="${zone}"]`);
+        if(movedBadge){
+          if(isPathZone(zone) || isGroupZone(zone)){
+            const movedAny = (arr || []).some(t => t && t.userMoved && !t.isPlaceholder);
+            movedBadge.textContent = movedAny ? "User moved" : "";
+            movedBadge.style.display = movedAny ? "inline-block" : "none";
+          } else {
+            movedBadge.textContent = "";
+            movedBadge.style.display = "none";
+          }
         }
-      }
-      else if(isGroupZone(zone)){
-        if(team.isPlaceholder){
-          tagText = "Placeholder";
-        } else {
-          // Group position tag only (no moved)
-          tagText = `${gKey}${idx + 1}`;
+
+        arr.forEach((team, idx) => {
+          const card = document.createElement("div");
+          card.className = "card";
+          card.dataset.id = team.id;
+          card.dataset.zone = zone;
+
+          const editable =
+            isClickSwapEnabledForZone(zone) &&
+            !team.isPlaceholder &&
+            zone !== "champions-view" &&
+            zone !== "runners-view" &&
+            zone !== "top8-third-view";
+
+          if(!editable) card.classList.add("locked");
+
+          applyRankHighlight(card, zone, idx, team);
+
+          if(swapSelection && swapSelection.teamId === team.id && swapSelection.zone === zone){
+            card.classList.add("swap-armed");
+          }
+
+          /* Tag text rules */
+          let tagText = "";
+
+          if(isPathZone(zone)){
+            if(editMode === "groups"){
+              tagText = (team.isQualified ? "Qualified" : "Eliminated");
+            } else {
+              tagText = team.tag ?? PATH_BY_ID[pathIdFromZone(zone)]?.label ?? "";
+            }
+          }
+          else if(isGroupZone(zone)){
+            if(team.isPlaceholder){
+              tagText = "Placeholder";
+            } else {
+              tagText = `${gKey}${idx + 1}`;
+            }
+          }
+          else if(zone === "third-ranking"){
+            const moved = team?.userMoved ? " • moved" : "";
+            tagText = `${team.groupKey}3${moved}`;
+          }
+          else if(zone === "champions-view"){
+            tagText = `${team.groupKey}1`;
+          }
+          else if(zone === "runners-view"){
+            tagText = `${team.groupKey}2`;
+          }
+          else if(zone === "top8-third-view"){
+            tagText = `${team.groupKey}3`;
+          }
+
+          card.innerHTML = `
+            <span class="name">${nameWithFlagHTML(team.name)}</span>
+            <span class="tag">${tagText}</span>
+          `;
+
+          if(!team.isPlaceholder && !["champions-view", "runners-view", "top8-third-view"].includes(zone)){
+            attachClickSwap(card);
+          }
+
+          dz.appendChild(card);
+        });
+
+        if(zone === "top8-third-view"){
+          const summary = document.createElement("div");
+          summary.className = "top8-summary";
+          summary.textContent = qualifiedThirdGroupLetters || "—";
+          dz.appendChild(summary);
         }
-      }
-      else if(zone === "third-ranking"){
-        // ✅ Team-wise moved ONLY here
-        const moved = team?.userMoved ? " • moved" : "";
-        tagText = `${team.groupKey}3${moved}`;
-      }
-      else if(zone === "champions-view"){
-        tagText = `${team.groupKey}1`;
-      }
-      else if(zone === "runners-view"){
-        tagText = `${team.groupKey}2`;
-      }
-      else if(zone === "top8-third-view"){
-        tagText = `${team.groupKey}3`;
-      }
 
-      card.innerHTML = `
-        <span class="name">${nameWithFlagHTML(team.name)}</span>
-        <span class="tag">${tagText}</span>
-      `;
-
-      if(!team.isPlaceholder && !["champions-view", "runners-view", "top8-third-view"].includes(zone)){
-        attachClickSwap(card);
-      }
-
-      dz.appendChild(card);
-    });
-
-    /* -----------------------------------------
-       4) Top-8 summary letters
-    ----------------------------------------- */
-    if(zone === "top8-third-view"){
-      const summary = document.createElement("div");
-      summary.className = "top8-summary";
-      summary.textContent = qualifiedThirdGroupLetters || "—";
-      dz.appendChild(summary);
+        const countEl = document.querySelector(`[data-count-for="${zone}"]`);
+        if(countEl){
+          countEl.textContent = `${arr.length} team${arr.length !== 1 ? "s" : ""}`;
+        }
+      });
     }
-
-    /* -----------------------------------------
-       5) Count
-    ----------------------------------------- */
-    const countEl = document.querySelector(`[data-count-for="${zone}"]`);
-    if(countEl){
-      countEl.textContent = `${arr.length} team${arr.length !== 1 ? "s" : ""}`;
-    }
-  });
-}
-
 
     /* ==============================
        23) Local time rendering helpers
@@ -2389,13 +2457,11 @@ function makeColumn(title, zoneKey, subtitle = ""){
       const grid = document.querySelector(`.ko-grid[data-ko-round="${roundKey}"]`);
       if(!grid) return;
 
-      // Clear grid only
       grid.innerHTML = "";
 
       const matches = ALL_ROUNDS[roundKey] ?? [];
       matches.forEach(m => grid.appendChild(buildMatchCard(m)));
 
-      // Single-status R32 note (no duplicates)
       if(roundKey === "r32"){
         const parent = grid.parentElement;
         parent.querySelectorAll(".r32-note").forEach(n => n.remove());
@@ -2438,17 +2504,14 @@ function makeColumn(title, zoneKey, subtitle = ""){
        26) Clear moved flags (GLOBAL)
     ============================== */
     function clearAllUserMoved(){
-      // Paths
       Object.values(state.paths || {}).forEach(arr => {
         (arr || []).forEach(t => { if(t) t.userMoved = false; });
       });
 
-      // Groups
       Object.values(state.groups || {}).forEach(arr => {
         (arr || []).forEach(t => { if(t) t.userMoved = false; });
       });
 
-      // Third ranking (ensure synced objects)
       syncThirdRankingNames();
       (state.thirdRanking || []).forEach(t => { if(t) t.userMoved = false; });
 
@@ -2459,7 +2522,313 @@ function makeColumn(title, zoneKey, subtitle = ""){
     }
 
     /* ==============================
-       27) Wire Buttons
+       27) PRINT RESULT - NAME + CANVAS
+    ============================== */
+    const SITE_SOURCE_NAME = "World Cup 2026 Predictor";
+    function getSiteUrlForImage(){
+      try{
+        return location.origin + location.pathname;
+      }catch(e){
+        return "your site";
+      }
+    }
+
+    function getUserFirstName(){
+      const KEY = "wc26_first_name";
+      let name = "";
+      try{ name = (localStorage.getItem(KEY) || "").trim(); }catch(e){}
+
+      if(!name){
+        const raw = prompt("Your first name (for the result image)?") || "";
+        name = raw.trim().split(/\s+/)[0] || "";
+        try{ if(name) localStorage.setItem(KEY, name); }catch(e){}
+      }
+
+      return name || "Your";
+    }
+
+    function badgeTextForName(name){
+      const abbr = teamAbbrev(name);
+      const flag = flagEmojiForName(name);
+      return `${flag ? flag + " " : ""}${abbr}`;
+    }
+
+    function buildResultsCanvas(){
+      // R16 onwards only (as you requested)
+      const W = 1600;
+      const H = 980;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext("2d");
+
+      // Background
+      ctx.fillStyle = "#0b0f1e";
+      ctx.fillRect(0,0,W,H);
+
+      const firstName = getUserFirstName();
+      const SITE_URL = getSiteUrlForImage();
+
+      // Header
+      ctx.fillStyle = "rgba(255,255,255,0.96)";
+      ctx.font = "800 26px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      ctx.fillText(`${firstName}'s World Cup 2026 Knockout Prediction`, 60, 44);
+
+      ctx.fillStyle = "rgba(255,255,255,0.60)";
+      ctx.font = "600 13px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      ctx.fillText("R16 → QF → SF → Final (+ 3rd Place)", 60, 68);
+
+      // Layout anchors
+      const X_LEFT_R16  = 80;
+      const X_LEFT_QF   = 360;
+
+      const X_CENTER_SF = 680;
+      const X_CENTER_F  = 980;
+
+      const X_RIGHT_QF  = 1240;
+      const X_RIGHT_R16 = 1320;
+
+      const boxW = 260;
+      const boxH = 84;
+
+      const posById = {};
+
+      // R16 left/right split by match order
+      const R16_ORDER = R16_MATCHES.map(m => m.id);
+      const leftR16Ids  = R16_ORDER.slice(0,4);
+      const rightR16Ids = R16_ORDER.slice(4,8);
+
+      // QF order fixed by IDs present
+      const leftQFIds  = [97, 99].filter(id => QF_MATCHES.some(m => m.id === id));
+      const rightQFIds = [98, 100].filter(id => QF_MATCHES.some(m => m.id === id));
+
+      const sfIds = SF_MATCHES.map(m => m.id);
+      const finalId = FINAL_MATCH[0]?.id;
+      const thirdId = THIRD_MATCH[0]?.id;
+
+      function stackPositions(ids, x, topY, gap){
+        ids.forEach((id, i) => {
+          posById[id] = { x, y: topY + i*gap, w: boxW, h: boxH };
+        });
+      }
+
+      const leftTop = 130;
+      const rightTop = 130;
+      const r16Gap = 160;
+      const qfGap  = 260;
+
+      stackPositions(leftR16Ids,  X_LEFT_R16,  leftTop,  r16Gap);
+      stackPositions(rightR16Ids, X_RIGHT_R16 - boxW, rightTop, r16Gap);
+
+      stackPositions(leftQFIds,   X_LEFT_QF,  leftTop + 80, qfGap);
+      stackPositions(rightQFIds,  X_RIGHT_QF - boxW, rightTop + 80, qfGap);
+
+      if(sfIds[0]) posById[sfIds[0]] = { x: X_CENTER_SF, y: 280, w: boxW, h: boxH };
+      if(sfIds[1]) posById[sfIds[1]] = { x: X_CENTER_SF, y: 540, w: boxW, h: boxH };
+
+      if(finalId) posById[finalId] = { x: X_CENTER_F, y: 410, w: boxW, h: boxH };
+      if(thirdId) posById[thirdId] = { x: X_CENTER_F, y: 650, w: boxW, h: boxH };
+
+      function roundRect(x,y,w,h,r){
+        const rr = Math.min(r, w/2, h/2);
+        ctx.beginPath();
+        ctx.moveTo(x+rr, y);
+        ctx.lineTo(x+w-rr, y);
+        ctx.quadraticCurveTo(x+w, y, x+w, y+rr);
+        ctx.lineTo(x+w, y+h-rr);
+        ctx.quadraticCurveTo(x+w, y+h, x+w-rr, y+h);
+        ctx.lineTo(x+rr, y+h);
+        ctx.quadraticCurveTo(x, y+h, x, y+h-rr);
+        ctx.lineTo(x, y+rr);
+        ctx.quadraticCurveTo(x, y, x+rr, y);
+        ctx.closePath();
+      }
+
+      // Build quick match lookup for R16+
+      const matchById = {};
+      [...R16_MATCHES, ...QF_MATCHES, ...SF_MATCHES, ...THIRD_MATCH, ...FINAL_MATCH]
+        .forEach(m => matchById[m.id] = m);
+
+      function drawLine(fromId, toId){
+        const a = posById[fromId];
+        const b = posById[toId];
+        if(!a || !b) return;
+
+        const ax = a.x + a.w;
+        const ay = a.y + a.h/2;
+        const bx = b.x;
+        const by = b.y + b.h/2;
+
+        ctx.strokeStyle = "rgba(255,255,255,0.18)";
+        ctx.lineWidth = 2;
+
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        const midX = (ax + bx) / 2;
+        ctx.lineTo(midX, ay);
+        ctx.lineTo(midX, by);
+        ctx.lineTo(bx, by);
+        ctx.stroke();
+      }
+
+      // Draw dependency lines (R16 → QF → SF → Final)
+      [...QF_MATCHES, ...SF_MATCHES, ...FINAL_MATCH].forEach(m => {
+        [m.left, m.right].forEach(slot => {
+          if(slot.type === "WM"){
+            // slot.id refers to previous match id
+            drawLine(slot.id, m.id);
+          }
+        });
+      });
+
+      // Visual hint lines from SF to 3rd place
+      if(thirdId){
+        sfIds.forEach(sf => drawLine(sf, thirdId));
+      }
+
+      function drawMatchBox(match, labelOverride=null){
+        const p = resolveParticipants(match);
+        const winner = state.winners[match.id]?.name ?? null;
+
+        const pos = posById[match.id];
+        if(!pos) return;
+
+        const { x, y, w, h } = pos;
+
+        // Box
+        roundRect(x, y, w, h, 12);
+        ctx.fillStyle = "rgba(255,255,255,0.05)";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,0.14)";
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+
+        const label = labelOverride ?? `Match ${match.id}`;
+        ctx.fillStyle = "rgba(255,255,255,0.65)";
+        ctx.font = "700 10.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+        ctx.fillText(label, x + 10, y + 14);
+
+        const leftText  = badgeTextForName(p.left.name);
+        const rightText = badgeTextForName(p.right.name);
+
+        const leftIsWinner = winner && winner === p.left.name;
+        const rightIsWinner = winner && winner === p.right.name;
+
+        ctx.font = `${leftIsWinner ? "800" : "650"} 23px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+        ctx.fillStyle = leftIsWinner ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.86)";
+        ctx.fillText(leftText, x + 12, y + 48);
+
+        ctx.font = `${rightIsWinner ? "800" : "650"} 23px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+        ctx.fillStyle = rightIsWinner ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.86)";
+        ctx.fillText(rightText, x + 12, y + 78);
+
+        if(winner){
+          ctx.fillStyle = "rgba(94,230,168,0.28)";
+          ctx.fillRect(x + w - 8, y + 6, 3.5, h - 12);
+        }
+      }
+
+      leftR16Ids.forEach(id => drawMatchBox(matchById[id], `R16 • ${id}`));
+      rightR16Ids.forEach(id => drawMatchBox(matchById[id], `R16 • ${id}`));
+      leftQFIds.forEach(id => drawMatchBox(matchById[id], `QF • ${id}`));
+      rightQFIds.forEach(id => drawMatchBox(matchById[id], `QF • ${id}`));
+      sfIds.forEach(id => drawMatchBox(matchById[id], `SF • ${id}`));
+
+      if(finalId) drawMatchBox(matchById[finalId], `FINAL • ${finalId}`);
+      if(thirdId) drawMatchBox(matchById[thirdId], `3RD PLACE • ${thirdId}`);
+
+      // Champion callout
+      const champ = finalId ? state.winners[finalId]?.name : null;
+      if(champ){
+        const champText = badgeTextForName(champ);
+        ctx.fillStyle = "rgba(255,255,255,0.95)";
+        ctx.font = "800 26px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+        ctx.fillText("Champion:", 60, H - 120);
+
+        ctx.font = "900 34px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+        ctx.fillText(champText, 190, H - 120);
+      }
+
+      // Legend
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.font = "600 11.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      ctx.fillText("Legend: Flag emoji + 3-letter ABBR. Accent bar indicates selected winner.", 60, H - 92);
+
+      // Footer branding
+      const footerY = H - 54;
+
+      ctx.fillStyle = "rgba(255,255,255,0.65)";
+      ctx.font = "700 11.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      ctx.fillText("Source", 60, footerY);
+
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.font = "700 12.2px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      ctx.fillText(SITE_SOURCE_NAME, 110, footerY);
+
+      ctx.fillStyle = "rgba(255,255,255,0.60)";
+      ctx.font = "600 11.3px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      ctx.fillText("Get your predictions at:", 60, footerY + 20);
+
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.font = "700 11.6px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      ctx.fillText(SITE_URL, 210, footerY + 20);
+
+      const ts = new Date().toLocaleString();
+      ctx.fillStyle = "rgba(255,255,255,0.45)";
+      ctx.font = "600 10.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      const tWidth = ctx.measureText(ts).width;
+      ctx.fillText(ts, W - tWidth - 60, footerY + 20);
+
+      return canvas;
+    }
+
+    function openPrintModal(){
+      const backdrop = document.getElementById("printModalBackdrop");
+      const img = document.getElementById("printPreviewImg");
+
+      const canvas = buildResultsCanvas();
+      const dataUrl = canvas.toDataURL("image/png");
+
+      img.src = dataUrl;
+      img.dataset.url = dataUrl;
+
+      backdrop.classList.add("show");
+      backdrop.setAttribute("aria-hidden","false");
+    }
+
+    function closePrintModal(){
+      const backdrop = document.getElementById("printModalBackdrop");
+      const img = document.getElementById("printPreviewImg");
+      img.src = "";
+      img.dataset.url = "";
+      backdrop.classList.remove("show");
+      backdrop.setAttribute("aria-hidden","true");
+    }
+
+    function viewPrintImage(){
+      const img = document.getElementById("printPreviewImg");
+      const url = img.dataset.url;
+      if(!url) return;
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+
+    function downloadPrintImage(){
+      const img = document.getElementById("printPreviewImg");
+      const url = img.dataset.url;
+      if(!url) return;
+
+      const a = document.createElement("a");
+      const stamp = new Date().toISOString().slice(0,10);
+      a.href = url;
+      a.download = `wc26-prediction-${stamp}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    /* ==============================
+       28) Wire Buttons
     ============================== */
     function wireButtons(){
       const resetBtn = document.getElementById("resetBtn");
@@ -2479,6 +2848,13 @@ function makeColumn(title, zoneKey, subtitle = ""){
       const autoSFBtn = document.getElementById("autoSFBtn");
       const autoThirdMatchBtn = document.getElementById("autoThirdMatchBtn");
       const autoFinalBtn = document.getElementById("autoFinalBtn");
+
+      const printBtn = document.getElementById("printResultsBtn");
+
+      const closeModalBtn = document.getElementById("closePrintModal");
+      const backdrop = document.getElementById("printModalBackdrop");
+      const viewBtn = document.getElementById("viewPrintImgBtn");
+      const dlBtn = document.getElementById("downloadPrintImgBtn");
 
       if(clearMovedBtn){
         clearMovedBtn.addEventListener("click", clearAllUserMoved);
@@ -2528,10 +2904,39 @@ function makeColumn(title, zoneKey, subtitle = ""){
       if(autoSFBtn)  autoSFBtn.addEventListener("click", () => autoRound(SF_MATCHES));
       if(autoThirdMatchBtn) autoThirdMatchBtn.addEventListener("click", () => autoRound(THIRD_MATCH));
       if(autoFinalBtn) autoFinalBtn.addEventListener("click", () => autoRound(FINAL_MATCH));
+
+      /* ✅ Print result */
+      if(printBtn){
+        printBtn.addEventListener("click", () => {
+          // Require final winner selected
+          if(!state.winners[104]) return;
+          openPrintModal();
+        });
+      }
+
+      /* Modal controls */
+      if(closeModalBtn) closeModalBtn.addEventListener("click", closePrintModal);
+      if(viewBtn) viewBtn.addEventListener("click", viewPrintImage);
+      if(dlBtn) dlBtn.addEventListener("click", downloadPrintImage);
+
+      // click outside dialog to close
+      if(backdrop){
+        backdrop.addEventListener("click", (e) => {
+          if(e.target === backdrop) closePrintModal();
+        });
+      }
+
+      // ESC
+      document.addEventListener("keydown", (e) => {
+        const isOpen = backdrop?.classList.contains("show");
+        if(isOpen && e.key === "Escape"){
+          closePrintModal();
+        }
+      });
     }
 
     /* ==============================
-       28) Render orchestrator
+       29) Render orchestrator
     ============================== */
     function render(){
       syncThirdRankingNames();
@@ -2541,13 +2946,19 @@ function makeColumn(title, zoneKey, subtitle = ""){
 
       const reformBtn = document.getElementById("reformPoolBtn");
       const placeBtn  = document.getElementById("placeQualifiersBtn");
+      const printBtn  = document.getElementById("printResultsBtn");
 
       if(reformBtn) reformBtn.disabled = (editMode === "pools");
       if(placeBtn)  placeBtn.disabled  = (editMode !== "pools");
+
+      // ✅ Enable print only after final winner
+      if(printBtn){
+        printBtn.disabled = !state.winners[104];
+      }
     }
 
     /* ==============================
-       29) Boot
+       30) Boot
     ============================== */
     document.addEventListener("DOMContentLoaded", () => {
       buildBoard();
