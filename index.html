@@ -2838,6 +2838,19 @@ function drawFlagAndAbbr(ctx, name, x, baselineY, isWinner){
 /* ------------------------------
    Main builder (ASYNC)
 ------------------------------ */
+function codeForName(name){
+  if(!name) return "";
+  const code = FLAG_CODE_BY_NAME[name];
+  if(!code) return "";
+  return code.toUpperCase();
+}
+
+function badgeTextForName(name){
+  if(!name) return "---";
+  return teamAbbrev(name);   // we only show ABBR in the brackets
+}
+
+    
 async function buildResultsCanvas(){
   // A bit taller cards, still compact
   const W = 1280;
@@ -3260,12 +3273,13 @@ function wireResultImageButtons(){
 
 
 async function openPrintModal(){
-   ensureUserFirstName();
+  ensureUserFirstName();
 
   const backdrop = document.getElementById("printModalBackdrop");
   const img = document.getElementById("printPreviewImg");
 
-  const canvas = buildResultsCanvas();
+  // ⬇⬇⬇ IMPORTANT: await the async canvas builder
+  const canvas = await buildResultsCanvas();
   const dataUrl = canvas.toDataURL("image/png");
 
   img.src = dataUrl;
@@ -3274,6 +3288,7 @@ async function openPrintModal(){
   backdrop.classList.add("show");
   backdrop.setAttribute("aria-hidden","false");
 }
+
 
 function viewPrintImage(){
   const img = document.getElementById("printPreviewImg");
@@ -3350,12 +3365,6 @@ function viewPrintImage(){
         });
       }
 
-      if(printBtn){
-        printBtn.addEventListener("click", () => {
-          if(!state.winners[104]) return;
-          openPrintModal();
-        });
-      }
 
 
       if(reformBtn){
