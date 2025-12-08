@@ -3172,39 +3172,35 @@ posById[SUMMARY_RUNNER_ID] = {
   if(thirdId) drawMatchBox(thirdId, posById[thirdId], "3RD PLACE");
 
   // === Draw summary blocks ===
- function drawSummaryBox(pos, title, teamName, accent){
+function drawSummaryBox(pos, title, teamName, accent){
   drawBoxFrame(pos.x, pos.y, pos.w, pos.h, accent);
 
+  // Title
   ctx.fillStyle = "rgba(255,255,255,0.80)";
   ctx.font = "900 12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
   ctx.fillText(title, pos.x + 12, pos.y + 20);
 
-  const ab = teamName ? teamAbbrev(teamName) : "TBD";
-  const cc = codeForName(teamName);
+  // Flag image (local SVG cached as Image)
   const img = teamName ? (_flagCanvasCache.get(teamName) ?? null) : null;
 
-  // Flag placement inside summary
-  const img = teamName ? (_flagCanvasCache.get(teamName) ?? null) : null;
-
-  // Flag placement inside summary
   const flagX = pos.x + 12;
   const flagY = pos.y + 30;
 
-  // If flag exists, start text after it; otherwise start at flagX
+  // If flag exists, start text after it; otherwise start at left padding
   const textStartX = img ? (flagX + 24 + 8) : flagX;
 
   if(img){
     ctx.drawImage(img, flagX, flagY, 24, 16);
   }
 
-  // ✅ Only full name (no CC, no ABBR)
+  // Only full name
   const line = teamName || "TBD";
 
   ctx.fillStyle = "rgba(255,255,255,0.98)";
   ctx.font = "800 14.8px system-ui, -apple-system, Segoe UI, Roboto, Arial";
   ctx.fillText(line, textStartX, pos.y + 50);
-
 }
+
 
 
       function getRunnerUpName(finalId){
