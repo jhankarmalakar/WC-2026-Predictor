@@ -881,19 +881,20 @@
       return p.label;
     }
 
-    function buildThirdRankingFromGroups(groups){
-      const base = [];
-      GROUP_KEYS.forEach(g => {
-        const third = groups[g]?.[2];
-        base.push({
-          id: toId(`third-${g}-${third?.name ?? "tbd"}`),
-          groupKey: g,
-          name: third?.name ?? fallbackPathNameForGroup(g),
-          userMoved: false
-        });
-      });
-      return base;
-    }
+   function buildThirdRankingFromGroups(groups){
+  const base = [];
+  GROUP_KEYS.forEach(g => {
+    const third = groups[g]?.[2];
+    base.push({
+      id: toId(`third-${g}`),          // ✅ stable id
+      groupKey: g,
+      name: third?.name ?? fallbackPathNameForGroup(g),
+      userMoved: false
+    });
+  });
+  return base;
+}
+
 
     const initialState = () => {
       const groups = buildGroupsFromDefaults();
@@ -1095,31 +1096,39 @@
       return t && !t.isPlaceholder ? t : null;
     }
 
-    function syncThirdRankingNames(){
-      // Preserve existing objects (and userMoved flags) by groupKey
-      const byGroup = new Map(state.thirdRanking.map(x => [x.groupKey, x]));
+ function syncThirdRankingNames(){
+  // Keep current ranking order
+  let arr = Array.isArray(state.thirdRanking) ? state.thirdRanking.slice() : [];
 
-      // Ensure all groups exist
-      GROUP_KEYS.forEach(g => {
-        if(!byGroup.has(g)){
-          byGroup.set(g, {
-            id: toId(`third-${g}-tbd`),
-            groupKey: g,
-            name: fallbackPathNameForGroup(g),
-            userMoved: false
-          });
-        }
-      });
+  // Build lookup of existing items by groupKey
+  const byGroup = new Map(arr.map(x => [x.groupKey, x]));
 
-      // Rebuild in group order to keep stable list
-      state.thirdRanking = GROUP_KEYS.map(g => byGroup.get(g));
-
-      // Update names from current group 3rd positions
-      state.thirdRanking.forEach(item => {
-        const third = getThirdTeamForGroup(item.groupKey);
-        item.name = third ? third.name : fallbackPathNameForGroup(item.groupKey);
-      });
+  // Add missing groups at the END (do not reorder existing)
+  GROUP_KEYS.forEach(g => {
+    if(!byGroup.has(g)){
+      const obj = {
+        id: toId(`third-${g}`),
+        groupKey: g,
+        name: fallbackPathNameForGroup(g),
+        userMoved: false
+      };
+      arr.push(obj);
+      byGroup.set(g, obj);
     }
+  });
+
+  // Remove any entries that are no longer valid groups (safety)
+  arr = arr.filter(x => GROUP_KEYS.includes(x.groupKey));
+
+  // Update names from current group third positions
+  arr.forEach(item => {
+    const third = getThirdTeamForGroup(item.groupKey);
+    item.name = third ? third.name : fallbackPathNameForGroup(item.groupKey);
+  });
+
+  state.thirdRanking = arr;
+}
+
 
     function computeChampions(){
       return GROUP_KEYS.map(g => {
