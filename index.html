@@ -280,6 +280,52 @@
       flex: 1;
     }
 
+    .zone-moved-indicator{
+        margin-left: 6px;
+        font-size: 9.5px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+        padding: 2px 6px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.10);
+        background: rgba(255,255,255,0.06);
+        color: var(--muted);
+        display: inline-block;
+      }
+
+    /* Zone-level "User moved" badge (header) */
+.zone-moved-badge{
+  display: none; /* JS toggles to inline-block when needed */
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.25px;
+  border-radius: 999px;
+
+  color: var(--text);
+  border: 1px solid rgba(122,162,255,0.45);
+  background: rgba(122,162,255,0.10);
+
+  vertical-align: middle;
+  line-height: 1.15;
+
+  /* soft inset to match your button/card vibe */
+  box-shadow: 0 0 0 1px rgba(122,162,255,0.06) inset;
+}
+
+/* Optional: slightly warmer tone for Pools/Groups moved badge
+   (only if you want a subtle "action taken" hint)
+   Add this class in JS if desired:
+   movedBadge.classList.add("zone-moved-warm");
+*/
+.zone-moved-badge.zone-moved-warm{
+  border-color: rgba(255,184,107,0.60);
+  background: rgba(255,184,107,0.12);
+  box-shadow: 0 0 0 1px rgba(255,184,107,0.08) inset;
+}
+
+
     /* Card */
     .card{
       background: rgba(255,255,255,0.04);
@@ -1868,18 +1914,23 @@
       return sep;
     }
 
-    function makeColumn(title, zoneKey, subtitle = ""){
-      const col = document.createElement("section");
-      col.className = "column";
-      col.innerHTML = `
-        <div class="column-header">
-          <div class="column-title">${title}${subtitle ? ` • ${subtitle}` : ""}</div>
-          <div class="count" data-count-for="${zoneKey}"></div>
-        </div>
-        <div class="zone" data-zone="${zoneKey}"></div>
-      `;
-      return col;
-    }
+function makeColumn(title, zoneKey, subtitle = ""){
+  const col = document.createElement("section");
+  col.className = "column";
+  col.innerHTML = `
+    <div class="column-header">
+      <div class="column-title">
+        ${title}${subtitle ? ` • ${subtitle}` : ""}
+        <span class="zone-moved-badge" data-zone-moved="${zoneKey}" style="display:none;"></span>
+      </div>
+      <div class="count" data-count-for="${zoneKey}"></div>
+    </div>
+    <div class="zone" data-zone="${zoneKey}"></div>
+  `;
+  return col;
+}
+
+
 
     function makeKoSection(roundKey, className=""){
       const section = document.createElement("div");
@@ -2060,90 +2111,130 @@
     }
 
     function renderStandardZones(){
-      syncThirdRankingNames();
+  syncThirdRankingNames();
 
-      zones.forEach(zone => {
-        const dz = document.querySelector(`.zone[data-zone="${zone}"]`);
-        if(!dz) return;
+  zones.forEach(zone => {
+    const dz = document.querySelector(`.zone[data-zone="${zone}"]`);
+    if(!dz) return;
 
-        dz.innerHTML = "";
-        const arr = getZoneArray(zone) ?? [];
-        const gKey = isGroupZone(zone) ? groupKeyFromZone(zone) : null;
+    dz.innerHTML = "";
 
-        arr.forEach((team, idx) => {
-          const card = document.createElement("div");
-          card.className = "card";
-          card.dataset.id = team.id;
-          card.dataset.zone = zone;
+    const arr = getZoneArray(zone) ?? [];
+    const gKey = isGroupZone(zone) ? groupKeyFromZone(zone) : null;
 
-          const editable =
-            isClickSwapEnabledForZone(zone) &&
-            !team.isPlaceholder &&
-            zone !== "champions-view" &&
-            zone !== "runners-view" &&
-            zone !== "top8-third-view";
-
-          if(!editable) card.classList.add("locked");
-
-          applyRankHighlight(card, zone, idx, team);
-
-          if(swapSelection && swapSelection.teamId === team.id && swapSelection.zone === zone){
-            card.classList.add("swap-armed");
-          }
-
-          let tagText = "";
-          if(isPathZone(zone)){
-            if(editMode === "groups"){
-              tagText = (team.isQualified ? "Qualified" : "Eliminated") + movedSuffix(team);
-            } else {
-              tagText = team.userMoved ? "User moved" : (team.tag ?? PATH_BY_ID[pathIdFromZone(zone)]?.label ?? "");
-            }
-          }
-          else if(isGroupZone(zone)){
-            if(team.isPlaceholder){
-              tagText = "Placeholder";
-            } else {
-              tagText = `${gKey}${idx + 1}${movedSuffix(team)}`;
-            }
-          }
-          else if(zone === "third-ranking"){
-            tagText = `${team.groupKey}3${movedSuffix(team)}`;
-          }
-          else if(zone === "champions-view"){
-            tagText = `${team.groupKey}1`;
-          }
-          else if(zone === "runners-view"){
-            tagText = `${team.groupKey}2`;
-          }
-          else if(zone === "top8-third-view"){
-            tagText = `${team.groupKey}3`;
-          }
-
-          card.innerHTML = `
-            <span class="name">${nameWithFlagHTML(team.name)}</span>
-            <span class="tag">${tagText}</span>
-          `;
-
-          if(!team.isPlaceholder && !["champions-view", "runners-view", "top8-third-view"].includes(zone)){
-            attachClickSwap(card);
-          }
-
-          dz.appendChild(card);
-        });
-
-        if(zone === "top8-third-view"){
-          const summary = document.createElement("div");
-          summary.className = "top8-summary";
-          summary.textContent = qualifiedThirdGroupLetters || "—";
-          dz.appendChild(summary);
-        }
-
-        const countEl = document.querySelector(`[data-count-for="${zone}"]`);
-        if(countEl){
-          countEl.textContent = `${arr.length} team${arr.length !== 1 ? "s" : ""}`;
-        }
-      });
+    /* -----------------------------------------
+       1) ZONE-LEVEL "User moved" BADGE
+          - Pools + Groups only
+          - Hidden for Third Ranking + overview zones
+    ----------------------------------------- */
+    const movedBadge = document.querySelector(`[data-zone-moved="${zone}"]`);
+    if(movedBadge){
+      if(isPathZone(zone) || isGroupZone(zone)){
+        const movedAny = (arr || []).some(t => t && t.userMoved && !t.isPlaceholder);
+        movedBadge.textContent = movedAny ? "User moved" : "";
+        movedBadge.style.display = movedAny ? "inline-block" : "none";
+      } else {
+        movedBadge.textContent = "";
+        movedBadge.style.display = "none";
+      }
     }
+
+    /* -----------------------------------------
+       2) Render cards
+    ----------------------------------------- */
+    arr.forEach((team, idx) => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.dataset.id = team.id;
+      card.dataset.zone = zone;
+
+      const editable =
+        isClickSwapEnabledForZone(zone) &&
+        !team.isPlaceholder &&
+        zone !== "champions-view" &&
+        zone !== "runners-view" &&
+        zone !== "top8-third-view";
+
+      if(!editable) card.classList.add("locked");
+
+      applyRankHighlight(card, zone, idx, team);
+
+      if(swapSelection && swapSelection.teamId === team.id && swapSelection.zone === zone){
+        card.classList.add("swap-armed");
+      }
+
+      /* -----------------------------------------
+         3) Tag text rules
+            - Pools: NO team-level "moved"
+            - Groups: NO team-level "moved"
+            - Third ranking: YES team-level "• moved"
+      ----------------------------------------- */
+      let tagText = "";
+
+      if(isPathZone(zone)){
+        if(editMode === "groups"){
+          // Qualified/Eliminated view after placement
+          tagText = (team.isQualified ? "Qualified" : "Eliminated");
+        } else {
+          // Pool mode tags (no moved here)
+          tagText = team.tag ?? PATH_BY_ID[pathIdFromZone(zone)]?.label ?? "";
+        }
+      }
+      else if(isGroupZone(zone)){
+        if(team.isPlaceholder){
+          tagText = "Placeholder";
+        } else {
+          // Group position tag only (no moved)
+          tagText = `${gKey}${idx + 1}`;
+        }
+      }
+      else if(zone === "third-ranking"){
+        // ✅ Team-wise moved ONLY here
+        const moved = team?.userMoved ? " • moved" : "";
+        tagText = `${team.groupKey}3${moved}`;
+      }
+      else if(zone === "champions-view"){
+        tagText = `${team.groupKey}1`;
+      }
+      else if(zone === "runners-view"){
+        tagText = `${team.groupKey}2`;
+      }
+      else if(zone === "top8-third-view"){
+        tagText = `${team.groupKey}3`;
+      }
+
+      card.innerHTML = `
+        <span class="name">${nameWithFlagHTML(team.name)}</span>
+        <span class="tag">${tagText}</span>
+      `;
+
+      if(!team.isPlaceholder && !["champions-view", "runners-view", "top8-third-view"].includes(zone)){
+        attachClickSwap(card);
+      }
+
+      dz.appendChild(card);
+    });
+
+    /* -----------------------------------------
+       4) Top-8 summary letters
+    ----------------------------------------- */
+    if(zone === "top8-third-view"){
+      const summary = document.createElement("div");
+      summary.className = "top8-summary";
+      summary.textContent = qualifiedThirdGroupLetters || "—";
+      dz.appendChild(summary);
+    }
+
+    /* -----------------------------------------
+       5) Count
+    ----------------------------------------- */
+    const countEl = document.querySelector(`[data-count-for="${zone}"]`);
+    if(countEl){
+      countEl.textContent = `${arr.length} team${arr.length !== 1 ? "s" : ""}`;
+    }
+  });
+}
+
 
     /* ==============================
        23) Local time rendering helpers
