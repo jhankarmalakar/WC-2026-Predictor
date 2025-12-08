@@ -977,22 +977,49 @@
       "Nigeria":"ng"
     };
 
-    function flagHTML(name){
-      if(!name) return "";
-      if(
-        name.startsWith("UEFA Path") ||
-        name.startsWith("FIFA IC Path") ||
-        name.includes("UFEA Path") ||
-        name.includes("FIFA IC Path")
-      ) return "";
+   /* ==============================
+   FLAGS (LOCAL SVG)
+============================== */
 
-      const code = FLAG_CODE_BY_NAME[name];
-      if(!code) return "";
-      return `<img class="flag-img" src="./svg/${code}.svg" alt="${code} flag" loading="lazy">`;
-    }
-    function nameWithFlagHTML(name){
-      return `${flagHTML(name)}${name ?? ""}`;
-    }
+const FLAG_BASE = "./svg/"; // same level as index.html
+
+function flagURLByName(name){
+  if(!name) return "";
+
+  // skip placeholders/paths
+  if(
+    name.startsWith("UEFA Path") ||
+    name.startsWith("FIFA IC Path") ||
+    name.includes("UFEA Path") ||
+    name.includes("FIFA IC Path")
+  ) return "";
+
+  const code = FLAG_CODE_BY_NAME[name];
+  if(!code) return "";
+
+  return `${FLAG_BASE}${code}.svg`;
+}
+
+function flagHTML(name, extraClass=""){
+  const url = flagURLByName(name);
+  if(!url) return "";
+
+  // Use SVG from local folder
+  return `
+    <img
+      class="flag-img ${extraClass}"
+      src="${url}"
+      alt=""
+      loading="lazy"
+      onerror="this.style.display='none'"
+    >
+  `;
+}
+
+function nameWithFlagHTML(name){
+  return `${flagHTML(name)}${name ?? ""}`;
+}
+
 
     /* ==============================
        3b) Flags for CANVAS (emoji)
@@ -2578,14 +2605,11 @@
     /* ==============================
        27) PRINT RESULT - NAME + CANVAS
     ============================== */
-    /* ==============================
-   RESULT IMAGE GENERATION v2
-   - tighter layout
-   - more colorful
-   - robust emoji fallback
-   - champion headline top-right
-   - source bottom-right
-   - in-page view modal
+/* ==============================
+   RESULT IMAGE GENERATION v3 (SVG FLAGS)
+   - uses local ./svg/*.svg
+   - fixes view
+   - tighter + colorful
 ============================== */
 
 const SITE_SOURCE_NAME = "World Cup 2026 Predictor";
@@ -2614,56 +2638,12 @@ function ensureUserFirstName(){
   }
   return "Your";
 }
-
 function getUserFirstName(){
   return localStorage.getItem("wc26_user_first_name") || "Your";
 }
 
 /* ------------------------------
-   Flag / emoji helpers
------------------------------- */
-function codeForName(name){
-  if(!name) return "";
-  if(
-    name.startsWith("UEFA Path") ||
-    name.startsWith("FIFA IC Path") ||
-    name.includes("UFEA Path") ||
-    name.includes("FIFA IC Path")
-  ) return "";
-  const code = FLAG_CODE_BY_NAME[name];
-  return code ? String(code).toUpperCase() : "";
-}
-
-function flagEmojiFromCode(code){
-  if(!code) return "";
-  const cc = String(code).toUpperCase();
-
-  // Kosovo emoji support is inconsistent across platforms
-  if(cc === "XK") return "";
-
-  if(!/^[A-Z]{2}$/.test(cc)) return "";
-
-  const A = 0x1F1E6;
-  return [...cc].map(c => String.fromCodePoint(A + (c.charCodeAt(0) - 65))).join("");
-}
-
-/* 
-  Laptop emoji issues:
-  We ALWAYS show "CC ABB" and add emoji only if available.
-*/
-function badgeTextForName(name){
-  const ab = teamAbbrev(name);
-  const cc = codeForName(name);
-
-  if(cc){
-    const em = flagEmojiFromCode(cc);
-    return em ? `${em} ${cc} ${ab}` : `${cc} ${ab}`;
-  }
-  return ab;
-}
-
-/* ------------------------------
-   Modal preview
+   Result preview modal
 ------------------------------ */
 function ensureResultModal(){
   let modal = document.getElementById("resultPreviewModal");
@@ -2697,11 +2677,47 @@ function ensureResultModal(){
   return modal;
 }
 
-function showResultPreview(canvas){
+function showResultPreviewFromUrl(dataUrl){
   const modal = ensureResultModal();
   const img = modal.querySelector("#resultModalImg");
-  img.src = canvas.toDataURL("image/png");
+  img.src = dataUrl;
   modal.classList.add("open");
+}
+
+/* ------------------------------
+   Canvas flag loading (LOCAL SVG)
+------------------------------ */
+const FLAG_CANVAS_W = 20;
+const FLAG_CANVAS_H = 14;
+const FLAG_TEXT_GAP = 8;
+
+const _flagCanvasCache = new Map();
+
+function loadFlagImageForName(name){
+  const url = flagURLByName(name);
+  if(!url) return Promise.resolve(null);
+
+  if(_flagCanvasCache.has(name)) return Promise.resolve(_flagCanvasCache.get(name));
+
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => { _flagCanvasCache.set(name, img); res(img); };
+    img.onerror = () => { _flagCanvasCache.set(name, null); res(null); };
+    img.src = url;
+  });
+}
+
+async function preloadFlagsForMatchIds(matchIds){
+  const names = new Set();
+  matchIds.forEach(id => {
+    const m = findMatchById(id);
+    if(!m) return;
+    const p = resolveParticipants(m);
+    if(p.left?.name) names.add(p.left.name);
+    if(p.right?.name) names.add(p.right.name);
+  });
+
+  await Promise.all([...names].map(n => loadFlagImageForName(n)));
 }
 
 /* ------------------------------
@@ -2721,11 +2737,9 @@ function roundRectPath(ctx, x,y,w,h,rad){
   ctx.quadraticCurveTo(x, y, x+r, y);
   ctx.closePath();
 }
-
 function centerOf(pos){
   return { cx: pos.x + pos.w/2, cy: pos.y + pos.h/2 };
 }
-
 function normalizeLayout(posById, W, H){
   const vals = Object.values(posById);
   if(!vals.length) return posById;
@@ -2740,8 +2754,8 @@ function normalizeLayout(posById, W, H){
 
   const padL = 36;
   const padR = 36;
-  const padT = 92;  // leave room for header
-  const padB = 78;  // leave room for footer
+  const padT = 92;
+  const padB = 78;
 
   const availW = W - padL - padR;
   const availH = H - padT - padB;
@@ -2760,11 +2774,71 @@ function normalizeLayout(posById, W, H){
   return out;
 }
 
+function drawConnector(ctx, fromPos, toPos){
+  const a = centerOf(fromPos);
+  const b = centerOf(toPos);
+  const midX = (a.cx + b.cx) / 2;
+
+  ctx.strokeStyle = "rgba(122,162,255,0.22)";
+  ctx.lineWidth = 2;
+
+  ctx.beginPath();
+  ctx.moveTo(a.cx + fromPos.w/2 - 6, a.cy);
+  ctx.lineTo(midX, a.cy);
+  ctx.lineTo(midX, b.cy);
+  ctx.lineTo(b.cx - toPos.w/2 + 6, b.cy);
+  ctx.stroke();
+}
+
+function winnerAccentForRound(label){
+  if(label === "R16") return "rgba(94,230,255,0.45)";
+  if(label === "QF")  return "rgba(122,162,255,0.50)";
+  if(label === "SF")  return "rgba(255,184,107,0.55)";
+  if(label === "FINAL") return "rgba(122,255,187,0.65)";
+  if(label === "3RD PLACE") return "rgba(255,107,122,0.55)";
+  return "rgba(94,230,168,0.45)";
+}
+
+function drawBoxFrame(ctx, x,y,w,h, rad, accentColor){
+  roundRectPath(ctx, x,y,w,h,rad);
+
+  const g = ctx.createLinearGradient(x, y, x+w, y+h);
+  g.addColorStop(0, "rgba(255,255,255,0.06)");
+  g.addColorStop(1, "rgba(255,255,255,0.02)");
+  ctx.fillStyle = g;
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(255,255,255,0.14)";
+  ctx.lineWidth = 1.1;
+  ctx.stroke();
+
+  if(accentColor){
+    ctx.fillStyle = accentColor;
+    ctx.fillRect(x + w - 7, y + 6, 3, h - 12);
+  }
+}
+
+function drawFlagAndAbbr(ctx, name, x, baselineY, isWinner){
+  const ab = teamAbbrev(name);
+  const img = _flagCanvasCache.get(name) ?? null;
+
+  let textX = x;
+  const imgY = baselineY - FLAG_CANVAS_H + 2;
+
+  if(img){
+    ctx.drawImage(img, x, imgY, FLAG_CANVAS_W, FLAG_CANVAS_H);
+    textX = x + FLAG_CANVAS_W + FLAG_TEXT_GAP;
+  }
+
+  ctx.font = `${isWinner ? "900" : "700"} 17.5px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+  ctx.fillStyle = isWinner ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.88)";
+  ctx.fillText(ab, textX, baselineY);
+}
+
 /* ------------------------------
-   Main builder
+   Main builder (ASYNC)
 ------------------------------ */
-function buildResultsCanvas(){
-  // Slightly smaller + denser than before
+async function buildResultsCanvas(){
   const W = 1280;
   const H = 760;
 
@@ -2773,14 +2847,32 @@ function buildResultsCanvas(){
   canvas.height = H;
   const ctx = canvas.getContext("2d");
 
-  // Ensure name prompt happened at least once for view/download
   const firstName = getUserFirstName();
+
+  // Match lookup
+  const matchById = {};
+  [...R16_MATCHES, ...QF_MATCHES, ...SF_MATCHES, ...THIRD_MATCH, ...FINAL_MATCH]
+    .forEach(m => matchById[m.id] = m);
+
+  const matchIdsR16 = R16_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
+  const matchIdsQF  = QF_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
+  const matchIdsSF  = SF_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
+  const finalId = FINAL_MATCH[0]?.id; // 104
+  const thirdId = THIRD_MATCH[0]?.id; // 103;
+
+  const allIds = [
+    ...matchIdsR16, ...matchIdsQF, ...matchIdsSF,
+    ...(thirdId ? [thirdId] : []),
+    ...(finalId ? [finalId] : [])
+  ];
+
+  // ✅ PRELOAD FLAGS
+  await preloadFlagsForMatchIds(allIds);
 
   // === Colorful background ===
   ctx.fillStyle = "#050814";
   ctx.fillRect(0,0,W,H);
 
-  // Soft multi-color glows
   const glow1 = ctx.createRadialGradient(W*0.12, H*0.18, 40, W*0.12, H*0.18, W*0.55);
   glow1.addColorStop(0, "rgba(122,162,255,0.18)");
   glow1.addColorStop(1, "rgba(122,162,255,0)");
@@ -2802,12 +2894,10 @@ function buildResultsCanvas(){
     ? `2026 FIFA WC Champion: ${finalWinner}`
     : `2026 FIFA WC Champion: TBD`;
 
-  // Left title
   ctx.font = "800 24px system-ui, -apple-system, Segoe UI, Roboto, Arial";
   ctx.fillStyle = "rgba(255,255,255,0.96)";
   ctx.fillText(`${firstName}'s World Cup 2026 Knockout Prediction`, 32, 48);
 
-  // Top-right champion
   ctx.font = "900 30px system-ui, -apple-system, Segoe UI, Roboto, Arial";
   const champW = ctx.measureText(championText).width;
   ctx.fillStyle = "rgba(255,255,255,0.99)";
@@ -2818,62 +2908,10 @@ function buildResultsCanvas(){
   const boxH = 52;
   const rad = 11;
 
-  // Tighter X columns
   const xR16 = 40;
   const xQF  = 240;
   const xSF  = 440;
   const xF2  = 660;
-
-  // Match lookup
-  const matchById = {};
-  [...R16_MATCHES, ...QF_MATCHES, ...SF_MATCHES, ...THIRD_MATCH, ...FINAL_MATCH]
-    .forEach(m => matchById[m.id] = m);
-
-  function drawBoxFrame(x,y,w,h, accentColor){
-    roundRectPath(ctx, x,y,w,h,rad);
-
-    // subtle card fill
-    const g = ctx.createLinearGradient(x, y, x+w, y+h);
-    g.addColorStop(0, "rgba(255,255,255,0.06)");
-    g.addColorStop(1, "rgba(255,255,255,0.02)");
-    ctx.fillStyle = g;
-    ctx.fill();
-
-    ctx.strokeStyle = "rgba(255,255,255,0.14)";
-    ctx.lineWidth = 1.1;
-    ctx.stroke();
-
-    // Winner accent bar
-    if(accentColor){
-      ctx.fillStyle = accentColor;
-      ctx.fillRect(x + w - 7, y + 6, 3, h - 12);
-    }
-  }
-
-  function drawConnector(fromPos, toPos){
-    const a = centerOf(fromPos);
-    const b = centerOf(toPos);
-    const midX = (a.cx + b.cx) / 2;
-
-    ctx.strokeStyle = "rgba(122,162,255,0.22)";
-    ctx.lineWidth = 2;
-
-    ctx.beginPath();
-    ctx.moveTo(a.cx + fromPos.w/2 - 6, a.cy);
-    ctx.lineTo(midX, a.cy);
-    ctx.lineTo(midX, b.cy);
-    ctx.lineTo(b.cx - toPos.w/2 + 6, b.cy);
-    ctx.stroke();
-  }
-
-  function winnerAccentForRound(label){
-    if(label === "R16") return "rgba(94,230,255,0.45)";
-    if(label === "QF")  return "rgba(122,162,255,0.50)";
-    if(label === "SF")  return "rgba(255,184,107,0.55)";
-    if(label === "FINAL") return "rgba(122,255,187,0.65)";
-    if(label === "3RD PLACE") return "rgba(255,107,122,0.55)";
-    return "rgba(94,230,168,0.45)";
-  }
 
   function drawMatchBox(matchId, pos, labelPrefix){
     const match = matchById[matchId];
@@ -2883,35 +2921,18 @@ function buildResultsCanvas(){
     const winner = state.winners?.[matchId]?.name ?? null;
 
     const accent = winner ? winnerAccentForRound(labelPrefix) : null;
-    drawBoxFrame(pos.x, pos.y, pos.w, pos.h, accent);
+    drawBoxFrame(ctx, pos.x, pos.y, pos.w, pos.h, rad, accent);
 
-    // Match label
     ctx.fillStyle = "rgba(255,255,255,0.70)";
     ctx.font = "800 9.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
     ctx.fillText(`${labelPrefix} • ${matchId}`, pos.x + 9, pos.y + 13);
 
-    // Badge lines
-    const leftText  = badgeTextForName(p.left.name);
-    const rightText = badgeTextForName(p.right.name);
-
     const leftIsWinner  = winner && winner === p.left.name;
     const rightIsWinner = winner && winner === p.right.name;
 
-    ctx.font = `${leftIsWinner ? "900" : "700"} 17.5px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
-    ctx.fillStyle = leftIsWinner ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.88)";
-    ctx.fillText(leftText, pos.x + 10, pos.y + 32);
-
-    ctx.font = `${rightIsWinner ? "900" : "700"} 17.5px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
-    ctx.fillStyle = rightIsWinner ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.88)";
-    ctx.fillText(rightText, pos.x + 10, pos.y + 50);
+    drawFlagAndAbbr(ctx, p.left.name,  pos.x + 10, pos.y + 32, leftIsWinner);
+    drawFlagAndAbbr(ctx, p.right.name, pos.x + 10, pos.y + 50, rightIsWinner);
   }
-
-  // IDs
-  const matchIdsR16 = R16_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
-  const matchIdsQF  = QF_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
-  const matchIdsSF  = SF_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
-  const finalId = FINAL_MATCH[0]?.id; // 104
-  const thirdId = THIRD_MATCH[0]?.id; // 103
 
   // Base placement (tight)
   let posById = {};
@@ -2963,7 +2984,7 @@ function buildResultsCanvas(){
     posById[thirdId] = { x: xF2, y: baseY + 88, w: boxW, h: boxH };
   }
 
-  // ✅ Auto-pack & scale to reduce unused gaps
+  // ✅ Auto-pack & scale
   posById = normalizeLayout(posById, W, H);
 
   // Connectors
@@ -2971,7 +2992,7 @@ function buildResultsCanvas(){
     const m = matchById[qf];
     [m.left, m.right].forEach(s => {
       if(s.type === "WM" && posById[s.id] && posById[qf]){
-        drawConnector(posById[s.id], posById[qf]);
+        drawConnector(ctx, posById[s.id], posById[qf]);
       }
     });
   });
@@ -2980,7 +3001,7 @@ function buildResultsCanvas(){
     const m = matchById[sf];
     [m.left, m.right].forEach(s => {
       if(s.type === "WM" && posById[s.id] && posById[sf]){
-        drawConnector(posById[s.id], posById[sf]);
+        drawConnector(ctx, posById[s.id], posById[sf]);
       }
     });
   });
@@ -2989,7 +3010,7 @@ function buildResultsCanvas(){
     const m = matchById[finalId];
     [m.left, m.right].forEach(s => {
       if(s.type === "WM" && posById[s.id] && posById[finalId]){
-        drawConnector(posById[s.id], posById[finalId]);
+        drawConnector(ctx, posById[s.id], posById[finalId]);
       }
     });
   }
@@ -2997,7 +3018,7 @@ function buildResultsCanvas(){
   if(thirdId){
     matchIdsSF.forEach(sf => {
       if(posById[sf] && posById[thirdId]){
-        drawConnector(posById[sf], posById[thirdId]);
+        drawConnector(ctx, posById[sf], posById[thirdId]);
       }
     });
   }
@@ -3009,15 +3030,15 @@ function buildResultsCanvas(){
   if(finalId) drawMatchBox(finalId, posById[finalId], "FINAL");
   if(thirdId) drawMatchBox(thirdId, posById[thirdId], "3RD PLACE");
 
-  // Legend (bigger)
+  // Legend
   ctx.fillStyle = "rgba(255,255,255,0.62)";
   ctx.font = "700 11.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
   ctx.fillText(
-    "Legend: CC + 3-letter ABBR (emoji may vary by device). Accent bar indicates selected winner.",
+    "Legend: local SVG flags + 3-letter ABBR. Accent bar indicates selected winner.",
     32, H - 30
   );
 
-  // Footer (bigger + clearer, bottom-right)
+  // Footer bottom-right
   const SITE_URL = getSiteUrlForImage();
   const rightPad = 32;
 
@@ -3050,12 +3071,11 @@ function buildResultsCanvas(){
 }
 
 /* ------------------------------
-   Download + View helpers
+   View + Download (ASYNC)
 ------------------------------ */
-function downloadResultImage(){
+async function downloadResultImage(){
   ensureUserFirstName();
-
-  const canvas = buildResultsCanvas();
+  const canvas = await buildResultsCanvas();
   const a = document.createElement("a");
   a.href = canvas.toDataURL("image/png");
   a.download = "wc2026-prediction.png";
@@ -3064,19 +3084,17 @@ function downloadResultImage(){
   a.remove();
 }
 
-function viewResultImage(){
+async function viewResultImage(){
   ensureUserFirstName();
-
-  const canvas = buildResultsCanvas();
-  showResultPreview(canvas);
+  const canvas = await buildResultsCanvas();
+  const url = canvas.toDataURL("image/png");
+  showResultPreviewFromUrl(url);
 }
 
 /* ------------------------------
    Button wiring (robust)
-   - adjust IDs if yours differ
 ------------------------------ */
 function wireResultImageButtons(){
-  // Try common IDs you might be using
   const viewBtn =
     document.getElementById("viewResultBtn") ||
     document.getElementById("printViewBtn") ||
@@ -3087,30 +3105,37 @@ function wireResultImageButtons(){
     document.getElementById("printDownloadBtn") ||
     document.getElementById("resultDownloadBtn");
 
-  if(viewBtn){
-    viewBtn.addEventListener("click", viewResultImage);
-  }
-  if(dlBtn){
-    dlBtn.addEventListener("click", downloadResultImage);
-  }
+  if(viewBtn) viewBtn.addEventListener("click", viewResultImage);
+  if(dlBtn) dlBtn.addEventListener("click", downloadResultImage);
 }
 
 
 
 
-    function openPrintModal(){
-      const backdrop = document.getElementById("printModalBackdrop");
-      const img = document.getElementById("printPreviewImg");
 
-      const canvas = buildResultsCanvas();
-      const dataUrl = canvas.toDataURL("image/png");
+async function openPrintModal(){
+  const backdrop = document.getElementById("printModalBackdrop");
+  const img = document.getElementById("printPreviewImg");
 
-      img.src = dataUrl;
-      img.dataset.url = dataUrl;
+  const canvas = await buildResultsCanvas();
+  const dataUrl = canvas.toDataURL("image/png");
 
-      backdrop.classList.add("show");
-      backdrop.setAttribute("aria-hidden","false");
-    }
+  img.src = dataUrl;
+  img.dataset.url = dataUrl;
+
+  backdrop.classList.add("show");
+  backdrop.setAttribute("aria-hidden","false");
+}
+
+function viewPrintImage(){
+  const img = document.getElementById("printPreviewImg");
+  const url = img.dataset.url;
+  if(!url) return;
+
+  // ✅ Use in-page modal instead of window.open
+  showResultPreviewFromUrl(url);
+}
+
 
     function closePrintModal(){
       const backdrop = document.getElementById("printModalBackdrop");
@@ -3121,12 +3146,7 @@ function wireResultImageButtons(){
       backdrop.setAttribute("aria-hidden","true");
     }
 
-    function viewPrintImage(){
-      const img = document.getElementById("printPreviewImg");
-      const url = img.dataset.url;
-      if(!url) return;
-      window.open(url, "_blank", "noopener,noreferrer");
-    }
+
 
     function downloadPrintImage(){
       const img = document.getElementById("printPreviewImg");
@@ -3222,11 +3242,11 @@ function wireResultImageButtons(){
 
       /* ✅ Print result */
       if(printBtn){
-        printBtn.addEventListener("click", () => {
-          // Require final winner selected
-          if(!state.winners[104]) return;
-          openPrintModal();
-        });
+       printBtn.addEventListener("click", async () => {
+              if(!state.winners[104]) return;
+              await openPrintModal();
+            });
+
       }
 
       /* Modal controls */
