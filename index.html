@@ -2839,6 +2839,7 @@ function drawFlagAndAbbr(ctx, name, x, baselineY, isWinner){
    Main builder (ASYNC)
 ------------------------------ */
 async function buildResultsCanvas(){
+  // A bit taller cards, still compact
   const W = 1280;
   const H = 760;
 
@@ -2848,26 +2849,6 @@ async function buildResultsCanvas(){
   const ctx = canvas.getContext("2d");
 
   const firstName = getUserFirstName();
-
-  // Match lookup
-  const matchById = {};
-  [...R16_MATCHES, ...QF_MATCHES, ...SF_MATCHES, ...THIRD_MATCH, ...FINAL_MATCH]
-    .forEach(m => matchById[m.id] = m);
-
-  const matchIdsR16 = R16_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
-  const matchIdsQF  = QF_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
-  const matchIdsSF  = SF_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
-  const finalId = FINAL_MATCH[0]?.id; // 104
-  const thirdId = THIRD_MATCH[0]?.id; // 103;
-
-  const allIds = [
-    ...matchIdsR16, ...matchIdsQF, ...matchIdsSF,
-    ...(thirdId ? [thirdId] : []),
-    ...(finalId ? [finalId] : [])
-  ];
-
-  // ✅ PRELOAD FLAGS
-  await preloadFlagsForMatchIds(allIds);
 
   // === Colorful background ===
   ctx.fillStyle = "#050814";
@@ -2888,30 +2869,78 @@ async function buildResultsCanvas(){
   glow3.addColorStop(1, "rgba(255,184,107,0)");
   ctx.fillStyle = glow3; ctx.fillRect(0,0,W,H);
 
-  // === Headline ===
-  const finalWinner = state.winners?.[104]?.name ?? "";
-  const championText = finalWinner
-    ? `2026 FIFA WC Champion: ${finalWinner}`
-    : `2026 FIFA WC Champion: TBD`;
-
+  // === Title (left) ===
   ctx.font = "800 24px system-ui, -apple-system, Segoe UI, Roboto, Arial";
   ctx.fillStyle = "rgba(255,255,255,0.96)";
   ctx.fillText(`${firstName}'s World Cup 2026 Knockout Prediction`, 32, 48);
 
-  ctx.font = "900 30px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  const champW = ctx.measureText(championText).width;
-  ctx.fillStyle = "rgba(255,255,255,0.99)";
-  ctx.fillText(championText, W - champW - 32, 54);
-
   // === Compact match card geometry ===
   const boxW = 175;
-  const boxH = 52;
+  const boxH = 64;  // taller
   const rad = 11;
 
   const xR16 = 40;
   const xQF  = 240;
   const xSF  = 440;
   const xF2  = 660;
+
+  const matchById = {};
+  [...R16_MATCHES, ...QF_MATCHES, ...SF_MATCHES, ...THIRD_MATCH, ...FINAL_MATCH]
+    .forEach(m => matchById[m.id] = m);
+
+  function drawBoxFrame(x,y,w,h, accentColor){
+    roundRectPath(ctx, x,y,w,h,rad);
+
+    const g = ctx.createLinearGradient(x, y, x+w, y+h);
+    g.addColorStop(0, "rgba(255,255,255,0.07)");
+    g.addColorStop(1, "rgba(255,255,255,0.02)");
+    ctx.fillStyle = g;
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(255,255,255,0.14)";
+    ctx.lineWidth = 1.1;
+    ctx.stroke();
+
+    if(accentColor){
+      ctx.fillStyle = accentColor;
+      ctx.fillRect(x + w - 7, y + 8, 3, h - 16);
+    }
+  }
+
+  function drawConnector(fromPos, toPos){
+    const a = centerOf(fromPos);
+    const b = centerOf(toPos);
+    const midX = (a.cx + b.cx) / 2;
+
+    ctx.strokeStyle = "rgba(122,162,255,0.22)";
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    ctx.moveTo(a.cx + fromPos.w/2 - 6, a.cy);
+    ctx.lineTo(midX, a.cy);
+    ctx.lineTo(midX, b.cy);
+    ctx.lineTo(b.cx - toPos.w/2 + 6, b.cy);
+    ctx.stroke();
+  }
+
+  function winnerAccentForRound(label){
+    if(label === "R16") return "rgba(94,230,255,0.45)";
+    if(label === "QF")  return "rgba(122,162,255,0.50)";
+    if(label === "SF")  return "rgba(255,184,107,0.55)";
+    if(label === "FINAL") return "rgba(122,255,187,0.65)";
+    if(label === "3RD PLACE") return "rgba(255,107,122,0.55)";
+    return "rgba(94,230,168,0.45)";
+  }
+
+  // Yellow winning-line highlight
+  function highlightWinnerLine(x, yBaseline, text){
+    const w = Math.min(150, ctx.measureText(text).width + 12);
+    const h = 18;
+    const y = yBaseline - 14;
+
+    ctx.fillStyle = "rgba(255, 214, 102, 0.22)";
+    ctx.fillRect(x - 2, y, w, h);
+  }
 
   function drawMatchBox(matchId, pos, labelPrefix){
     const match = matchById[matchId];
@@ -2921,23 +2950,57 @@ async function buildResultsCanvas(){
     const winner = state.winners?.[matchId]?.name ?? null;
 
     const accent = winner ? winnerAccentForRound(labelPrefix) : null;
-    drawBoxFrame(ctx, pos.x, pos.y, pos.w, pos.h, rad, accent);
+    drawBoxFrame(pos.x, pos.y, pos.w, pos.h, accent);
 
-    ctx.fillStyle = "rgba(255,255,255,0.70)";
-    ctx.font = "800 9.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    // Header: round + match + date/local time
+    const info = INFO_BY_MATCH?.[matchId];
+    const when = info ? `${info.date} • ${formatLocalKickoff(info)}` : "Date/Time TBD";
+
+    ctx.fillStyle = "rgba(255,255,255,0.72)";
+    ctx.font = "800 9.4px system-ui, -apple-system, Segoe UI, Roboto, Arial";
     ctx.fillText(`${labelPrefix} • ${matchId}`, pos.x + 9, pos.y + 13);
+
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    ctx.font = "700 9px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    ctx.fillText(when, pos.x + 9, pos.y + 24);
+
+    const leftText  = badgeTextForName(p.left.name);
+    const rightText = badgeTextForName(p.right.name);
 
     const leftIsWinner  = winner && winner === p.left.name;
     const rightIsWinner = winner && winner === p.right.name;
 
-    drawFlagAndAbbr(ctx, p.left.name,  pos.x + 10, pos.y + 32, leftIsWinner);
-    drawFlagAndAbbr(ctx, p.right.name, pos.x + 10, pos.y + 50, rightIsWinner);
+    // Text positions
+    const leftY  = pos.y + 44;
+    const rightY = pos.y + 61;
+
+    // Winner highlights
+    ctx.font = "700 16.8px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    if(leftIsWinner) highlightWinnerLine(pos.x + 10, leftY, leftText);
+    if(rightIsWinner) highlightWinnerLine(pos.x + 10, rightY, rightText);
+
+    // Left line
+    ctx.font = `${leftIsWinner ? "900" : "700"} 16.8px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+    ctx.fillStyle = leftIsWinner ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.88)";
+    ctx.fillText(leftText, pos.x + 10, leftY);
+
+    // Right line
+    ctx.font = `${rightIsWinner ? "900" : "700"} 16.8px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+    ctx.fillStyle = rightIsWinner ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.88)";
+    ctx.fillText(rightText, pos.x + 10, rightY);
   }
 
-  // Base placement (tight)
+  // IDs
+  const matchIdsR16 = R16_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
+  const matchIdsQF  = QF_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
+  const matchIdsSF  = SF_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
+  const finalId = FINAL_MATCH[0]?.id; // 104
+  const thirdId = THIRD_MATCH[0]?.id; // 103
+
+  // Base placement
   let posById = {};
   const topY = 98;
-  const gapR16 = 76;
+  const gapR16 = 78;
 
   matchIdsR16.forEach((id, i) => {
     posById[id] = { x: xR16, y: topY + i*gapR16, w: boxW, h: boxH };
@@ -2981,10 +3044,37 @@ async function buildResultsCanvas(){
 
   if(thirdId){
     const baseY = finalId && posById[finalId] ? posById[finalId].y : (topY + 260);
-    posById[thirdId] = { x: xF2, y: baseY + 88, w: boxW, h: boxH };
+    posById[thirdId] = { x: xF2, y: baseY + 94, w: boxW, h: boxH };
   }
 
-  // ✅ Auto-pack & scale
+  // === NEW: Post-Final Summary Blocks ===
+  // These are visual-only boxes for clarity.
+  const SUMMARY_CHAMP_ID = "summary-champ";
+  const SUMMARY_THIRD_ID = "summary-third";
+
+  if(finalId && posById[finalId]){
+    posById[SUMMARY_CHAMP_ID] = {
+      x: posById[finalId].x + 210,
+      y: posById[finalId].y - 6,
+      w: 220,
+      h: 70
+    };
+  } else {
+    posById[SUMMARY_CHAMP_ID] = { x: 890, y: 300, w: 220, h: 70 };
+  }
+
+  if(thirdId && posById[thirdId]){
+    posById[SUMMARY_THIRD_ID] = {
+      x: posById[thirdId].x + 210,
+      y: posById[thirdId].y - 6,
+      w: 220,
+      h: 70
+    };
+  } else {
+    posById[SUMMARY_THIRD_ID] = { x: 890, y: 390, w: 220, h: 70 };
+  }
+
+  // Pack/scale
   posById = normalizeLayout(posById, W, H);
 
   // Connectors
@@ -2992,7 +3082,7 @@ async function buildResultsCanvas(){
     const m = matchById[qf];
     [m.left, m.right].forEach(s => {
       if(s.type === "WM" && posById[s.id] && posById[qf]){
-        drawConnector(ctx, posById[s.id], posById[qf]);
+        drawConnector(posById[s.id], posById[qf]);
       }
     });
   });
@@ -3001,7 +3091,7 @@ async function buildResultsCanvas(){
     const m = matchById[sf];
     [m.left, m.right].forEach(s => {
       if(s.type === "WM" && posById[s.id] && posById[sf]){
-        drawConnector(ctx, posById[s.id], posById[sf]);
+        drawConnector(posById[s.id], posById[sf]);
       }
     });
   });
@@ -3010,7 +3100,7 @@ async function buildResultsCanvas(){
     const m = matchById[finalId];
     [m.left, m.right].forEach(s => {
       if(s.type === "WM" && posById[s.id] && posById[finalId]){
-        drawConnector(ctx, posById[s.id], posById[finalId]);
+        drawConnector(posById[s.id], posById[finalId]);
       }
     });
   }
@@ -3018,23 +3108,78 @@ async function buildResultsCanvas(){
   if(thirdId){
     matchIdsSF.forEach(sf => {
       if(posById[sf] && posById[thirdId]){
-        drawConnector(ctx, posById[sf], posById[thirdId]);
+        drawConnector(posById[sf], posById[thirdId]);
       }
     });
   }
 
-  // Boxes
+  // Draw match boxes
   matchIdsR16.forEach(id => drawMatchBox(id, posById[id], "R16"));
   matchIdsQF.forEach(id  => drawMatchBox(id, posById[id], "QF"));
   matchIdsSF.forEach(id  => drawMatchBox(id, posById[id], "SF"));
   if(finalId) drawMatchBox(finalId, posById[finalId], "FINAL");
   if(thirdId) drawMatchBox(thirdId, posById[thirdId], "3RD PLACE");
 
+  // === Draw summary blocks ===
+  function drawSummaryBox(pos, title, teamName, accent){
+    drawBoxFrame(pos.x, pos.y, pos.w, pos.h, accent);
+
+    ctx.fillStyle = "rgba(255,255,255,0.80)";
+    ctx.font = "900 12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    ctx.fillText(title, pos.x + 12, pos.y + 20);
+
+    const ab = teamName ? teamAbbrev(teamName) : "TBD";
+    const cc = codeForName(teamName);
+    const line = teamName ? `${cc ? cc + " " : ""}${ab} • ${teamName}` : "TBD";
+
+    ctx.fillStyle = "rgba(255,255,255,0.98)";
+    ctx.font = "800 14.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    ctx.fillText(line, pos.x + 12, pos.y + 46);
+  }
+
+  const finalWinner = state.winners?.[104]?.name ?? "";
+  const thirdWinner = state.winners?.[103]?.name ?? "";
+
+  if(posById[SUMMARY_CHAMP_ID]){
+    drawSummaryBox(
+      posById[SUMMARY_CHAMP_ID],
+      "26 FIFA WC CHAMPIONS",
+      finalWinner,
+      "rgba(122,255,187,0.70)"
+    );
+  }
+
+  if(posById[SUMMARY_THIRD_ID]){
+    drawSummaryBox(
+      posById[SUMMARY_THIRD_ID],
+      "3RD PLACE WINNER",
+      thirdWinner,
+      "rgba(255,107,122,0.70)"
+    );
+  }
+
+  // === Champion text near right margin, aligned with Final area ===
+  if(finalId && posById[finalId]){
+    const champLine = finalWinner
+      ? `26 FIFA WC Champions: ${finalWinner}`
+      : `26 FIFA WC Champions: TBD`;
+
+    ctx.textAlign = "right";
+    ctx.fillStyle = "rgba(255,255,255,0.95)";
+    ctx.font = "900 18px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    ctx.fillText(
+      champLine,
+      W - 32,
+      Math.max(92, posById[finalId].y - 16)
+    );
+    ctx.textAlign = "start";
+  }
+
   // Legend
   ctx.fillStyle = "rgba(255,255,255,0.62)";
   ctx.font = "700 11.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
   ctx.fillText(
-    "Knockout Stages R16 onwards",
+    "Legend: CC + 3-letter ABBR. Yellow highlight marks the selected winner line.",
     32, H - 30
   );
 
@@ -3069,6 +3214,7 @@ async function buildResultsCanvas(){
 
   return canvas;
 }
+
 
 /* ------------------------------
    View + Download (ASYNC)
@@ -3114,10 +3260,12 @@ function wireResultImageButtons(){
 
 
 async function openPrintModal(){
+   ensureUserFirstName();
+
   const backdrop = document.getElementById("printModalBackdrop");
   const img = document.getElementById("printPreviewImg");
 
-  const canvas = await buildResultsCanvas();
+  const canvas = buildResultsCanvas();
   const dataUrl = canvas.toDataURL("image/png");
 
   img.src = dataUrl;
@@ -3201,6 +3349,14 @@ function viewPrintImage(){
           placeQualifiersToGroups();
         });
       }
+
+      if(printBtn){
+        printBtn.addEventListener("click", () => {
+          if(!state.winners[104]) return;
+          openPrintModal();
+        });
+      }
+
 
       if(reformBtn){
         reformBtn.addEventListener("click", () => reformPoolMode());
