@@ -250,6 +250,35 @@
     @media (min-width: 1400px){
       .board{ grid-template-columns: 1fr 1fr 1fr 1fr; }
     }
+/* Prevent Stage header overlap on small screens */
+    
+    @media (max-width: 560px){
+      .stage-separator{
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+      }
+    
+      .stage-left{
+        width: 100%;
+      }
+    
+      .stage-right{
+        width: 100%;
+        justify-content: flex-start;
+      }
+    
+      /* Allow wrapping just on small screens */
+      .stage-title{
+        white-space: normal;
+      }
+    
+      .stage-line{
+        display: none; /* optional: removes the line to reduce clutter */
+      }
+    }
+
+    
 
     /* Stage separators */
     .stage-separator{
@@ -2135,8 +2164,8 @@ function nameWithFlagHTML(name){
         makeSeparator(
           "Pool Actions",
           [
-            { id:"autoPoolsBtn", text:"Auto Select Pool Positions", orange:true },
-            { id:"placeQualifiersBtn", text:"Place qualifiers to the groups", green:true },
+            { id:"autoPoolsBtn", text:"Auto-order remaining Pool positions", orange:true },
+            { id:"placeQualifiersBtn", text:"Place qualifiers in the Rroups", green:true },
             { id:"reformPoolBtn", text:"Reform Pool" }
           ]
         )
@@ -2151,7 +2180,7 @@ function nameWithFlagHTML(name){
         makeSeparator(
           "Group Actions",
           [
-            { id:"autoGroupsBtn", text:"Auto Select Remaining Group Positions", orange:true }
+            { id:"autoGroupsBtn", text:"Auto-order remaining Group positions", orange:true }
           ]
         )
       );
@@ -2888,8 +2917,8 @@ async function buildResultsCanvas(){
   ctx.fillText(`${firstName}'s World Cup 2026 Knockout Prediction`, 32, 48);
 
   // === Compact match card geometry ===
-  const boxW = 175;
-  const boxH = 64;  // taller
+  const boxW = 150;
+  const boxH = 70;  // taller
   const rad = 11;
 
   const xR16 = 40;
@@ -2967,7 +2996,7 @@ async function buildResultsCanvas(){
 
     // Header: round + match + date/local time
     const info = INFO_BY_MATCH?.[matchId];
-    const when = info ? `${info.date} • ${formatLocalKickoff(info)}` : "Date/Time TBD";
+    const when = info ? formatLocalKickoff(info) : "Date/Time TBD";
 
     ctx.fillStyle = "rgba(255,255,255,0.72)";
     ctx.font = "800 9.4px system-ui, -apple-system, Segoe UI, Roboto, Arial";
