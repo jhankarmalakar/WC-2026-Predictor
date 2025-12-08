@@ -2524,80 +2524,141 @@
     /* ==============================
        27) PRINT RESULT - NAME + CANVAS
     ============================== */
-    const SITE_SOURCE_NAME = "World Cup 2026 Predictor";
-    function getSiteUrlForImage(){
-      try{
-        return location.origin + location.pathname;
-      }catch(e){
-        return "your site";
-      }
-    }
+    /* ==============================
+   RESULT IMAGE GENERATION (FIXED)
+   - compact match cards
+   - working flag emoji
+   - champion headline top-right
+   - source bottom-right
+============================== */
 
-    function getUserFirstName(){
-      const KEY = "wc26_first_name";
-      let name = "";
-      try{ name = (localStorage.getItem(KEY) || "").trim(); }catch(e){}
+// You can customize this label if you want
+const SITE_SOURCE_NAME = "World Cup 2026 Predictor";
 
-      if(!name){
-        const raw = prompt("Your first name (for the result image)?") || "";
-        name = raw.trim().split(/\s+/)[0] || "";
-        try{ if(name) localStorage.setItem(KEY, name); }catch(e){}
-      }
+// Try to infer your site URL. Fallback to location.href.
+function getSiteUrlForImage(){
+  try{
+    return (document.querySelector('link[rel="canonical"]')?.href)
+      || location.href;
+  } catch(e){
+    return "";
+  }
+}
 
-      return name || "Your";
-    }
+// Grab user's first name from a simple prompt cache OR fallback
+// If you already have a better mechanism, replace this function only.
+function getUserFirstName(){
+  // 1) If you previously stored it
+  const stored = localStorage.getItem("wc26_user_first_name");
+  if(stored) return stored;
 
-    function badgeTextForName(name){
-      const abbr = teamAbbrev(name);
-      const flag = flagEmojiForName(name);
-      return `${flag ? flag + " " : ""}${abbr}`;
-    }
+  // 2) Try a gentle inference from browser profile (not reliable)
+  // We'll keep it simple.
+  return "Your";
+}
 
-    function buildResultsCanvas(){
-  // Compact, single-tree layout that never overlaps
-  const W = 1200;
-  const H = 900;
+// Convert country code -> flag emoji
+function flagEmojiFromCode(code){
+  if(!code) return "";
+  const cc = String(code).toUpperCase();
+
+  // Kosovo doesn't have a universally supported emoji flag
+  if(cc === "XK") return "🏳️";
+
+  if(!/^[A-Z]{2}$/.test(cc)) return "";
+
+  const A = 0x1F1E6;
+  const chars = [...cc].map(c => String.fromCodePoint(A + (c.charCodeAt(0) - 65)));
+  return chars.join("");
+}
+
+// Use your existing FLAG_CODE_BY_NAME map
+function flagEmojiForName(name){
+  if(!name) return "";
+  if(
+    name.startsWith("UEFA Path") ||
+    name.startsWith("FIFA IC Path") ||
+    name.includes("UFEA Path") ||
+    name.includes("FIFA IC Path")
+  ) return "";
+  const code = FLAG_CODE_BY_NAME[name];
+  return flagEmojiFromCode(code);
+}
+
+// The badge shown inside tiny match cards
+function badgeTextForName(name){
+  const ab = teamAbbrev(name);
+  const em = flagEmojiForName(name);
+  return em ? `${em} ${ab}` : ab;
+}
+
+// Compact landscape bracket image
+function buildResultsCanvas(){
+  const W = 1400;
+  const H = 820;
 
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d");
 
-  // Background
-  ctx.fillStyle = "#0b0f1e";
+  // Background (dark)
+  ctx.fillStyle = "#070b18";
+  ctx.fillRect(0,0,W,H);
+
+  // Subtle vignette
+  const grd = ctx.createRadialGradient(
+    W*0.15, H*0.12, 40,
+    W*0.15, H*0.12, W*1.1
+  );
+  grd.addColorStop(0, "rgba(255,255,255,0.06)");
+  grd.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = grd;
   ctx.fillRect(0,0,W,H);
 
   const firstName = getUserFirstName();
   const SITE_URL = getSiteUrlForImage();
 
-  // Header
-  ctx.fillStyle = "rgba(255,255,255,0.96)";
-  ctx.font = "800 24px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  ctx.fillText(`${firstName}'s World Cup 2026 Knockout Prediction`, 40, 40);
+  /* ------------------------------
+     Champion headline (TOP RIGHT)
+  ------------------------------ */
+  const finalWinner = state.winners?.[104]?.name ?? "";
+  const championText = finalWinner
+    ? `2026 FIFA WC Champion: ${finalWinner}`
+    : `2026 FIFA WC Champion: TBD`;
 
-  ctx.fillStyle = "rgba(255,255,255,0.60)";
-  ctx.font = "600 12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  ctx.fillText("R16 → QF → SF → Final (+ 3rd Place)", 40, 62);
+  ctx.font = "900 28px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillStyle = "rgba(255,255,255,0.98)";
+  const champW = ctx.measureText(championText).width;
+  ctx.fillText(championText, W - champW - 34, 52);
 
-  // Box settings
-  const boxW = 210;
-  const boxH = 64;
-  const radius = 10;
+  // Title (TOP LEFT)
+  ctx.font = "800 22px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillStyle = "rgba(255,255,255,0.94)";
+  ctx.fillText(`${firstName}'s World Cup 2026 Knockout Prediction`, 32, 52);
 
-  // Column X positions (4 clean columns)
+  // ✅ Removed the redundant R16→QF→SF→Final line as requested
+
+  /* ------------------------------
+     Compact match card geometry
+  ------------------------------ */
+  const boxW = 165; // smaller length
+  const boxH = 50;
+  const r = 10;
+
   const xR16 = 40;
-  const xQF  = 330;
-  const xSF  = 620;
-  const xF   = 910;
+  const xQF  = 300;
+  const xSF  = 560;
+  const xF   = 820;
+  const xF2  = 1080; // for Final/3rd cluster if needed
 
-  // Match lookup for R16+
+  // Match lookup
   const matchById = {};
   [...R16_MATCHES, ...QF_MATCHES, ...SF_MATCHES, ...THIRD_MATCH, ...FINAL_MATCH]
     .forEach(m => matchById[m.id] = m);
 
-  // Utility
-  function roundRect(x,y,w,h,r){
-    const rr = Math.min(r, w/2, h/2);
+  function roundRect(x,y,w,h,rad){
+    const rr = Math.min(rad, w/2, h/2);
     ctx.beginPath();
     ctx.moveTo(x+rr, y);
     ctx.lineTo(x+w-rr, y);
@@ -2612,15 +2673,16 @@
   }
 
   function drawBoxFrame(x,y,w,h, winnerAccent=false){
-    roundRect(x,y,w,h, radius);
-    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    roundRect(x,y,w,h,r);
+    ctx.fillStyle = "rgba(255,255,255,0.045)";
     ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,255,0.14)";
-    ctx.lineWidth = 1.3;
+    ctx.strokeStyle = "rgba(255,255,255,0.13)";
+    ctx.lineWidth = 1.1;
     ctx.stroke();
 
+    // winner accent bar
     if(winnerAccent){
-      ctx.fillStyle = "rgba(94,230,168,0.28)";
+      ctx.fillStyle = "rgba(94,230,168,0.30)";
       ctx.fillRect(x + w - 7, y + 6, 3, h - 12);
     }
   }
@@ -2632,23 +2694,17 @@
   function drawConnector(fromPos, toPos){
     const a = centerOf(fromPos);
     const b = centerOf(toPos);
-
-    ctx.strokeStyle = "rgba(255,255,255,0.18)";
-    ctx.lineWidth = 2;
-
     const midX = (a.cx + b.cx) / 2;
 
+    ctx.strokeStyle = "rgba(255,255,255,0.16)";
+    ctx.lineWidth = 2;
+
     ctx.beginPath();
-    ctx.moveTo(a.cx + fromPos.w/2 - 4, a.cy); // start near right edge of left box
+    ctx.moveTo(a.cx + fromPos.w/2 - 6, a.cy);
     ctx.lineTo(midX, a.cy);
     ctx.lineTo(midX, b.cy);
-    ctx.lineTo(b.cx - toPos.w/2 + 4, b.cy);   // end near left edge of right box
+    ctx.lineTo(b.cx - toPos.w/2 + 6, b.cy);
     ctx.stroke();
-  }
-
-  function badge(name){
-    if(!name) return "---";
-    return badgeTextForName(name);
   }
 
   function drawMatchBox(matchId, pos, labelPrefix){
@@ -2656,106 +2712,100 @@
     if(!match) return;
 
     const p = resolveParticipants(match);
-    const winner = state.winners[matchId]?.name ?? null;
+    const winner = state.winners?.[matchId]?.name ?? null;
 
-    // Frame
     drawBoxFrame(pos.x, pos.y, pos.w, pos.h, !!winner);
 
-    // Label
-    ctx.fillStyle = "rgba(255,255,255,0.65)";
-    ctx.font = "700 10px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-    ctx.fillText(`${labelPrefix} • ${matchId}`, pos.x + 8, pos.y + 13);
+    // small match label
+    ctx.fillStyle = "rgba(255,255,255,0.62)";
+    ctx.font = "700 9px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    ctx.fillText(`${labelPrefix} • ${matchId}`, pos.x + 8, pos.y + 12);
 
-    // Names
-    const leftText  = badge(p.left.name);
-    const rightText = badge(p.right.name);
+    // badges (emoji + abbr)
+    const leftText  = badgeTextForName(p.left.name);
+    const rightText = badgeTextForName(p.right.name);
 
     const leftIsWinner  = winner && winner === p.left.name;
     const rightIsWinner = winner && winner === p.right.name;
 
-    ctx.font = `${leftIsWinner ? "800" : "650"} 20px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+    ctx.font = `${leftIsWinner ? "800" : "650"} 17px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
     ctx.fillStyle = leftIsWinner ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.86)";
-    ctx.fillText(leftText, pos.x + 10, pos.y + 38);
+    ctx.fillText(leftText, pos.x + 10, pos.y + 31);
 
-    ctx.font = `${rightIsWinner ? "800" : "650"} 20px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+    ctx.font = `${rightIsWinner ? "800" : "650"} 17px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
     ctx.fillStyle = rightIsWinner ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.86)";
-    ctx.fillText(rightText, pos.x + 10, pos.y + 60);
+    ctx.fillText(rightText, pos.x + 10, pos.y + 48);
   }
 
-  // --- 1) R16 positions (sorted by id for stable layout)
-  const r16Ids = R16_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
+  /* ------------------------------
+     Layout positions
+     (keeps single-tree, avoids overlap)
+  ------------------------------ */
+  const matchIdsR16 = R16_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
+  const matchIdsQF  = QF_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
+  const matchIdsSF  = SF_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
+
+  const finalId = FINAL_MATCH[0]?.id; // 104
+  const thirdId = THIRD_MATCH[0]?.id; // 103
+
   const posById = {};
 
   const topY = 110;
-  const gapR16 = 90;
+  const gapR16 = 86;
 
-  r16Ids.forEach((id, i) => {
+  matchIdsR16.forEach((id, i) => {
     posById[id] = { x: xR16, y: topY + i*gapR16, w: boxW, h: boxH };
   });
 
-  // --- 2) QF positions based on parents’ centers
-  const qfIds = QF_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
-  qfIds.forEach(id => {
+  // QF positions based on parents
+  matchIdsQF.forEach(id => {
     const m = matchById[id];
-    const parents = [m.left, m.right]
-      .filter(s => s.type === "WM")
-      .map(s => s.id);
-
+    const parents = [m.left, m.right].filter(s => s.type === "WM").map(s => s.id);
     if(parents.length === 2 && posById[parents[0]] && posById[parents[1]]){
       const y1 = centerOf(posById[parents[0]]).cy;
       const y2 = centerOf(posById[parents[1]]).cy;
-      const y = (y1 + y2)/2 - boxH/2;
-      posById[id] = { x: xQF, y, w: boxW, h: boxH };
+      posById[id] = { x: xQF, y: (y1+y2)/2 - boxH/2, w: boxW, h: boxH };
     } else {
-      posById[id] = { x: xQF, y: topY, w: boxW, h: boxH };
+      posById[id] = { x: xQF, y: topY + 120, w: boxW, h: boxH };
     }
   });
 
-  // --- 3) SF positions based on QF parents
-  const sfIds = SF_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
-  sfIds.forEach(id => {
+  // SF positions
+  matchIdsSF.forEach(id => {
     const m = matchById[id];
-    const parents = [m.left, m.right]
-      .filter(s => s.type === "WM")
-      .map(s => s.id);
-
+    const parents = [m.left, m.right].filter(s => s.type === "WM").map(s => s.id);
     if(parents.length === 2 && posById[parents[0]] && posById[parents[1]]){
       const y1 = centerOf(posById[parents[0]]).cy;
       const y2 = centerOf(posById[parents[1]]).cy;
-      const y = (y1 + y2)/2 - boxH/2;
-      posById[id] = { x: xSF, y, w: boxW, h: boxH };
+      posById[id] = { x: xSF, y: (y1+y2)/2 - boxH/2, w: boxW, h: boxH };
     } else {
-      posById[id] = { x: xSF, y: topY + 200, w: boxW, h: boxH };
+      posById[id] = { x: xSF, y: topY + 230, w: boxW, h: boxH };
     }
   });
 
-  // --- 4) Final position based on SF parents
-  const finalId = FINAL_MATCH[0]?.id;
+  // Final position
   if(finalId){
     const m = matchById[finalId];
-    const parents = [m.left, m.right]
-      .filter(s => s.type === "WM")
-      .map(s => s.id);
-
+    const parents = [m.left, m.right].filter(s => s.type === "WM").map(s => s.id);
     if(parents.length === 2 && posById[parents[0]] && posById[parents[1]]){
       const y1 = centerOf(posById[parents[0]]).cy;
       const y2 = centerOf(posById[parents[1]]).cy;
-      const y = (y1 + y2)/2 - boxH/2;
-      posById[finalId] = { x: xF, y, w: boxW, h: boxH };
+      posById[finalId] = { x: xF2, y: (y1+y2)/2 - boxH/2, w: boxW, h: boxH };
     } else {
-      posById[finalId] = { x: xF, y: topY + 360, w: boxW, h: boxH };
+      posById[finalId] = { x: xF2, y: topY + 300, w: boxW, h: boxH };
     }
   }
 
-  // --- 5) Third place position (below final)
-  const thirdId = THIRD_MATCH[0]?.id;
+  // 3rd place just below final
   if(thirdId){
-    const baseY = finalId && posById[finalId] ? posById[finalId].y : (topY + 360);
-    posById[thirdId] = { x: xF, y: baseY + 120, w: boxW, h: boxH };
+    const baseY = finalId && posById[finalId] ? posById[finalId].y : (topY + 300);
+    posById[thirdId] = { x: xF2, y: baseY + 95, w: boxW, h: boxH };
   }
 
-  // --- Draw connectors: R16→QF→SF→Final and SF→Third
-  qfIds.forEach(qf => {
+  /* ------------------------------
+     Draw connectors
+  ------------------------------ */
+  matchIdsQF.forEach(qf => {
     const m = matchById[qf];
     [m.left, m.right].forEach(s => {
       if(s.type === "WM" && posById[s.id] && posById[qf]){
@@ -2764,7 +2814,7 @@
     });
   });
 
-  sfIds.forEach(sf => {
+  matchIdsSF.forEach(sf => {
     const m = matchById[sf];
     [m.left, m.right].forEach(s => {
       if(s.type === "WM" && posById[s.id] && posById[sf]){
@@ -2783,77 +2833,69 @@
   }
 
   if(thirdId){
-    // Visual link from both SFs to 3rd place box
-    sfIds.forEach(sf => {
+    matchIdsSF.forEach(sf => {
       if(posById[sf] && posById[thirdId]){
         drawConnector(posById[sf], posById[thirdId]);
       }
     });
   }
 
-  // --- Draw boxes
-  r16Ids.forEach(id => drawMatchBox(id, posById[id], "R16"));
-  qfIds.forEach(id  => drawMatchBox(id, posById[id], "QF"));
-  sfIds.forEach(id  => drawMatchBox(id, posById[id], "SF"));
+  /* ------------------------------
+     Draw boxes
+  ------------------------------ */
+  matchIdsR16.forEach(id => drawMatchBox(id, posById[id], "R16"));
+  matchIdsQF.forEach(id  => drawMatchBox(id, posById[id], "QF"));
+  matchIdsSF.forEach(id  => drawMatchBox(id, posById[id], "SF"));
   if(finalId) drawMatchBox(finalId, posById[finalId], "FINAL");
   if(thirdId) drawMatchBox(thirdId, posById[thirdId], "3RD PLACE");
 
-  // --- Winners summary text (FIX missing text)
-  const sf1Winner = state.winners[101]?.name ?? "";
-  const sf2Winner = state.winners[102]?.name ?? "";
-  const finalWinner = finalId ? (state.winners[finalId]?.name ?? "") : "";
-  const thirdWinner = thirdId ? (state.winners[thirdId]?.name ?? "") : "";
+  /* ------------------------------
+     Optional tiny legend (bottom-left)
+     This also confirms emoji works.
+  ------------------------------ */
+  ctx.fillStyle = "rgba(255,255,255,0.50)";
+  ctx.font = "600 10px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillText("Legend: Flag emoji + 3-letter ABBR. Accent bar indicates selected winner.", 32, H - 26);
 
-  const summaryY = H - 160;
+  /* ------------------------------
+     Footer branding (BOTTOM RIGHT)
+  ------------------------------ */
+  const rightPad = 32;
 
-  ctx.fillStyle = "rgba(255,255,255,0.9)";
-  ctx.font = "800 18px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  ctx.fillText(`SF Winners: ${badge(sf1Winner)}  •  ${badge(sf2Winner)}`, 40, summaryY);
+  const sourceLine1 = "Source";
+  const sourceLine2 = SITE_SOURCE_NAME;
+  const sourceLine3 = "Get your predictions at:";
+  const sourceLine4 = SITE_URL;
 
-  ctx.fillStyle = "rgba(255,255,255,0.9)";
-  ctx.font = "800 18px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  ctx.fillText(`Final Winner: ${badge(finalWinner)}`, 40, summaryY + 28);
+  ctx.textAlign = "right";
 
-  ctx.fillStyle = "rgba(255,255,255,0.98)";
-  ctx.font = "900 22px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  ctx.fillText(`2026 FIFA WC Champion: ${badge(finalWinner)}`, 40, summaryY + 62);
-
-  if(thirdWinner){
-    ctx.fillStyle = "rgba(255,255,255,0.8)";
-    ctx.font = "700 14px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-    ctx.fillText(`3rd Place Winner: ${badge(thirdWinner)}`, 40, summaryY + 92);
-  }
-
-  // Legend
-  ctx.fillStyle = "rgba(255,255,255,0.55)";
-  ctx.font = "600 11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  ctx.fillText("Legend: Flag emoji + 3-letter ABBR. Accent bar indicates selected winner.", 40, H - 86);
-
-  // Footer branding
-  ctx.fillStyle = "rgba(255,255,255,0.65)";
-  ctx.font = "700 11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  ctx.fillText("Source", 40, H - 58);
-
-  ctx.fillStyle = "rgba(255,255,255,0.9)";
-  ctx.font = "700 12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  ctx.fillText(SITE_SOURCE_NAME, 90, H - 58);
-
-  ctx.fillStyle = "rgba(255,255,255,0.60)";
-  ctx.font = "600 11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  ctx.fillText("Get your predictions at:", 40, H - 38);
+  ctx.fillStyle = "rgba(255,255,255,0.62)";
+  ctx.font = "700 10px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillText(sourceLine1, W - rightPad, H - 78);
 
   ctx.fillStyle = "rgba(255,255,255,0.92)";
   ctx.font = "700 11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  ctx.fillText(SITE_URL, 185, H - 38);
+  ctx.fillText(sourceLine2, W - rightPad, H - 62);
 
-  const ts = new Date().toLocaleString();
-  ctx.fillStyle = "rgba(255,255,255,0.45)";
+  ctx.fillStyle = "rgba(255,255,255,0.60)";
   ctx.font = "600 10px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  const tWidth = ctx.measureText(ts).width;
-  ctx.fillText(ts, W - tWidth - 40, H - 38);
+  ctx.fillText(sourceLine3, W - rightPad, H - 44);
+
+  ctx.fillStyle = "rgba(255,255,255,0.92)";
+  ctx.font = "700 10px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillText(sourceLine4, W - rightPad, H - 28);
+
+  // Timestamp bottom-right corner (above URL a bit)
+  const ts = new Date().toLocaleString();
+  ctx.fillStyle = "rgba(255,255,255,0.40)";
+  ctx.font = "600 9px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillText(ts, W - rightPad, H - 10);
+
+  ctx.textAlign = "start";
 
   return canvas;
 }
+
 
 
     function openPrintModal(){
