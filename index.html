@@ -1166,14 +1166,23 @@
   // Remove any entries that are no longer valid groups (safety)
   arr = arr.filter(x => GROUP_KEYS.includes(x.groupKey));
 
-  // Update names from current group third positions
+  // ✅ Update names from current group third positions
+  // ✅ If the underlying team identity changed, clear moved
   arr.forEach(item => {
     const third = getThirdTeamForGroup(item.groupKey);
-    item.name = third ? third.name : fallbackPathNameForGroup(item.groupKey);
+    const newName = third ? third.name : fallbackPathNameForGroup(item.groupKey);
+
+    if(item.name !== newName){
+      // New team replacing old one should not inherit "user moved"
+      item.userMoved = false;
+    }
+
+    item.name = newName;
   });
 
   state.thirdRanking = arr;
 }
+
 
 
     function computeChampions(){
