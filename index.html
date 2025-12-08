@@ -757,12 +757,12 @@
        1) GROUPS + PATHS
     ============================== */
     const DEFAULT_GROUPS = {
-      A: ["Mexico","South Africa","South Korea","UFEA Path D"],
-      B: ["Canada","UFEA Path A","Qatar","Switzerland"],
+      A: ["Mexico","South Africa","South Korea","UEFA Path D"],
+      B: ["Canada","UEFA Path A","Qatar","Switzerland"],
       C: ["Brazil","Morocco","Haiti","Scotland"],
-      D: ["United States","Paraguay","Australia","UFEA Path C"],
+      D: ["United States","Paraguay","Australia","UEFA Path C"],
       E: ["Germany","Curaçao","Ivory Coast","Ecuador"],
-      F: ["Netherlands","Japan","UFEA Path B","Tunisia"],
+      F: ["Netherlands","Japan","UEFA Path B","Tunisia"],
       G: ["Belgium","Egypt","Iran","New Zealand"],
       H: ["Spain","Cape Verde","Saudi Arabia","Uruguay"],
       I: ["France","Senegal","FIFA IC Path 2","Norway"],
@@ -772,13 +772,13 @@
     };
 
     const PATHS = [
-      { id: "ufeapath-a", label: "UFEA Path A",
+      { id: "uefapath-a", label: "UEFA Path A",
         candidates: ["Wales", "Bosnia and Herzegovina", "Italy", "Northern Ireland"], group: "B" },
-      { id: "ufeapath-b", label: "UFEA Path B",
+      { id: "uefapath-b", label: "UEFA Path B",
         candidates: ["Ukraine", "Sweden", "Poland", "Albania"], group: "F" },
-      { id: "ufeapath-c", label: "UFEA Path C",
+      { id: "uefapath-c", label: "UEFA Path C",
         candidates: ["Slovakia", "Kosovo", "Turkey", "Romania"], group: "D" },
-      { id: "ufeapath-d", label: "UFEA Path D",
+      { id: "uefapath-d", label: "UEFA Path D",
         candidates: ["Czech Republic", "Republic of Ireland", "Denmark", "North Macedonia"], group: "A" },
       { id: "fifaicpath-1", label: "FIFA IC Path 1",
         candidates: ["New Caledonia", "Jamaica", "DR Congo"], group: "K" },
@@ -990,7 +990,7 @@ function flagURLByName(name){
   if(
     name.startsWith("UEFA Path") ||
     name.startsWith("FIFA IC Path") ||
-    name.includes("UFEA Path") ||
+    name.includes("UEFA Path") ||
     name.includes("FIFA IC Path")
   ) return "";
 
@@ -1036,7 +1036,7 @@ function nameWithFlagHTML(name){
     }
     function flagEmojiForName(name){
       if(!name) return "";
-      if(name.startsWith("UEFA Path") || name.startsWith("FIFA IC Path") || name.includes("UFEA Path")) return "";
+      if(name.startsWith("UEFA Path") || name.startsWith("FIFA IC Path") || name.includes("UEFA Path")) return "";
       const code = FLAG_CODE_BY_NAME[name];
       // Kosovo "xk" isn't a standard flag emoji in many fonts
       if(code === "xk") return "";
@@ -1105,8 +1105,8 @@ function nameWithFlagHTML(name){
       const p = PATHS.find(x => x.group === g);
       if(!p) return "TBD";
 
-      if(p.id.startsWith("ufeapath-")){
-        const letter = p.id.replace("ufeapath-","");
+      if(p.id.startsWith("uefapath-")){
+        const letter = p.id.replace("uefapath-","");
         const map = { a: 1, b: 2, c: 3, d: 4 };
         const n = map[letter] ?? letter.toUpperCase();
         return `UEFA Path ${n}`;
@@ -3034,7 +3034,7 @@ async function buildResultsCanvas(){
   ctx.fillStyle = "rgba(255,255,255,0.62)";
   ctx.font = "700 11.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
   ctx.fillText(
-    "Legend: local SVG flags + 3-letter ABBR. Accent bar indicates selected winner.",
+    "Knockout Stages R16 onwards",
     32, H - 30
   );
 
