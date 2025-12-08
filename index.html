@@ -2918,7 +2918,7 @@ async function buildResultsCanvas(){
 
   // === Compact match card geometry ===
   const boxW = 140;
-  const boxH = 70;  // taller
+  const boxH = 75;  // taller
   const rad = 11;
 
   const xR16 = 40;
@@ -2974,15 +2974,20 @@ async function buildResultsCanvas(){
     return "rgba(94,230,168,0.45)";
   }
 
-  // Yellow winning-line highlight
-  function highlightWinnerLine(x, yBaseline, text){
-    const w = Math.min(150, ctx.measureText(text).width + 12);
-    const h = 18;
-    const y = yBaseline - 14;
 
-    ctx.fillStyle = "rgba(255, 214, 102, 0.22)";
-    ctx.fillRect(x - 2, y, w, h);
-  }
+  function drawWinnerMarker(ctx, x, y){
+        // subtle gold dot + thin ring
+        ctx.beginPath();
+        ctx.fillStyle = "rgba(255, 214, 102, 0.95)";
+        ctx.arc(x, y - 5, 4, 0, Math.PI * 2);
+        ctx.fill();
+      
+        ctx.strokeStyle = "rgba(255, 214, 102, 0.55)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(x, y - 5, 6, 0, Math.PI * 2);
+        ctx.stroke();
+      }
 
   function drawMatchBox(matchId, pos, labelPrefix){
     const match = matchById[matchId];
@@ -3012,14 +3017,17 @@ async function buildResultsCanvas(){
     const leftIsWinner  = winner && winner === p.left.name;
     const rightIsWinner = winner && winner === p.right.name;
 
+    const markerX = pos.x + pos.w - 16;
+    if(leftIsWinner)  drawWinnerMarker(ctx, markerX, leftY);
+    if(rightIsWinner) drawWinnerMarker(ctx, markerX, rightY);
+
+
     // Text positions
-    const leftY  = pos.y + 44;
-    const rightY = pos.y + 61;
+    const leftY  = pos.y + 46;
+    const rightY = pos.y + 64;
 
     // Winner highlights
     ctx.font = "700 16.8px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-    if(leftIsWinner) highlightWinnerLine(pos.x + 10, leftY, leftText);
-    if(rightIsWinner) highlightWinnerLine(pos.x + 10, rightY, rightText);
 
     // Left line (FLAG + ABBR)
     drawFlagAndAbbr(ctx, p.left.name, pos.x + 10, leftY, leftIsWinner);
@@ -3097,30 +3105,33 @@ async function buildResultsCanvas(){
 
   // === NEW: Post-Final Summary Blocks ===
   // These are visual-only boxes for clarity.
-  const SUMMARY_CHAMP_ID = "summary-champ";
-  const SUMMARY_THIRD_ID = "summary-third";
+// === Summary Blocks ===
+const SUMMARY_CHAMP_ID  = "summary-champ";
+const SUMMARY_RUNNER_ID = "summary-runner";
+const SUMMARY_THIRD_ID  = "summary-third";
 
-  if(finalId && posById[finalId]){
-    posById[SUMMARY_CHAMP_ID] = {
-      x: posById[finalId].x + 210,
-      y: posById[finalId].y - 6,
-      w: 220,
-      h: 70
-    };
-  } else {
-    posById[SUMMARY_CHAMP_ID] = { x: 890, y: 300, w: 220, h: 70 };
-  }
+function mkSummaryPos(anchorPos, fallbackY){
+  const baseX = anchorPos ? (anchorPos.x + 210) : 890;
+  const baseY = anchorPos ? (anchorPos.y - 6)   : fallbackY;
+  return { x: baseX, y: baseY, w: 220, h: 70 };
+}
 
-  if(thirdId && posById[thirdId]){
-    posById[SUMMARY_THIRD_ID] = {
-      x: posById[thirdId].x + 210,
-      y: posById[thirdId].y - 6,
-      w: 220,
-      h: 70
-    };
-  } else {
-    posById[SUMMARY_THIRD_ID] = { x: 890, y: 390, w: 220, h: 70 };
-  }
+const finalPos = finalId ? posById[finalId] : null;
+const thirdPos = thirdId ? posById[thirdId] : null;
+
+// Champion and Third anchored as before
+posById[SUMMARY_CHAMP_ID] = mkSummaryPos(finalPos, 300);
+posById[SUMMARY_THIRD_ID] = mkSummaryPos(thirdPos, 390);
+
+// Runner-up sneaked between them (same column)
+const champY = posById[SUMMARY_CHAMP_ID].y;
+const thirdY = posById[SUMMARY_THIRD_ID].y;
+posById[SUMMARY_RUNNER_ID] = {
+  x: posById[SUMMARY_CHAMP_ID].x,
+  y: Math.round((champY + thirdY) / 2),
+  w: 220,
+  h: 70
+};
 
   // Pack/scale
   posById = normalizeLayout(posById, W, H);
@@ -3169,59 +3180,84 @@ async function buildResultsCanvas(){
   if(thirdId) drawMatchBox(thirdId, posById[thirdId], "3RD PLACE");
 
   // === Draw summary blocks ===
-  function drawSummaryBox(pos, title, teamName, accent){
-    drawBoxFrame(pos.x, pos.y, pos.w, pos.h, accent);
+ function drawSummaryBox(pos, title, teamName, accent){
+  drawBoxFrame(pos.x, pos.y, pos.w, pos.h, accent);
 
-    ctx.fillStyle = "rgba(255,255,255,0.80)";
-    ctx.font = "900 12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-    ctx.fillText(title, pos.x + 12, pos.y + 20);
+  ctx.fillStyle = "rgba(255,255,255,0.80)";
+  ctx.font = "900 12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillText(title, pos.x + 12, pos.y + 20);
 
-    const ab = teamName ? teamAbbrev(teamName) : "TBD";
-    const cc = codeForName(teamName);
-    const line = teamName ? `${cc ? cc + " " : ""}${ab} • ${teamName}` : "TBD";
+  const ab = teamName ? teamAbbrev(teamName) : "TBD";
+  const cc = codeForName(teamName);
+  const img = teamName ? (_flagCanvasCache.get(teamName) ?? null) : null;
 
-    ctx.fillStyle = "rgba(255,255,255,0.98)";
-    ctx.font = "800 14.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-    ctx.fillText(line, pos.x + 12, pos.y + 46);
+  // Flag placement inside summary
+  const flagX = pos.x + 12;
+  const flagY = pos.y + 30;
+  const textStartX = img ? (flagX + 24 + 8) : flagX;
+
+  if(img){
+    ctx.drawImage(img, flagX, flagY, 24, 16);
   }
+
+  const line = teamName ? `${cc ? cc + " " : ""}${ab} • ${teamName}` : "TBD";
+
+  ctx.fillStyle = "rgba(255,255,255,0.98)";
+  ctx.font = "800 14.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillText(line, textStartX, pos.y + 50);
+}
+
+
+      function getRunnerUpName(finalId){
+      if(!finalId) return "";
+      const match = matchById[finalId];
+      if(!match) return "";
+      const p = resolveParticipants(match);
+      const winner = state.winners?.[finalId]?.name ?? "";
+      const left = p.left?.name ?? "";
+      const right = p.right?.name ?? "";
+    
+      if(!winner) return "";           // no winner selected
+      if(winner && left && winner === left) return right;
+      if(winner && right && winner === right) return left;
+      return "";
+    }
+
+  
 
   const finalWinner = state.winners?.[104]?.name ?? "";
   const thirdWinner = state.winners?.[103]?.name ?? "";
+  const runnerUp    = getRunnerUpName(finalId);
 
-  if(posById[SUMMARY_CHAMP_ID]){
-    drawSummaryBox(
-      posById[SUMMARY_CHAMP_ID],
-      "26 FIFA WC CHAMPIONS",
-      finalWinner,
-      "rgba(122,255,187,0.70)"
-    );
-  }
+if(posById[SUMMARY_CHAMP_ID]){
+  drawSummaryBox(
+    posById[SUMMARY_CHAMP_ID],
+    "26 FIFA WC CHAMPIONS",
+    finalWinner,
+    "rgba(122,255,187,0.70)"
+  );
+}
 
-  if(posById[SUMMARY_THIRD_ID]){
-    drawSummaryBox(
-      posById[SUMMARY_THIRD_ID],
-      "3RD PLACE WINNER",
-      thirdWinner,
-      "rgba(255,107,122,0.70)"
-    );
-  }
+if(posById[SUMMARY_RUNNER_ID]){
+  drawSummaryBox(
+    posById[SUMMARY_RUNNER_ID],
+    "RUNNERS-UP",
+    runnerUp,
+    "rgba(122,162,255,0.65)"
+  );
+}
 
-  // === Champion text near right margin, aligned with Final area ===
-  if(finalId && posById[finalId]){
-    const champLine = finalWinner
-      ? `26 FIFA WC Champions: ${finalWinner}`
-      : `26 FIFA WC Champions: TBD`;
+if(posById[SUMMARY_THIRD_ID]){
+  drawSummaryBox(
+    posById[SUMMARY_THIRD_ID],
+    "3RD PLACE WINNER",
+    thirdWinner,
+    "rgba(255,107,122,0.70)"
+  );
+}
 
-    ctx.textAlign = "right";
-    ctx.fillStyle = "rgba(255,255,255,0.95)";
-    ctx.font = "900 18px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-    ctx.fillText(
-      champLine,
-      W - 32,
-      Math.max(92, posById[finalId].y - 16)
-    );
-    ctx.textAlign = "start";
-  }
+
+
 
   // Legend
   ctx.fillStyle = "rgba(255,255,255,0.62)";
