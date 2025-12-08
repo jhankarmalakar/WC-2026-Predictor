@@ -2554,234 +2554,307 @@
     }
 
     function buildResultsCanvas(){
-      // R16 onwards only (as you requested)
-      const W = 1600;
-      const H = 980;
+  // Compact, single-tree layout that never overlaps
+  const W = 1200;
+  const H = 900;
 
-      const canvas = document.createElement("canvas");
-      canvas.width = W;
-      canvas.height = H;
-      const ctx = canvas.getContext("2d");
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d");
 
-      // Background
-      ctx.fillStyle = "#0b0f1e";
-      ctx.fillRect(0,0,W,H);
+  // Background
+  ctx.fillStyle = "#0b0f1e";
+  ctx.fillRect(0,0,W,H);
 
-      const firstName = getUserFirstName();
-      const SITE_URL = getSiteUrlForImage();
+  const firstName = getUserFirstName();
+  const SITE_URL = getSiteUrlForImage();
 
-      // Header
-      ctx.fillStyle = "rgba(255,255,255,0.96)";
-      ctx.font = "800 26px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      ctx.fillText(`${firstName}'s World Cup 2026 Knockout Prediction`, 60, 44);
+  // Header
+  ctx.fillStyle = "rgba(255,255,255,0.96)";
+  ctx.font = "800 24px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillText(`${firstName}'s World Cup 2026 Knockout Prediction`, 40, 40);
 
-      ctx.fillStyle = "rgba(255,255,255,0.60)";
-      ctx.font = "600 13px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      ctx.fillText("R16 → QF → SF → Final (+ 3rd Place)", 60, 68);
+  ctx.fillStyle = "rgba(255,255,255,0.60)";
+  ctx.font = "600 12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillText("R16 → QF → SF → Final (+ 3rd Place)", 40, 62);
 
-      // Layout anchors
-      const X_LEFT_R16  = 80;
-      const X_LEFT_QF   = 360;
+  // Box settings
+  const boxW = 210;
+  const boxH = 64;
+  const radius = 10;
 
-      const X_CENTER_SF = 680;
-      const X_CENTER_F  = 980;
+  // Column X positions (4 clean columns)
+  const xR16 = 40;
+  const xQF  = 330;
+  const xSF  = 620;
+  const xF   = 910;
 
-      const X_RIGHT_QF  = 1240;
-      const X_RIGHT_R16 = 1320;
+  // Match lookup for R16+
+  const matchById = {};
+  [...R16_MATCHES, ...QF_MATCHES, ...SF_MATCHES, ...THIRD_MATCH, ...FINAL_MATCH]
+    .forEach(m => matchById[m.id] = m);
 
-      const boxW = 260;
-      const boxH = 84;
+  // Utility
+  function roundRect(x,y,w,h,r){
+    const rr = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+rr, y);
+    ctx.lineTo(x+w-rr, y);
+    ctx.quadraticCurveTo(x+w, y, x+w, y+rr);
+    ctx.lineTo(x+w, y+h-rr);
+    ctx.quadraticCurveTo(x+w, y+h, x+w-rr, y+h);
+    ctx.lineTo(x+rr, y+h);
+    ctx.quadraticCurveTo(x, y+h, x, y+h-rr);
+    ctx.lineTo(x, y+rr);
+    ctx.quadraticCurveTo(x, y, x+rr, y);
+    ctx.closePath();
+  }
 
-      const posById = {};
+  function drawBoxFrame(x,y,w,h, winnerAccent=false){
+    roundRect(x,y,w,h, radius);
+    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.14)";
+    ctx.lineWidth = 1.3;
+    ctx.stroke();
 
-      // R16 left/right split by match order
-      const R16_ORDER = R16_MATCHES.map(m => m.id);
-      const leftR16Ids  = R16_ORDER.slice(0,4);
-      const rightR16Ids = R16_ORDER.slice(4,8);
-
-      // QF order fixed by IDs present
-      const leftQFIds  = [97, 99].filter(id => QF_MATCHES.some(m => m.id === id));
-      const rightQFIds = [98, 100].filter(id => QF_MATCHES.some(m => m.id === id));
-
-      const sfIds = SF_MATCHES.map(m => m.id);
-      const finalId = FINAL_MATCH[0]?.id;
-      const thirdId = THIRD_MATCH[0]?.id;
-
-      function stackPositions(ids, x, topY, gap){
-        ids.forEach((id, i) => {
-          posById[id] = { x, y: topY + i*gap, w: boxW, h: boxH };
-        });
-      }
-
-      const leftTop = 130;
-      const rightTop = 130;
-      const r16Gap = 160;
-      const qfGap  = 260;
-
-      stackPositions(leftR16Ids,  X_LEFT_R16,  leftTop,  r16Gap);
-      stackPositions(rightR16Ids, X_RIGHT_R16 - boxW, rightTop, r16Gap);
-
-      stackPositions(leftQFIds,   X_LEFT_QF,  leftTop + 80, qfGap);
-      stackPositions(rightQFIds,  X_RIGHT_QF - boxW, rightTop + 80, qfGap);
-
-      if(sfIds[0]) posById[sfIds[0]] = { x: X_CENTER_SF, y: 280, w: boxW, h: boxH };
-      if(sfIds[1]) posById[sfIds[1]] = { x: X_CENTER_SF, y: 540, w: boxW, h: boxH };
-
-      if(finalId) posById[finalId] = { x: X_CENTER_F, y: 410, w: boxW, h: boxH };
-      if(thirdId) posById[thirdId] = { x: X_CENTER_F, y: 650, w: boxW, h: boxH };
-
-      function roundRect(x,y,w,h,r){
-        const rr = Math.min(r, w/2, h/2);
-        ctx.beginPath();
-        ctx.moveTo(x+rr, y);
-        ctx.lineTo(x+w-rr, y);
-        ctx.quadraticCurveTo(x+w, y, x+w, y+rr);
-        ctx.lineTo(x+w, y+h-rr);
-        ctx.quadraticCurveTo(x+w, y+h, x+w-rr, y+h);
-        ctx.lineTo(x+rr, y+h);
-        ctx.quadraticCurveTo(x, y+h, x, y+h-rr);
-        ctx.lineTo(x, y+rr);
-        ctx.quadraticCurveTo(x, y, x+rr, y);
-        ctx.closePath();
-      }
-
-      // Build quick match lookup for R16+
-      const matchById = {};
-      [...R16_MATCHES, ...QF_MATCHES, ...SF_MATCHES, ...THIRD_MATCH, ...FINAL_MATCH]
-        .forEach(m => matchById[m.id] = m);
-
-      function drawLine(fromId, toId){
-        const a = posById[fromId];
-        const b = posById[toId];
-        if(!a || !b) return;
-
-        const ax = a.x + a.w;
-        const ay = a.y + a.h/2;
-        const bx = b.x;
-        const by = b.y + b.h/2;
-
-        ctx.strokeStyle = "rgba(255,255,255,0.18)";
-        ctx.lineWidth = 2;
-
-        ctx.beginPath();
-        ctx.moveTo(ax, ay);
-        const midX = (ax + bx) / 2;
-        ctx.lineTo(midX, ay);
-        ctx.lineTo(midX, by);
-        ctx.lineTo(bx, by);
-        ctx.stroke();
-      }
-
-      // Draw dependency lines (R16 → QF → SF → Final)
-      [...QF_MATCHES, ...SF_MATCHES, ...FINAL_MATCH].forEach(m => {
-        [m.left, m.right].forEach(slot => {
-          if(slot.type === "WM"){
-            // slot.id refers to previous match id
-            drawLine(slot.id, m.id);
-          }
-        });
-      });
-
-      // Visual hint lines from SF to 3rd place
-      if(thirdId){
-        sfIds.forEach(sf => drawLine(sf, thirdId));
-      }
-
-      function drawMatchBox(match, labelOverride=null){
-        const p = resolveParticipants(match);
-        const winner = state.winners[match.id]?.name ?? null;
-
-        const pos = posById[match.id];
-        if(!pos) return;
-
-        const { x, y, w, h } = pos;
-
-        // Box
-        roundRect(x, y, w, h, 12);
-        ctx.fillStyle = "rgba(255,255,255,0.05)";
-        ctx.fill();
-        ctx.strokeStyle = "rgba(255,255,255,0.14)";
-        ctx.lineWidth = 1.4;
-        ctx.stroke();
-
-        const label = labelOverride ?? `Match ${match.id}`;
-        ctx.fillStyle = "rgba(255,255,255,0.65)";
-        ctx.font = "700 10.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-        ctx.fillText(label, x + 10, y + 14);
-
-        const leftText  = badgeTextForName(p.left.name);
-        const rightText = badgeTextForName(p.right.name);
-
-        const leftIsWinner = winner && winner === p.left.name;
-        const rightIsWinner = winner && winner === p.right.name;
-
-        ctx.font = `${leftIsWinner ? "800" : "650"} 23px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
-        ctx.fillStyle = leftIsWinner ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.86)";
-        ctx.fillText(leftText, x + 12, y + 48);
-
-        ctx.font = `${rightIsWinner ? "800" : "650"} 23px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
-        ctx.fillStyle = rightIsWinner ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.86)";
-        ctx.fillText(rightText, x + 12, y + 78);
-
-        if(winner){
-          ctx.fillStyle = "rgba(94,230,168,0.28)";
-          ctx.fillRect(x + w - 8, y + 6, 3.5, h - 12);
-        }
-      }
-
-      leftR16Ids.forEach(id => drawMatchBox(matchById[id], `R16 • ${id}`));
-      rightR16Ids.forEach(id => drawMatchBox(matchById[id], `R16 • ${id}`));
-      leftQFIds.forEach(id => drawMatchBox(matchById[id], `QF • ${id}`));
-      rightQFIds.forEach(id => drawMatchBox(matchById[id], `QF • ${id}`));
-      sfIds.forEach(id => drawMatchBox(matchById[id], `SF • ${id}`));
-
-      if(finalId) drawMatchBox(matchById[finalId], `FINAL • ${finalId}`);
-      if(thirdId) drawMatchBox(matchById[thirdId], `3RD PLACE • ${thirdId}`);
-
-      // Champion callout
-      const champ = finalId ? state.winners[finalId]?.name : null;
-      if(champ){
-        const champText = badgeTextForName(champ);
-        ctx.fillStyle = "rgba(255,255,255,0.95)";
-        ctx.font = "800 26px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-        ctx.fillText("Champion:", 60, H - 120);
-
-        ctx.font = "900 34px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-        ctx.fillText(champText, 190, H - 120);
-      }
-
-      // Legend
-      ctx.fillStyle = "rgba(255,255,255,0.55)";
-      ctx.font = "600 11.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      ctx.fillText("Legend: Flag emoji + 3-letter ABBR. Accent bar indicates selected winner.", 60, H - 92);
-
-      // Footer branding
-      const footerY = H - 54;
-
-      ctx.fillStyle = "rgba(255,255,255,0.65)";
-      ctx.font = "700 11.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      ctx.fillText("Source", 60, footerY);
-
-      ctx.fillStyle = "rgba(255,255,255,0.9)";
-      ctx.font = "700 12.2px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      ctx.fillText(SITE_SOURCE_NAME, 110, footerY);
-
-      ctx.fillStyle = "rgba(255,255,255,0.60)";
-      ctx.font = "600 11.3px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      ctx.fillText("Get your predictions at:", 60, footerY + 20);
-
-      ctx.fillStyle = "rgba(255,255,255,0.92)";
-      ctx.font = "700 11.6px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      ctx.fillText(SITE_URL, 210, footerY + 20);
-
-      const ts = new Date().toLocaleString();
-      ctx.fillStyle = "rgba(255,255,255,0.45)";
-      ctx.font = "600 10.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      const tWidth = ctx.measureText(ts).width;
-      ctx.fillText(ts, W - tWidth - 60, footerY + 20);
-
-      return canvas;
+    if(winnerAccent){
+      ctx.fillStyle = "rgba(94,230,168,0.28)";
+      ctx.fillRect(x + w - 7, y + 6, 3, h - 12);
     }
+  }
+
+  function centerOf(pos){
+    return { cx: pos.x + pos.w/2, cy: pos.y + pos.h/2 };
+  }
+
+  function drawConnector(fromPos, toPos){
+    const a = centerOf(fromPos);
+    const b = centerOf(toPos);
+
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.lineWidth = 2;
+
+    const midX = (a.cx + b.cx) / 2;
+
+    ctx.beginPath();
+    ctx.moveTo(a.cx + fromPos.w/2 - 4, a.cy); // start near right edge of left box
+    ctx.lineTo(midX, a.cy);
+    ctx.lineTo(midX, b.cy);
+    ctx.lineTo(b.cx - toPos.w/2 + 4, b.cy);   // end near left edge of right box
+    ctx.stroke();
+  }
+
+  function badge(name){
+    if(!name) return "---";
+    return badgeTextForName(name);
+  }
+
+  function drawMatchBox(matchId, pos, labelPrefix){
+    const match = matchById[matchId];
+    if(!match) return;
+
+    const p = resolveParticipants(match);
+    const winner = state.winners[matchId]?.name ?? null;
+
+    // Frame
+    drawBoxFrame(pos.x, pos.y, pos.w, pos.h, !!winner);
+
+    // Label
+    ctx.fillStyle = "rgba(255,255,255,0.65)";
+    ctx.font = "700 10px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    ctx.fillText(`${labelPrefix} • ${matchId}`, pos.x + 8, pos.y + 13);
+
+    // Names
+    const leftText  = badge(p.left.name);
+    const rightText = badge(p.right.name);
+
+    const leftIsWinner  = winner && winner === p.left.name;
+    const rightIsWinner = winner && winner === p.right.name;
+
+    ctx.font = `${leftIsWinner ? "800" : "650"} 20px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+    ctx.fillStyle = leftIsWinner ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.86)";
+    ctx.fillText(leftText, pos.x + 10, pos.y + 38);
+
+    ctx.font = `${rightIsWinner ? "800" : "650"} 20px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+    ctx.fillStyle = rightIsWinner ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.86)";
+    ctx.fillText(rightText, pos.x + 10, pos.y + 60);
+  }
+
+  // --- 1) R16 positions (sorted by id for stable layout)
+  const r16Ids = R16_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
+  const posById = {};
+
+  const topY = 110;
+  const gapR16 = 90;
+
+  r16Ids.forEach((id, i) => {
+    posById[id] = { x: xR16, y: topY + i*gapR16, w: boxW, h: boxH };
+  });
+
+  // --- 2) QF positions based on parents’ centers
+  const qfIds = QF_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
+  qfIds.forEach(id => {
+    const m = matchById[id];
+    const parents = [m.left, m.right]
+      .filter(s => s.type === "WM")
+      .map(s => s.id);
+
+    if(parents.length === 2 && posById[parents[0]] && posById[parents[1]]){
+      const y1 = centerOf(posById[parents[0]]).cy;
+      const y2 = centerOf(posById[parents[1]]).cy;
+      const y = (y1 + y2)/2 - boxH/2;
+      posById[id] = { x: xQF, y, w: boxW, h: boxH };
+    } else {
+      posById[id] = { x: xQF, y: topY, w: boxW, h: boxH };
+    }
+  });
+
+  // --- 3) SF positions based on QF parents
+  const sfIds = SF_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
+  sfIds.forEach(id => {
+    const m = matchById[id];
+    const parents = [m.left, m.right]
+      .filter(s => s.type === "WM")
+      .map(s => s.id);
+
+    if(parents.length === 2 && posById[parents[0]] && posById[parents[1]]){
+      const y1 = centerOf(posById[parents[0]]).cy;
+      const y2 = centerOf(posById[parents[1]]).cy;
+      const y = (y1 + y2)/2 - boxH/2;
+      posById[id] = { x: xSF, y, w: boxW, h: boxH };
+    } else {
+      posById[id] = { x: xSF, y: topY + 200, w: boxW, h: boxH };
+    }
+  });
+
+  // --- 4) Final position based on SF parents
+  const finalId = FINAL_MATCH[0]?.id;
+  if(finalId){
+    const m = matchById[finalId];
+    const parents = [m.left, m.right]
+      .filter(s => s.type === "WM")
+      .map(s => s.id);
+
+    if(parents.length === 2 && posById[parents[0]] && posById[parents[1]]){
+      const y1 = centerOf(posById[parents[0]]).cy;
+      const y2 = centerOf(posById[parents[1]]).cy;
+      const y = (y1 + y2)/2 - boxH/2;
+      posById[finalId] = { x: xF, y, w: boxW, h: boxH };
+    } else {
+      posById[finalId] = { x: xF, y: topY + 360, w: boxW, h: boxH };
+    }
+  }
+
+  // --- 5) Third place position (below final)
+  const thirdId = THIRD_MATCH[0]?.id;
+  if(thirdId){
+    const baseY = finalId && posById[finalId] ? posById[finalId].y : (topY + 360);
+    posById[thirdId] = { x: xF, y: baseY + 120, w: boxW, h: boxH };
+  }
+
+  // --- Draw connectors: R16→QF→SF→Final and SF→Third
+  qfIds.forEach(qf => {
+    const m = matchById[qf];
+    [m.left, m.right].forEach(s => {
+      if(s.type === "WM" && posById[s.id] && posById[qf]){
+        drawConnector(posById[s.id], posById[qf]);
+      }
+    });
+  });
+
+  sfIds.forEach(sf => {
+    const m = matchById[sf];
+    [m.left, m.right].forEach(s => {
+      if(s.type === "WM" && posById[s.id] && posById[sf]){
+        drawConnector(posById[s.id], posById[sf]);
+      }
+    });
+  });
+
+  if(finalId){
+    const m = matchById[finalId];
+    [m.left, m.right].forEach(s => {
+      if(s.type === "WM" && posById[s.id] && posById[finalId]){
+        drawConnector(posById[s.id], posById[finalId]);
+      }
+    });
+  }
+
+  if(thirdId){
+    // Visual link from both SFs to 3rd place box
+    sfIds.forEach(sf => {
+      if(posById[sf] && posById[thirdId]){
+        drawConnector(posById[sf], posById[thirdId]);
+      }
+    });
+  }
+
+  // --- Draw boxes
+  r16Ids.forEach(id => drawMatchBox(id, posById[id], "R16"));
+  qfIds.forEach(id  => drawMatchBox(id, posById[id], "QF"));
+  sfIds.forEach(id  => drawMatchBox(id, posById[id], "SF"));
+  if(finalId) drawMatchBox(finalId, posById[finalId], "FINAL");
+  if(thirdId) drawMatchBox(thirdId, posById[thirdId], "3RD PLACE");
+
+  // --- Winners summary text (FIX missing text)
+  const sf1Winner = state.winners[101]?.name ?? "";
+  const sf2Winner = state.winners[102]?.name ?? "";
+  const finalWinner = finalId ? (state.winners[finalId]?.name ?? "") : "";
+  const thirdWinner = thirdId ? (state.winners[thirdId]?.name ?? "") : "";
+
+  const summaryY = H - 160;
+
+  ctx.fillStyle = "rgba(255,255,255,0.9)";
+  ctx.font = "800 18px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillText(`SF Winners: ${badge(sf1Winner)}  •  ${badge(sf2Winner)}`, 40, summaryY);
+
+  ctx.fillStyle = "rgba(255,255,255,0.9)";
+  ctx.font = "800 18px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillText(`Final Winner: ${badge(finalWinner)}`, 40, summaryY + 28);
+
+  ctx.fillStyle = "rgba(255,255,255,0.98)";
+  ctx.font = "900 22px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillText(`2026 FIFA WC Champion: ${badge(finalWinner)}`, 40, summaryY + 62);
+
+  if(thirdWinner){
+    ctx.fillStyle = "rgba(255,255,255,0.8)";
+    ctx.font = "700 14px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    ctx.fillText(`3rd Place Winner: ${badge(thirdWinner)}`, 40, summaryY + 92);
+  }
+
+  // Legend
+  ctx.fillStyle = "rgba(255,255,255,0.55)";
+  ctx.font = "600 11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillText("Legend: Flag emoji + 3-letter ABBR. Accent bar indicates selected winner.", 40, H - 86);
+
+  // Footer branding
+  ctx.fillStyle = "rgba(255,255,255,0.65)";
+  ctx.font = "700 11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillText("Source", 40, H - 58);
+
+  ctx.fillStyle = "rgba(255,255,255,0.9)";
+  ctx.font = "700 12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillText(SITE_SOURCE_NAME, 90, H - 58);
+
+  ctx.fillStyle = "rgba(255,255,255,0.60)";
+  ctx.font = "600 11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillText("Get your predictions at:", 40, H - 38);
+
+  ctx.fillStyle = "rgba(255,255,255,0.92)";
+  ctx.font = "700 11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.fillText(SITE_URL, 185, H - 38);
+
+  const ts = new Date().toLocaleString();
+  ctx.fillStyle = "rgba(255,255,255,0.45)";
+  ctx.font = "600 10px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  const tWidth = ctx.measureText(ts).width;
+  ctx.fillText(ts, W - tWidth - 40, H - 38);
+
+  return canvas;
+}
+
 
     function openPrintModal(){
       const backdrop = document.getElementById("printModalBackdrop");
