@@ -2989,53 +2989,45 @@ async function buildResultsCanvas(){
         ctx.stroke();
       }
 
-  function drawMatchBox(matchId, pos, labelPrefix){
-    const match = matchById[matchId];
-    if(!match) return;
+      function drawMatchBox(matchId, pos, labelPrefix){
+        const match = matchById[matchId];
+        if(!match) return;
+      
+        const p = resolveParticipants(match);
+        const winner = state.winners?.[matchId]?.name ?? null;
+      
+        const accent = winner ? winnerAccentForRound(labelPrefix) : null;
+        drawBoxFrame(pos.x, pos.y, pos.w, pos.h, accent);
+      
+        // Header: round + match + date/local time
+        const info = INFO_BY_MATCH?.[matchId];
+        const when = info ? formatLocalKickoff(info) : "Date/Time TBD";
+      
+        ctx.fillStyle = "rgba(255,255,255,0.72)";
+        ctx.font = "800 9.4px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+        ctx.fillText(`${labelPrefix} • ${matchId}`, pos.x + 9, pos.y + 13);
+      
+        ctx.fillStyle = "rgba(255,255,255,0.55)";
+        ctx.font = "700 9px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+        ctx.fillText(when, pos.x + 9, pos.y + 24);
+      
+        const leftIsWinner  = winner && winner === p.left.name;
+        const rightIsWinner = winner && winner === p.right.name;
+      
+        // Text positions
+        const leftY  = pos.y + 46;
+        const rightY = pos.y + 64;
+      
+        // Winner marker positions
+        const markerX = pos.x + pos.w - 16;
+        if(leftIsWinner)  drawWinnerMarker(ctx, markerX, leftY);
+        if(rightIsWinner) drawWinnerMarker(ctx, markerX, rightY);
+      
+        // Lines (FLAG + ABBR)
+        drawFlagAndAbbr(ctx, p.left.name,  pos.x + 10, leftY,  leftIsWinner);
+        drawFlagAndAbbr(ctx, p.right.name, pos.x + 10, rightY, rightIsWinner);
+      }
 
-    const p = resolveParticipants(match);
-    const winner = state.winners?.[matchId]?.name ?? null;
-
-    const accent = winner ? winnerAccentForRound(labelPrefix) : null;
-    drawBoxFrame(pos.x, pos.y, pos.w, pos.h, accent);
-
-    // Header: round + match + date/local time
-    const info = INFO_BY_MATCH?.[matchId];
-    const when = info ? formatLocalKickoff(info) : "Date/Time TBD";
-
-    ctx.fillStyle = "rgba(255,255,255,0.72)";
-    ctx.font = "800 9.4px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-    ctx.fillText(`${labelPrefix} • ${matchId}`, pos.x + 9, pos.y + 13);
-
-    ctx.fillStyle = "rgba(255,255,255,0.55)";
-    ctx.font = "700 9px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-    ctx.fillText(when, pos.x + 9, pos.y + 24);
-
-    const leftText  = badgeTextForName(p.left.name);
-    const rightText = badgeTextForName(p.right.name);
-
-    const leftIsWinner  = winner && winner === p.left.name;
-    const rightIsWinner = winner && winner === p.right.name;
-
-    const markerX = pos.x + pos.w - 16;
-    if(leftIsWinner)  drawWinnerMarker(ctx, markerX, leftY);
-    if(rightIsWinner) drawWinnerMarker(ctx, markerX, rightY);
-
-
-    // Text positions
-    const leftY  = pos.y + 46;
-    const rightY = pos.y + 64;
-
-    // Winner highlights
-    ctx.font = "700 16.8px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-
-    // Left line (FLAG + ABBR)
-    drawFlagAndAbbr(ctx, p.left.name, pos.x + 10, leftY, leftIsWinner);
-
-    // Right line (FLAG + ABBR)
-    drawFlagAndAbbr(ctx, p.right.name, pos.x + 10, rightY, rightIsWinner);
-
-  }
 
   // IDs
   const matchIdsR16 = R16_MATCHES.map(m => m.id).slice().sort((a,b)=>a-b);
