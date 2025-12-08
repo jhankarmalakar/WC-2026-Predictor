@@ -457,16 +457,17 @@
     }
 
     /* Flag images */
-    .flag-img{
-      width: 16px;
-      height: 12px;
-      object-fit: cover;
-      border-radius: 2px;
-      margin-right: 6px;
-      vertical-align: -1px;
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
-      flex: 0 0 auto;
-    }
+   .flag-img{
+  width: 18px;
+  height: 13px;
+  object-fit: cover;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: -1px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
+  flex: 0 0 auto;
+}
+
 
     /* ==========================
        Knockout layout + section border
@@ -987,7 +988,7 @@
 
       const code = FLAG_CODE_BY_NAME[name];
       if(!code) return "";
-      return `<img class="flag-img" src="https://flagcdn.com/w20/${code}.png" alt="${code} flag" loading="lazy">`;
+      return `<img class="flag-img" src="./svg/${code}.svg" alt="${code} flag" loading="lazy">`;
     }
     function nameWithFlagHTML(name){
       return `${flagHTML(name)}${name ?? ""}`;
