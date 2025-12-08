@@ -2917,8 +2917,8 @@ async function buildResultsCanvas(){
   ctx.fillText(`${firstName}'s World Cup 2026 Knockout Prediction`, 32, 48);
 
   // === Compact match card geometry ===
-  const boxW = 140;
-  const boxH = 75;  // taller
+  const boxW = 145;
+  const boxH = 76;  // taller
   const rad = 11;
 
   const xR16 = 40;
@@ -3112,8 +3112,8 @@ const finalPos = finalId ? posById[finalId] : null;
 const thirdPos = thirdId ? posById[thirdId] : null;
 
 // Champion and Third anchored as before
-posById[SUMMARY_CHAMP_ID] = mkSummaryPos(finalPos, 300);
-posById[SUMMARY_THIRD_ID] = mkSummaryPos(thirdPos, 390);
+posById[SUMMARY_CHAMP_ID] = mkSummaryPos(finalPos, 250);
+posById[SUMMARY_THIRD_ID] = mkSummaryPos(thirdPos, 440);
 
 // Runner-up sneaked between them (same column)
 const champY = posById[SUMMARY_CHAMP_ID].y;
@@ -3184,19 +3184,26 @@ posById[SUMMARY_RUNNER_ID] = {
   const img = teamName ? (_flagCanvasCache.get(teamName) ?? null) : null;
 
   // Flag placement inside summary
+  const img = teamName ? (_flagCanvasCache.get(teamName) ?? null) : null;
+
+  // Flag placement inside summary
   const flagX = pos.x + 12;
   const flagY = pos.y + 30;
+
+  // If flag exists, start text after it; otherwise start at flagX
   const textStartX = img ? (flagX + 24 + 8) : flagX;
 
   if(img){
     ctx.drawImage(img, flagX, flagY, 24, 16);
   }
 
-  const line = teamName ? `${cc ? cc + " " : ""}${ab} • ${teamName}` : "TBD";
+  // ✅ Only full name (no CC, no ABBR)
+  const line = teamName || "TBD";
 
   ctx.fillStyle = "rgba(255,255,255,0.98)";
-  ctx.font = "800 14.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  ctx.font = "800 14.8px system-ui, -apple-system, Segoe UI, Roboto, Arial";
   ctx.fillText(line, textStartX, pos.y + 50);
+
 }
 
 
@@ -3224,7 +3231,7 @@ posById[SUMMARY_RUNNER_ID] = {
 if(posById[SUMMARY_CHAMP_ID]){
   drawSummaryBox(
     posById[SUMMARY_CHAMP_ID],
-    "26 FIFA WC CHAMPIONS",
+    "2026 FIFA WC CHAMPIONS",
     finalWinner,
     "rgba(122,255,187,0.70)"
   );
@@ -3255,7 +3262,7 @@ if(posById[SUMMARY_THIRD_ID]){
   ctx.fillStyle = "rgba(255,255,255,0.62)";
   ctx.font = "700 11.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
   ctx.fillText(
-    "Legend: CC + 3-letter ABBR. Yellow highlight marks the selected winner line.",
+    "Legend: Match cards use 3-letter ABBR. Summary shows full team names.",
     32, H - 30
   );
 
