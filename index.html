@@ -892,31 +892,24 @@
 function resolveSlotTeam(labelOrId) {
   if (!labelOrId) return labelOrId;
 
-  // Accept either: "uefapath-a" (id) OR "UEFA Path A" (label)
   const pathId = SLOT_IDS.has(labelOrId) ? labelOrId : PATH_ID_BY_LABEL[labelOrId];
-  if (!pathId) return labelOrId; // not a slot, it's a real team name
+  if (!pathId) return labelOrId; // real team name, not a slot
 
-  const chosenObj = state.paths?.[pathId]?.[0];   // team object
-  const chosenName = chosenObj?.name;             // <-- IMPORTANT
+  const chosenObj  = state.paths?.[pathId]?.[0]; // selected team object (if any)
+  const chosenName = chosenObj?.name;
+
+  // If reset cleared selections, chosenName is empty -> show placeholder
   return chosenName || PATH_BY_ID[pathId]?.label || labelOrId;
 }
 
 function getResolvedGroupFixtures(groupKey) {
-  const list = GROUP_FIXTURES[groupKey] || [];
-  return list.map(f => ({
-    ...f,
+  return (GROUP_FIXTURES[groupKey] || []).map(f => ({
+    ...f,                    // clone row (do NOT mutate base)
     home: resolveSlotTeam(f.home),
     away: resolveSlotTeam(f.away),
   }));
 }
 
-function getResolvedGroupFixtures(groupKey) {
-  return GROUP_FIXTURES[groupKey].map(f => ({
-    ...f,
-    home: resolveSlotTeam(f.home),
-    away: resolveSlotTeam(f.away),
-  }));
-}
 
 
     const toId = (name) =>
@@ -4338,10 +4331,18 @@ function renderGroupSchedule(groupKey){
 
       if(resetBtn){
         resetBtn.addEventListener("click", () => {
-          state = initialState();
-          editMode = "pools";
-          swapSelection = null;
-          thirdRankingDirty = false;
+        const ok = confirm("Reset everything to defaults?");
+        if(!ok) return;
+      
+        // Reset ALL state
+        state = initialState();
+      
+        // Reset globals
+        editMode = "pools";
+        swapSelection = null;
+        qualifiedThirdGroupLetters = "";
+        qualifiedThirdPlacedTeams = [];
+        thirdRankingDirty = false;
 
           buildBoard();
           render();
