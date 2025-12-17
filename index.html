@@ -4234,7 +4234,8 @@ function viewPrintImage(){
     ============================== */
 function renderGroupSchedule(groupKey){
   const container = document.getElementById("groupScheduleContent");
-  const fixtures = GROUP_FIXTURES[groupKey];
+  const fixtures = getResolvedGroupFixtures(groupKey);
+
 
   if(!fixtures || !fixtures.length){
     container.innerHTML = '<div class="fixture-empty">No fixtures defined for this group yet.</div>';
