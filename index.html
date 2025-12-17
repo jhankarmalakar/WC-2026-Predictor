@@ -4236,7 +4236,7 @@ function renderGroupSchedule(groupKey){
 
     html += `
       <div class="fixture-line">
-        <div><strong>Match ${fix.match}</strong> — ${nameWithFlagHTML(fix.home)} vs ${nameWithFlagHTML(fix.away)}</div>
+        <div><strong>Match ${fix.match}</strong> — ${nameWithFlagHTML(resolveSlotTeam(fix.home))} vs ${nameWithFlagHTML(resolveSlotTeam(fix.away))}</div>
         <div>${fix.stadium}, ${fix.city}</div>
         <div>
           ${fix.localTime} (stadium)
