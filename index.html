@@ -602,19 +602,53 @@
       width: min(760px, 100%);
     }
 
-    .match-card{
-      background: rgba(255,255,255,0.035);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px 12px 10px 12px;
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      gap: 10px 10px;
-      align-items: center;
-      position: relative;
-      overflow: hidden;
-    }
+   .match-card {
+  position: relative;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.04);
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
 
+    .match-card .match-tag {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.20);
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(6px);
+  letter-spacing: 0.2px;
+  user-select: none;
+}
+
+    .match--first-base  { border-color: rgba(255,255,255,0.30); box-shadow: 0 0 0 2px rgba(255,255,255,0.06); }
+.match--second-base { border-color: rgba(255,255,255,0.45); box-shadow: 0 0 0 2px rgba(255,255,255,0.10); }
+.match--third-base  { border-color: rgba(255,255,255,0.70); box-shadow: 0 0 0 2px rgba(255,255,255,0.14); }
+
+.match--home-run {
+  border-color: rgba(255,255,255,0.90);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.18), 0 8px 24px rgba(0,0,0,0.30);
+  transform: translateY(-1px);
+}
+
+.match--grand-slam {
+  border-color: rgba(255,255,255,1);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.22), 0 10px 30px rgba(0,0,0,0.35);
+  transform: translateY(-2px);
+}
+
+/* Optional: make the badge “feel” more premium as priority increases */
+.match--first-base  .match-tag { opacity: 0.85; }
+.match--second-base .match-tag { opacity: 0.90; }
+.match--third-base  .match-tag { opacity: 0.95; font-weight: 600; }
+.match--home-run    .match-tag { font-weight: 700; }
+.match--grand-slam  .match-tag { font-weight: 800; }
+
+    
     /* Match index top-left */
     .match-index{
       position:absolute;
@@ -3414,6 +3448,132 @@ function reorderRespectingUserMoved(arr){
         btn.textContent = base;
       }
     }
+
+      /* ==============================
+       25) Match Highlight
+    ============================== */
+// ---------- TEAM SETS ----------
+const TIER_1 = new Set([
+  "argentina", "england", "portugal", "brazil", "spain", "france", "germany",
+]);
+
+const TIER_2 = new Set([
+  "netherlands", "belgium", "croatia", "italy",
+]);
+
+// ---------- NORMALIZATION ----------
+function normTeamName(name) {
+  if (!name) return "";
+  const s = String(name).trim().toLowerCase();
+
+  // Optional synonyms (add as your data requires)
+  const aliases = {
+    "brésil": "brazil",
+    "deutschland": "germany",
+    "españa": "spain",
+    "holland": "netherlands",
+  };
+
+  return aliases[s] || s;
+}
+
+// ---------- CATEGORY DETECTOR (WITH PRIORITY) ----------
+function getMatchCategory(teamA, teamB) {
+  const a = normTeamName(teamA);
+  const b = normTeamName(teamB);
+
+  // If placeholders / TBD, do not tag
+  const invalid = new Set(["", "tbd", "to be decided", "-", "—", "winner", "runner-up"]);
+  if (invalid.has(a) || invalid.has(b)) return null;
+
+  // Helpers
+  const isTier1A = TIER_1.has(a);
+  const isTier1B = TIER_1.has(b);
+  const isTier2A = TIER_2.has(a);
+  const isTier2B = TIER_2.has(b);
+
+  const isArgentinaPortugal =
+    (a === "argentina" && b === "portugal") || (a === "portugal" && b === "argentina");
+
+  const isBrazilArgentina =
+    (a === "brazil" && b === "argentina") || (a === "argentina" && b === "brazil");
+
+  // Priority order:
+  if (isArgentinaPortugal) return { tag: "Grand Slam", cls: "match--grand-slam" };
+  if (isBrazilArgentina)   return { tag: "Home Run",   cls: "match--home-run" };
+  if (isTier1A && isTier1B) return { tag: "Third Base", cls: "match--third-base" };
+
+  // Second Base: one from Tier 1 vs one from Tier 2
+  if ((isTier1A && isTier2B) || (isTier2A && isTier1B)) {
+    return { tag: "Second Base", cls: "match--second-base" };
+  }
+
+  // First Base: any match involving a Tier 1 team
+  if (isTier1A || isTier1B) return { tag: "First Base", cls: "match--first-base" };
+
+  return null;
+}
+
+    const MATCH_CLASSES = [
+  "match--first-base",
+  "match--second-base",
+  "match--third-base",
+  "match--home-run",
+  "match--grand-slam",
+];
+
+function ensureTagBadge(matchEl) {
+  let badge = matchEl.querySelector(".match-tag");
+  if (!badge) {
+    badge = document.createElement("div");
+    badge.className = "match-tag";
+    matchEl.prepend(badge);
+  }
+  return badge;
+}
+
+function readTeamsFromMatch(matchEl) {
+  const a1 = matchEl.getAttribute("data-team-a");
+  const b1 = matchEl.getAttribute("data-team-b");
+  if (a1 || b1) return { teamA: a1 || "", teamB: b1 || "" };
+
+  const aEl = matchEl.querySelector(".team-a");
+  const bEl = matchEl.querySelector(".team-b");
+  return {
+    teamA: aEl ? aEl.textContent : "",
+    teamB: bEl ? bEl.textContent : "",
+  };
+}
+
+function applyMatchHighlight(matchEl) {
+  // Clear prior
+  matchEl.classList.remove(...MATCH_CLASSES);
+  matchEl.removeAttribute("data-match-tag");
+
+  const badge = ensureTagBadge(matchEl);
+  badge.textContent = "";
+  badge.style.display = "none";
+
+  const { teamA, teamB } = readTeamsFromMatch(matchEl);
+  const cat = getMatchCategory(teamA, teamB);
+  if (!cat) return;
+
+  matchEl.classList.add(cat.cls);
+  matchEl.setAttribute("data-match-tag", cat.tag);
+
+  badge.textContent = cat.tag; // "Grand Slam", "Home Run", etc.
+  badge.style.display = "";
+}
+
+function updateAllMatchHighlights(root = document) {
+  root.querySelectorAll(".match-card").forEach(applyMatchHighlight);
+}
+
+const bracketEl = document.getElementById("knockoutBracket"); // use your real container id
+const obs = new MutationObserver(() => updateAllMatchHighlights());
+obs.observe(bracketEl, { childList: true, subtree: true, characterData: true });
+
+
 
     /* ==============================
        26) Clear moved flags (GLOBAL)
