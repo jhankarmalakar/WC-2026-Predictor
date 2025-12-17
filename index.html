@@ -2710,40 +2710,42 @@ function reorderRespectingUserMoved(arr){
 
   const n = arr.length;
 
-  // 1) Lock positions where userMoved === true
-  const fixed = new Map();
+  // (Optional) If you want FULL-ZONE lock once anything is moved:
+  // if(arr.some(t => t && t.userMoved)) return arr;
+
+  // 1) Capture fixed positions (userMoved === true)
+  const fixed = new Map(); // index -> team
   for(let i = 0; i < n; i++){
     const t = arr[i];
-    if(t && t.userMoved) fixed.set(i, t);
-  }
-
-  // 2) Sort everything else
-  const movable = arr.filter(t => !(t && t.userMoved));
-  sortMovable(movable);
-
-  // 3) Rebuild array while preserving locked indices
-  const out = new Array(n);
-  fixed.forEach((t, idx) => { out[idx] = t; });
-
-  let mi = 0;
-  for(let i = 0; i < n; i++){
-    if(out[i] === undefined){
-      out[i] = movable[mi++] ?? out[i];
+    if(t && t.userMoved){
+      fixed.set(i, t);
     }
   }
 
-  // 4) Write back in place (keeps references to `arr`)
+  // 2) Everything else is movable and can be sorted
+  const movable = [];
   for(let i = 0; i < n; i++){
-    arr[i] = out[i];
+    if(!fixed.has(i)) movable.push(arr[i]);
   }
+
+  sortMovable(movable);
+
+  // 3) Rebuild array with fixed slots preserved
+  const out = new Array(n);
+  fixed.forEach((t, idx) => { out[idx] = t; });
+
+  let j = 0;
+  for(let i = 0; i < n; i++){
+    if(out[i] !== undefined) continue;
+    out[i] = movable[j++];
+  }
+
+  // 4) Mutate in place
+  arr.splice(0, n, ...out);
 
   return arr;
 }
 
-
-  // write back in-place
-  arr.splice(0, n, ...out);
-}
 
 
     function autoPools(){
