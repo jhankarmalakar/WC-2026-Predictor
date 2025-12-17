@@ -887,6 +887,24 @@
     const PATH_ID_BY_LABEL = Object.fromEntries(PATHS.map(p => [p.label, p.id]));
     const GROUP_KEYS = Object.keys(DEFAULT_GROUPS);
 
+    const SLOT_IDS = new Set(PATHS.map(p => p.id)); // e.g. "UEFA Path D", "FIFA IC Path 1"
+
+  function resolveSlotTeam(nameOrSlotId) {
+        if (!SLOT_IDS.has(nameOrSlotId)) return nameOrSlotId;  // already a real team
+      
+        const arr = state.paths[nameOrSlotId];                 // you already maintain this
+        const chosen = arr?.[0];                               // your function picks arr[0]
+        return chosen || nameOrSlotId;                         // fallback shows placeholder if not chosen yet
+      }
+function getResolvedGroupFixtures(groupKey) {
+  return GROUP_FIXTURES[groupKey].map(f => ({
+    ...f,
+    home: resolveSlotTeam(f.home),
+    away: resolveSlotTeam(f.away),
+  }));
+}
+
+
     const toId = (name) =>
       String(name || "")
         .toLowerCase()
