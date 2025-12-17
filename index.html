@@ -2706,29 +2706,40 @@ function nameWithFlagHTML(name){
     }
 
 function reorderRespectingUserMoved(arr){
+  if(!Array.isArray(arr)) return arr;
+
   const n = arr.length;
 
-  // positions locked by userMoved
+  // 1) Lock positions where userMoved === true
   const fixed = new Map();
   for(let i = 0; i < n; i++){
     const t = arr[i];
     if(t && t.userMoved) fixed.set(i, t);
   }
 
-  // everything else can be re-sorted
+  // 2) Sort everything else
   const movable = arr.filter(t => !(t && t.userMoved));
   sortMovable(movable);
 
+  // 3) Rebuild array while preserving locked indices
   const out = new Array(n);
-  let k = 0;
+  fixed.forEach((t, idx) => { out[idx] = t; });
 
+  let mi = 0;
   for(let i = 0; i < n; i++){
-    if(fixed.has(i)){
-      out[i] = fixed.get(i);
-    } else {
-      out[i] = movable[k++] ?? arr[i];
+    if(out[i] === undefined){
+      out[i] = movable[mi++] ?? out[i];
     }
   }
+
+  // 4) Write back in place (keeps references to `arr`)
+  for(let i = 0; i < n; i++){
+    arr[i] = out[i];
+  }
+
+  return arr;
+}
+
 
   // write back in-place
   arr.splice(0, n, ...out);
