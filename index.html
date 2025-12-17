@@ -1458,7 +1458,7 @@ function nameWithFlagHTML(name){
         const letter = p.id.replace("uefapath-","");
         const map = { a: 1, b: 2, c: 3, d: 4 };
         const n = map[letter] ?? letter.toUpperCase();
-        return `UEFA Path ${n}`;
+        return `UEFA Path ${letter.toUpperCase()}`;
       }
       if(p.id.startsWith("fifaicpath-")){
         const n = p.id.replace("fifaicpath-","");
@@ -3317,99 +3317,94 @@ function reorderRespectingUserMoved(arr){
     /* ==============================
        24) Render KO rounds
     ============================== */
-    function buildMatchCard(match){
-      const p = resolveParticipants(match);
-      const L = p.left;
-      const R = p.right;
+   function buildMatchCard(match){
+  const p = resolveParticipants(match);
+  const L = p.left;
+  const R = p.right;
 
-      const card = document.createElement("div");
-            card.className = "match-card";
-            card.dataset.matchId = match.id;
-            
-            // ✅ Add these:
-            card.setAttribute("data-team-a", L.name || "");
-            card.setAttribute("data-team-b", R.name || "");
+  const winner = state.winners[match.id];
+  const info = INFO_BY_MATCH[match.id];
 
+  const card = document.createElement("div");
+  card.className = "match-card";
+  card.dataset.matchId = match.id;
 
-      const winner = state.winners[match.id];
-      const info = INFO_BY_MATCH[match.id];
+  // ✅ for match highlighting
+  card.setAttribute("data-team-a", L.name || "");
+  card.setAttribute("data-team-b", R.name || "");
 
-      const card = document.createElement("div");
-      card.className = "match-card";
-      card.dataset.matchId = match.id;
+  const idx = document.createElement("div");
+  idx.className = "match-index";
+  idx.textContent = `Match ${match.id}`;
+  card.appendChild(idx);
 
-      const idx = document.createElement("div");
-      idx.className = "match-index";
-      idx.textContent = `Match ${match.id}`;
-      card.appendChild(idx);
+  const vs = document.createElement("div");
+  vs.className = "match-vs";
+  vs.textContent = `${L.label} vs ${R.label}`;
+  card.appendChild(vs);
 
-      const vs = document.createElement("div");
-      vs.className = "match-vs";
-      vs.textContent = `${L.label} vs ${R.label}`;
-      card.appendChild(vs);
+  const leftBtn = document.createElement("div");
+  leftBtn.className = "match-team team-a";
+  leftBtn.innerHTML = nameWithFlagHTML(L.name);
 
-      const leftBtn = document.createElement("div");
-      leftBtn.className = "match-team";
-      leftBtn.innerHTML = nameWithFlagHTML(L.name);
+  const mid = document.createElement("div");
+  mid.className = "match-mid";
 
-      const mid = document.createElement("div");
-      mid.className = "match-mid";
+  const rightBtn = document.createElement("div");
+  rightBtn.className = "match-team team-b";
+  rightBtn.innerHTML = nameWithFlagHTML(R.name);
 
-      const rightBtn = document.createElement("div");
-      rightBtn.className = "match-team";
-      rightBtn.innerHTML = nameWithFlagHTML(R.name);
+  const inR32Range = (match.id >= 73 && match.id <= 88);
+  const canPick =
+    (!inR32Range || state.r32Generated) &&
+    !L.placeholder && !R.placeholder;
 
-      const inR32Range = (match.id >= 73 && match.id <= 88);
+  if(!canPick){
+    leftBtn.classList.add("locked");
+    rightBtn.classList.add("locked");
+    mid.textContent = "---";
+  } else {
+    leftBtn.addEventListener("click", () => setWinner(match.id, "L", L.name));
+    rightBtn.addEventListener("click", () => setWinner(match.id, "R", R.name));
+    mid.textContent = winner ? winner.abbrev : "---";
+  }
 
-      const canPick =
-        (!inR32Range || state.r32Generated) &&
-        !L.placeholder && !R.placeholder;
+  if(winner && canPick){
+    if(winner.name === L.name) leftBtn.classList.add("winning");
+    if(winner.name === R.name) rightBtn.classList.add("winning");
+  }
 
-      if(!canPick){
-        leftBtn.classList.add("locked");
-        rightBtn.classList.add("locked");
-        mid.textContent = "---";
-      } else {
-        leftBtn.addEventListener("click", () => setWinner(match.id, "L", L.name));
-        rightBtn.addEventListener("click", () => setWinner(match.id, "R", R.name));
-        mid.textContent = winner ? winner.abbrev : "---";
-      }
+  card.appendChild(leftBtn);
+  card.appendChild(mid);
+  card.appendChild(rightBtn);
 
-      if(winner && canPick){
-        if(winner.name === L.name) leftBtn.classList.add("winning");
-        if(winner.name === R.name) rightBtn.classList.add("winning");
-      }
+  const bottom = document.createElement("div");
+  bottom.className = "match-bottom";
 
-      card.appendChild(leftBtn);
-      card.appendChild(mid);
-      card.appendChild(rightBtn);
+  const leftMeta = document.createElement("span");
+  const rightMeta = document.createElement("span");
 
-      const bottom = document.createElement("div");
-      bottom.className = "match-bottom";
+  if(info){
+    leftMeta.innerHTML = `
+      <span class="chip">${info.date}</span>
+      <span class="chip">Local time: ${formatLocalKickoff(info)}</span>
+    `;
+    rightMeta.innerHTML = `
+      <span class="chip">${info.stadium}</span>
+      <span class="chip">${info.city}</span>
+    `;
+  } else {
+    leftMeta.innerHTML = `<span class="chip">Date/Time TBD</span>`;
+    rightMeta.innerHTML = `<span class="chip">Venue TBD</span>`;
+  }
 
-      const leftMeta = document.createElement("span");
-      const rightMeta = document.createElement("span");
+  bottom.appendChild(leftMeta);
+  bottom.appendChild(rightMeta);
+  card.appendChild(bottom);
 
-      if(info){
-        leftMeta.innerHTML = `
-          <span class="chip">${info.date}</span>
-          <span class="chip">Local time: ${formatLocalKickoff(info)}</span>
-        `;
-        rightMeta.innerHTML = `
-          <span class="chip">${info.stadium}</span>
-          <span class="chip">${info.city}</span>
-        `;
-      } else {
-        leftMeta.innerHTML = `<span class="chip">Date/Time TBD</span>`;
-        rightMeta.innerHTML = `<span class="chip">Venue TBD</span>`;
-      }
+  return card;
+}
 
-      bottom.appendChild(leftMeta);
-      bottom.appendChild(rightMeta);
-      card.appendChild(bottom);
-
-      return card;
-    }
 
     function renderKoRound(roundKey){
       const grid = document.querySelector(`.ko-grid[data-ko-round="${roundKey}"]`);
@@ -4486,6 +4481,8 @@ function renderGroupSchedule(groupKey){
     /* ==============================
        28) Wire Buttons
     ============================== */
+    let _globalKeydownWired = false;
+    
     function wireButtons(){
       const resetBtn = document.getElementById("resetBtn");
       const clearMovedBtn = document.getElementById("clearMovedBtn");
@@ -4596,8 +4593,14 @@ function renderGroupSchedule(groupKey){
 
       // ESC
           // ESC closes any open modal (print or group schedule)
-      document.addEventListener("keydown", (e) => {
-        if(e.key !== "Escape") return;
+if(!_globalKeydownWired){
+  document.addEventListener("keydown", (e) => {
+    if(e.key !== "Escape") return;
+    // close modals...
+  });
+  _globalKeydownWired = true;
+}
+
 
         const isPrintOpen = backdrop?.classList.contains("show");
         if(isPrintOpen) closePrintModal();
