@@ -4344,8 +4344,6 @@ function renderGroupSchedule(groupKey){
 
       if(resetBtn){
         resetBtn.addEventListener("click", () => {
-        const ok = confirm("Reset everything to defaults?");
-        if(!ok) return;
       
         // Reset ALL state
         state = initialState();
