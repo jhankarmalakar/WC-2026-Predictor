@@ -889,13 +889,27 @@
 
     const SLOT_IDS = new Set(PATHS.map(p => p.id)); // e.g. "UEFA Path D", "FIFA IC Path 1"
 
-  function resolveSlotTeam(nameOrSlotId) {
-        if (!SLOT_IDS.has(nameOrSlotId)) return nameOrSlotId;  // already a real team
-      
-        const arr = state.paths[nameOrSlotId];                 // you already maintain this
-        const chosen = arr?.[0];                               // your function picks arr[0]
-        return chosen || nameOrSlotId;                         // fallback shows placeholder if not chosen yet
-      }
+function resolveSlotTeam(labelOrId) {
+  if (!labelOrId) return labelOrId;
+
+  // Accept either: "uefapath-a" (id) OR "UEFA Path A" (label)
+  const pathId = SLOT_IDS.has(labelOrId) ? labelOrId : PATH_ID_BY_LABEL[labelOrId];
+  if (!pathId) return labelOrId; // not a slot, it's a real team name
+
+  const chosenObj = state.paths?.[pathId]?.[0];   // team object
+  const chosenName = chosenObj?.name;             // <-- IMPORTANT
+  return chosenName || PATH_BY_ID[pathId]?.label || labelOrId;
+}
+
+function getResolvedGroupFixtures(groupKey) {
+  const list = GROUP_FIXTURES[groupKey] || [];
+  return list.map(f => ({
+    ...f,
+    home: resolveSlotTeam(f.home),
+    away: resolveSlotTeam(f.away),
+  }));
+}
+
 function getResolvedGroupFixtures(groupKey) {
   return GROUP_FIXTURES[groupKey].map(f => ({
     ...f,
@@ -2698,30 +2712,35 @@ function nameWithFlagHTML(name){
       });
     }
 
-    function reorderRespectingUserMoved(arr){
-      const n = arr.length;
-      const fixed = new Map();
-      for(let i=0;i<n;i++){
-        const t = arr[i];
-        if(t && t.userMoved){
-          fixed.set(i, t);
-        }
-      }
+function reorderRespectingUserMoved(arr){
+  const n = arr.length;
 
-      const movable = arr.filter(t => !t.userMoved);
-      sortMovable(movable);
+  // positions locked by userMoved
+  const fixed = new Map();
+  for(let i = 0; i < n; i++){
+    const t = arr[i];
+    if(t && t.userMoved) fixed.set(i, t);
+  }
 
-      const out = new Array(n);
-      let k = 0;
-      for(let i=0;i<n;i++){
-        if(fixed.has(i)){
-          out[i] = fixed.get(i);
-        } else {
-          out[i] = movable[k++] ?? arr[i];
-        }
-      }
-      return out;
+  // everything else can be re-sorted
+  const movable = arr.filter(t => !(t && t.userMoved));
+  sortMovable(movable);
+
+  const out = new Array(n);
+  let k = 0;
+
+  for(let i = 0; i < n; i++){
+    if(fixed.has(i)){
+      out[i] = fixed.get(i);
+    } else {
+      out[i] = movable[k++] ?? arr[i];
     }
+  }
+
+  // write back in-place
+  arr.splice(0, n, ...out);
+}
+
 
     function autoPools(){
       PATHS.forEach(p => {
