@@ -897,101 +897,102 @@
     ============================== */
     const GROUP_FIXTURES = {
       A: [
-        { date: "Thursday, June 11", text: "Mexico vs. South Africa (Mexico City), 1 p.m. local / 3 p.m. ET" },
-        { date: "Thursday, June 11", text: "South Korea vs. UEFA playoff path 2 winner (Zapopan, Mexico), 8 p.m. local / 10 p.m. ET" },
-        { date: "Thursday, June 18", text: "UEFA playoff path 2 winner vs. South Africa (Atlanta), noon ET" },
-        { date: "Thursday, June 18", text: "Mexico vs. South Korea (Zapopan, Mexico), 9 p.m. local / 11 p.m. ET" },
-        { date: "Wednesday, June 24", text: "UEFA playoff path 1 winner vs. Mexico (Mexico City), 7 p.m. local / 9 p.m. ET" },
-        { date: "Wednesday, June 24", text: "South Africa vs. South Korea (Guadalupe, Mexico), 7 p.m. local / 9 p.m. ET" }
-      ],
-      B: [
-        { date: "Friday, June 12", text: "Canada vs. UEFA playoff path 1 winner (Toronto), 3 p.m. ET" },
-        { date: "Saturday, June 13", text: "Qatar vs. Switzerland (Santa Clara, Calif.), noon local / 3 p.m. ET" },
-        { date: "Thursday, June 18", text: "Switzerland vs. UEFA playoff path 1 winner (Inglewood, Calif.), noon local / 3 p.m. ET" },
-        { date: "Thursday, June 18", text: "Canada vs. Qatar (Vancouver, Canada), 3 p.m. local / 6 p.m. ET" },
-        { date: "Wednesday, June 24", text: "Switzerland vs. Canada (Vancouver, Canada), noon local / 3 p.m. ET" },
-        { date: "Wednesday, June 24", text: "UEFA playoff path 1 winner vs. Qatar (Seattle), noon local / 3 p.m. ET" }
-      ],
-      C: [
-        { date: "Saturday, June 13", text: "Brazil vs. Morocco (East Rutherford, New Jersey), 6 p.m. ET" },
-        { date: "Saturday, June 13", text: "Haiti vs. Scotland (Foxborough, Mass.), 9 p.m. ET" },
-        { date: "Friday, June 19", text: "Scotland vs. Morocco (Foxborough, Mass.), 6 p.m. ET" },
-        { date: "Friday, June 19", text: "Brazil vs. Haiti (Philadelphia), 9 p.m. ET" },
-        { date: "Wednesday, June 24", text: "Scotland vs. Brazil (Miami Gardens, Fla.), 6 p.m. ET" },
-        { date: "Wednesday, June 24", text: "Morocco vs. Haiti (Atlanta), 6 p.m. ET" }
-      ],
-      D: [
-        { date: "Friday, June 12", text: "United States vs. Paraguay (Inglewood, Calif.), 6 p.m. local / 9 p.m. ET" },
-        { date: "Saturday, June 13", text: "Australia vs. UEFA playoff path 3 winner (Vancouver, Canada), 9 p.m. local / 12 a.m. ET (June 14)" },
-        { date: "Friday, June 19", text: "United States vs. Australia (Seattle), noon local / 3 p.m. ET" },
-        { date: "Friday, June 19", text: "UEFA playoff path 3 winner vs. Paraguay (Santa Clara, Calif.), 9 p.m. local / 12 a.m. ET (June 20)" },
-        { date: "Thursday, June 25", text: "UEFA playoff path 3 winner vs. United States (Inglewood, Calif.), 7 p.m. local / 10 p.m. ET" },
-        { date: "Thursday, June 25", text: "Paraguay vs. Australia (Santa Clara, Calif.), 7 p.m. local / 10 p.m. ET" }
-      ],
-      E: [
-        { date: "Sunday, June 14", text: "Germany vs. Curaçao (Houston), noon local / 1 p.m. ET" },
-        { date: "Sunday, June 14", text: "Ivory Coast vs. Ecuador (Philadelphia), 7 p.m. ET" },
-        { date: "Saturday, June 20", text: "Germany vs. Ivory Coast (Toronto), 4 p.m. ET" },
-        { date: "Saturday, June 20", text: "Ecuador vs. Curaçao (Kansas City, Mo.), 7 p.m. local / 8 p.m. ET" },
-        { date: "Thursday, June 25", text: "Ecuador vs. Germany (East Rutherford, N.J.), 4 p.m. ET" },
-        { date: "Thursday, June 25", text: "Curacao vs. Ivory Coast (Philadelphia), 4 p.m. ET" }
-      ],
-      F: [
-        { date: "Sunday, June 14", text: "Netherlands vs. Japan (Arlington, Texas), 3 p.m. local / 4 p.m. ET" },
-        { date: "Sunday, June 14", text: "UEFA playoff path 2 winner vs. Tunisia (Guadalupe, Mexico), 8 p.m. local / 10 p.m. ET" },
-        { date: "Saturday, June 20", text: "Netherlands vs. UEFA playoff path 2 winner (Houston), noon local / 1 p.m. ET" },
-        { date: "Saturday, June 20", text: "Tunisia vs. Japan (Guadalupe, Mexico), 10 p.m. local / 12 a.m. ET (June 21)" },
-        { date: "Thursday, June 25", text: "Japan vs. UEFA playoff path 2 winner (Arlington, Texas), 6 p.m. local / 7 p.m. ET" },
-        { date: "Thursday, June 25", text: "Tunisia vs. Netherlands (Kansas City, Mo.), 6 p.m. local / 7 p.m. ET" }
-      ],
-      G: [
-        { date: "Monday, June 15", text: "Belgium vs. Egypt (Seattle), 3 p.m. local / 6 p.m. ET" },
-        { date: "Monday, June 15", text: "Iran vs. New Zealand (Inglewood, Calif.), 9 p.m. local / 12 a.m. ET (June 16)" },
-        { date: "Sunday, June 21", text: "Belgium vs. Iran (Inglewood, Calif.), noon local / 3 p.m. ET" },
-        { date: "Sunday, June 21", text: "New Zealand vs. Egypt (Vancouver), 6 p.m. local / 9 p.m. ET" },
-        { date: "Friday, June 26", text: "Egypt vs. Iran (Seattle), 8 p.m. local / 11 p.m. ET" },
-        { date: "Friday, June 26", text: "New Zealand vs. Belgium (Vancouver, Canada), 8 p.m. local / 11 p.m. ET" }
-      ],
-      H: [
-        { date: "Monday, June 15", text: "Spain vs. Cape Verde (Atlanta), noon local / 1 p.m. ET" },
-        { date: "Monday, June 15", text: "Saudi Arabia vs. Uruguay (Miami Gardens, Fla.), 6 p.m. ET" },
-        { date: "Sunday, June 21", text: "Spain vs. Saudi Arabia (Atlanta), noon ET" },
-        { date: "Sunday, June 21", text: "Uruguay vs. Cape Verde (Miami Gardens, Fla.), 6 p.m. ET" },
-        { date: "Friday, June 26", text: "Cape Verde vs. Saudi Arabia (Houston), 7 p.m. local / 8 p.m. ET" },
-        { date: "Friday, June 26", text: "Uruguay vs. Spain (Zapopan, Mexico), 6 p.m. local / 8 p.m. ET" }
-      ],
-      I: [
-        { date: "Tuesday, June 16", text: "France vs. Senegal (East Rutherford, N.J.), 3 p.m. ET" },
-        { date: "Tuesday, June 16", text: "FIFA playoff winner 2 vs. Norway (Foxborough, Mass.), 6 p.m. ET" },
-        { date: "Monday, June 22", text: "France vs. FIFA playoff winner 2 (Philadelphia), 5 p.m. ET" },
-        { date: "Monday, June 22", text: "Norway vs. Senegal (East Rutherford, N.J.), 8 p.m. ET" },
-        { date: "Friday, June 26", text: "Norway vs. France (Foxborough, Mass.), 3 p.m. ET" },
-        { date: "Friday, June 26", text: "Senegal vs. FIFA playoff winner 2 (Toronto), 3 p.m. ET" }
-      ],
-      J: [
-        { date: "Tuesday, June 16", text: "Argentina vs. Algeria (Kansas City, Mo.), 8 p.m. local / 9 p.m. ET" },
-        { date: "Tuesday, June 16", text: "Austria vs. Jordan (Santa Clara, Calif.), 9 p.m. local / 12 a.m. ET (June 17)" },
-        { date: "Monday, June 22", text: "Argentina vs. Austria (Arlington, Texas), noon local / 1 p.m. ET" },
-        { date: "Monday, June 22", text: "Jordan vs. Algeria (Santa Clara, Calif.), 8 p.m. local / 11 p.m. ET" },
-        { date: "Saturday, June 27", text: "Algeria vs. Austria (Kansas City, Mo.), 9 p.m. local / 10 p.m. ET" },
-        { date: "Saturday, June 27", text: "Jordan vs. Argentina (Arlington, Texas), 9 p.m. local / 10 p.m. ET" }
-      ],
-      K: [
-        { date: "Wednesday, June 17", text: "Portugal vs. FIFA playoff winner 1 (Houston), noon local / 1 p.m. ET" },
-        { date: "Wednesday, June 17", text: "Uzbekistan vs. Colombia (Mexico City), 8 p.m. local / 10 p.m. ET" },
-        { date: "Tuesday, June 23", text: "Portugal vs. Uzbekistan (Houston), noon local / 1 p.m. ET" },
-        { date: "Tuesday, June 23", text: "Colombia vs. FIFA playoff winner 1 (Zapopan, Mexico), 8 p.m. local / 10 p.m. ET" },
-        { date: "Saturday, June 27", text: "Colombia vs. Portugal (Miami Gardens, Fla.), 7:30 p.m. ET" },
-        { date: "Saturday, June 27", text: "FIFA playoff winner 1 vs. Uzbekistan (Atlanta Stadium), 7:30 p.m. ET" }
-      ],
-      L: [
-        { date: "Wednesday, June 17", text: "England vs. Croatia (Arlington, Texas), 3 p.m. local / 4 p.m. ET" },
-        { date: "Wednesday, June 17", text: "Ghana vs. Panama (Toronto), 7 p.m. ET" },
-        { date: "Tuesday, June 23", text: "England vs. Ghana (Foxborough, Mass.), 4 p.m. ET" },
-        { date: "Tuesday, June 23", text: "Panama vs. Croatia (Toronto), 7 p.m. ET" },
-        { date: "Saturday, June 27", text: "Panama vs. England (East Rutherford, N.J.), 5 p.m. ET" },
-        { date: "Saturday, June 27", text: "Croatia vs. Ghana (Philadelphia), 5 p.m. ET" }
-      ]
+  { date: "Thursday, June 11, 2026", text: "Match 1: Mexico vs. South Africa (Mexico City Stadium, Mexico City), 1:00 p.m. local (offsetHours:-6)" },
+  { date: "Thursday, June 11, 2026", text: "Match 2: South Korea vs. UEFA Path D winner (Estadio Akron, Zapopan), 8:00 p.m. local (offsetHours:-6)" },
+  { date: "Thursday, June 18, 2026", text: "Match 25: UEFA Path D winner vs. South Africa (Mercedes-Benz Stadium, Atlanta), 12:00 p.m. local (offsetHours:-4)" },
+  { date: "Thursday, June 18, 2026", text: "Match 28: Mexico vs. South Korea (Estadio Akron, Zapopan), 7:00 p.m. local (offsetHours:-6)" },
+  { date: "Wednesday, June 24, 2026", text: "Match 53: UEFA Path D winner vs. Mexico (Mexico City Stadium, Mexico City), 7:00 p.m. local (offsetHours:-6)" },
+  { date: "Wednesday, June 24, 2026", text: "Match 54: South Africa vs. South Korea (Estadio BBVA, Guadalupe), 7:00 p.m. local (offsetHours:-6)" }
+],
+B: [
+  { date: "Friday, June 12, 2026", text: "Match 3: Canada vs. UEFA Path A winner (BMO Field, Toronto), 3:00 p.m. local (offsetHours:-4)" },
+  { date: "Saturday, June 13, 2026", text: "Match 8: Qatar vs. Switzerland (Levi's Stadium, Santa Clara), 12:00 p.m. local (offsetHours:-7)" },
+  { date: "Thursday, June 18, 2026", text: "Match 26: Switzerland vs. UEFA Path A winner (SoFi Stadium, Inglewood), 12:00 p.m. local (offsetHours:-7)" },
+  { date: "Thursday, June 18, 2026", text: "Match 27: Canada vs. Qatar (BC Place, Vancouver), 3:00 p.m. local (offsetHours:-7)" },
+  { date: "Wednesday, June 24, 2026", text: "Match 51: Switzerland vs. Canada (BC Place, Vancouver), 12:00 p.m. local (offsetHours:-7)" },
+  { date: "Wednesday, June 24, 2026", text: "Match 52: UEFA Path A winner vs. Qatar (Lumen Field, Seattle), 12:00 p.m. local (offsetHours:-7)" }
+],
+C: [
+  { date: "Saturday, June 13, 2026", text: "Match 7: Brazil vs. Morocco (MetLife Stadium, East Rutherford), 6:00 p.m. local (offsetHours:-4)" },
+  { date: "Saturday, June 13, 2026", text: "Match 5: Haiti vs. Scotland (Gillette Stadium, Foxborough), 9:00 p.m. local (offsetHours:-4)" },
+  { date: "Friday, June 19, 2026", text: "Match 30: Scotland vs. Morocco (Gillette Stadium, Foxborough), 6:00 p.m. local (offsetHours:-4)" },
+  { date: "Friday, June 19, 2026", text: "Match 29: Brazil vs. Haiti (Lincoln Financial Field, Philadelphia), 9:00 p.m. local (offsetHours:-4)" },
+  { date: "Wednesday, June 24, 2026", text: "Match 49: Scotland vs. Brazil (Hard Rock Stadium, Miami Gardens), 6:00 p.m. local (offsetHours:-4)" },
+  { date: "Wednesday, June 24, 2026", text: "Match 50: Morocco vs. Haiti (Mercedes-Benz Stadium, Atlanta), 6:00 p.m. local (offsetHours:-4)" }
+],
+D: [
+  { date: "Friday, June 12, 2026", text: "Match 4: United States vs. Paraguay (SoFi Stadium, Inglewood), 6:00 p.m. local (offsetHours:-7)" },
+  { date: "Saturday, June 13, 2026", text: "Match 6: Australia vs. UEFA Path C winner (BC Place, Vancouver), 9:00 p.m. local (offsetHours:-7)" },
+  { date: "Friday, June 19, 2026", text: "Match 32: United States vs. Australia (Lumen Field, Seattle), 12:00 p.m. local (offsetHours:-7)" },
+  { date: "Friday, June 19, 2026", text: "Match 31: UEFA Path C winner vs. Paraguay (Levi's Stadium, Santa Clara), 9:00 p.m. local (offsetHours:-7)" },
+  { date: "Thursday, June 25, 2026", text: "Match 59: UEFA Path C winner vs. United States (SoFi Stadium, Inglewood), 7:00 p.m. local (offsetHours:-7)" },
+  { date: "Thursday, June 25, 2026", text: "Match 60: Paraguay vs. Australia (Levi's Stadium, Santa Clara), 7:00 p.m. local (offsetHours:-7)" }
+],
+E: [
+  { date: "Sunday, June 14, 2026", text: "Match 10: Germany vs. Curaçao (NRG Stadium, Houston), 12:00 p.m. local (offsetHours:-5)" },
+  { date: "Sunday, June 14, 2026", text: "Match 9: Ivory Coast vs. Ecuador (Lincoln Financial Field, Philadelphia), 7:00 p.m. local (offsetHours:-4)" },
+  { date: "Saturday, June 20, 2026", text: "Match 33: Germany vs. Ivory Coast (BMO Field, Toronto), 4:00 p.m. local (offsetHours:-4)" },
+  { date: "Saturday, June 20, 2026", text: "Match 34: Ecuador vs. Curaçao (Arrowhead Stadium, Kansas City), 7:00 p.m. local (offsetHours:-5)" },
+  { date: "Thursday, June 25, 2026", text: "Match 56: Ecuador vs. Germany (MetLife Stadium, East Rutherford), 4:00 p.m. local (offsetHours:-4)" },
+  { date: "Thursday, June 25, 2026", text: "Match 55: Curaçao vs. Ivory Coast (Lincoln Financial Field, Philadelphia), 4:00 p.m. local (offsetHours:-4)" }
+],
+F: [
+  { date: "Sunday, June 14, 2026", text: "Match 11: Netherlands vs. Japan (AT&T Stadium, Arlington), 3:00 p.m. local (offsetHours:-5)" },
+  { date: "Sunday, June 14, 2026", text: "Match 12: UEFA Path B winner vs. Tunisia (Estadio BBVA, Guadalupe), 8:00 p.m. local (offsetHours:-6)" },
+  { date: "Saturday, June 20, 2026", text: "Match 35: Netherlands vs. UEFA Path B winner (NRG Stadium, Houston), 12:00 p.m. local (offsetHours:-5)" },
+  { date: "Saturday, June 20, 2026", text: "Match 36: Tunisia vs. Japan (Estadio BBVA, Guadalupe), 10:00 p.m. local (offsetHours:-6)" },
+  { date: "Thursday, June 25, 2026", text: "Match 57: Japan vs. UEFA Path B winner (AT&T Stadium, Arlington), 6:00 p.m. local (offsetHours:-5)" },
+  { date: "Thursday, June 25, 2026", text: "Match 58: Tunisia vs. Netherlands (Arrowhead Stadium, Kansas City), 6:00 p.m. local (offsetHours:-5)" }
+],
+G: [
+  { date: "Monday, June 15, 2026", text: "Match 16: Belgium vs. Egypt (Lumen Field, Seattle), 12:00 p.m. local (offsetHours:-7)" },
+  { date: "Monday, June 15, 2026", text: "Match 15: Iran vs. New Zealand (SoFi Stadium, Inglewood), 6:00 p.m. local (offsetHours:-7)" },
+  { date: "Sunday, June 21, 2026", text: "Match 39: Belgium vs. Iran (SoFi Stadium, Inglewood), 12:00 p.m. local (offsetHours:-7)" },
+  { date: "Sunday, June 21, 2026", text: "Match 40: New Zealand vs. Egypt (BC Place, Vancouver), 6:00 p.m. local (offsetHours:-7)" },
+  { date: "Friday, June 26, 2026", text: "Match 63: Egypt vs. Iran (Lumen Field, Seattle), 8:00 p.m. local (offsetHours:-7)" },
+  { date: "Friday, June 26, 2026", text: "Match 64: New Zealand vs. Belgium (BC Place, Vancouver), 8:00 p.m. local (offsetHours:-7)" }
+],
+H: [
+  { date: "Monday, June 15, 2026", text: "Match 14: Spain vs. Cape Verde (Mercedes-Benz Stadium, Atlanta), 12:00 p.m. local (offsetHours:-4)" },
+  { date: "Monday, June 15, 2026", text: "Match 13: Saudi Arabia vs. Uruguay (Hard Rock Stadium, Miami Gardens), 6:00 p.m. local (offsetHours:-4)" },
+  { date: "Sunday, June 21, 2026", text: "Match 38: Spain vs. Saudi Arabia (Mercedes-Benz Stadium, Atlanta), 12:00 p.m. local (offsetHours:-4)" },
+  { date: "Sunday, June 21, 2026", text: "Match 37: Uruguay vs. Cape Verde (Hard Rock Stadium, Miami Gardens), 6:00 p.m. local (offsetHours:-4)" },
+  { date: "Friday, June 26, 2026", text: "Match 65: Cape Verde vs. Saudi Arabia (NRG Stadium, Houston), 7:00 p.m. local (offsetHours:-5)" },
+  { date: "Friday, June 26, 2026", text: "Match 66: Uruguay vs. Spain (Estadio Akron, Zapopan), 6:00 p.m. local (offsetHours:-6)" }
+],
+I: [
+  { date: "Tuesday, June 16, 2026", text: "Match 17: France vs. Senegal (MetLife Stadium, East Rutherford), 3:00 p.m. local (offsetHours:-4)" },
+  { date: "Tuesday, June 16, 2026", text: "Match 18: Inter-confederation play-off winner 2 vs. Norway (Gillette Stadium, Foxborough), 6:00 p.m. local (offsetHours:-4)" },
+  { date: "Monday, June 22, 2026", text: "Match 42: France vs. Inter-confederation play-off winner 2 (Lincoln Financial Field, Philadelphia), 5:00 p.m. local (offsetHours:-4)" },
+  { date: "Monday, June 22, 2026", text: "Match 41: Norway vs. Senegal (MetLife Stadium, East Rutherford), 8:00 p.m. local (offsetHours:-4)" },
+  { date: "Friday, June 26, 2026", text: "Match 61: Norway vs. France (Gillette Stadium, Foxborough), 3:00 p.m. local (offsetHours:-4)" },
+  { date: "Friday, June 26, 2026", text: "Match 62: Senegal vs. Inter-confederation play-off winner 2 (BMO Field, Toronto), 3:00 p.m. local (offsetHours:-4)" }
+],
+J: [
+  { date: "Tuesday, June 16, 2026", text: "Match 19: Argentina vs. Algeria (Arrowhead Stadium, Kansas City), 8:00 p.m. local (offsetHours:-5)" },
+  { date: "Tuesday, June 16, 2026", text: "Match 20: Austria vs. Jordan (Levi's Stadium, Santa Clara), 9:00 p.m. local (offsetHours:-7)" },
+  { date: "Monday, June 22, 2026", text: "Match 43: Argentina vs. Austria (AT&T Stadium, Arlington), 12:00 p.m. local (offsetHours:-5)" },
+  { date: "Monday, June 22, 2026", text: "Match 44: Jordan vs. Algeria (Levi's Stadium, Santa Clara), 8:00 p.m. local (offsetHours:-7)" },
+  { date: "Saturday, June 27, 2026", text: "Match 69: Algeria vs. Austria (Arrowhead Stadium, Kansas City), 9:00 p.m. local (offsetHours:-5)" },
+  { date: "Saturday, June 27, 2026", text: "Match 70: Jordan vs. Argentina (AT&T Stadium, Arlington), 9:00 p.m. local (offsetHours:-5)" }
+],
+K: [
+  { date: "Wednesday, June 17, 2026", text: "Match 23: Portugal vs. Inter-confederation play-off winner 1 (NRG Stadium, Houston), 12:00 p.m. local (offsetHours:-5)" },
+  { date: "Wednesday, June 17, 2026", text: "Match 24: Uzbekistan vs. Colombia (Mexico City Stadium, Mexico City), 8:00 p.m. local (offsetHours:-6)" },
+  { date: "Tuesday, June 23, 2026", text: "Match 47: Portugal vs. Uzbekistan (NRG Stadium, Houston), 12:00 p.m. local (offsetHours:-5)" },
+  { date: "Tuesday, June 23, 2026", text: "Match 48: Colombia vs. Inter-confederation play-off winner 1 (Estadio Akron, Zapopan), 8:00 p.m. local (offsetHours:-6)" },
+  { date: "Saturday, June 27, 2026", text: "Match 71: Colombia vs. Portugal (Hard Rock Stadium, Miami Gardens), 7:30 p.m. local (offsetHours:-4)" },
+  { date: "Saturday, June 27, 2026", text: "Match 72: Inter-confederation play-off winner 1 vs. Uzbekistan (Mercedes-Benz Stadium, Atlanta), 7:30 p.m. local (offsetHours:-4)" }
+],
+L: [
+  { date: "Wednesday, June 17, 2026", text: "Match 22: England vs. Croatia (AT&T Stadium, Arlington), 3:00 p.m. local (offsetHours:-5)" },
+  { date: "Wednesday, June 17, 2026", text: "Match 21: Ghana vs. Panama (BMO Field, Toronto), 7:00 p.m. local (offsetHours:-4)" },
+  { date: "Tuesday, June 23, 2026", text: "Match 45: England vs. Ghana (Gillette Stadium, Foxborough), 4:00 p.m. local (offsetHours:-4)" },
+  { date: "Tuesday, June 23, 2026", text: "Match 46: Panama vs. Croatia (BMO Field, Toronto), 7:00 p.m. local (offsetHours:-4)" },
+  { date: "Saturday, June 27, 2026", text: "Match 67: Panama vs. England (MetLife Stadium, East Rutherford), 5:00 p.m. local (offsetHours:-4)" },
+  { date: "Saturday, June 27, 2026", text: "Match 68: Croatia vs. Ghana (Lincoln Financial Field, Philadelphia), 5:00 p.m. local (offsetHours:-4)" }
+]
+
     };
 
     /* ==============================
