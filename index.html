@@ -3322,6 +3322,15 @@ function reorderRespectingUserMoved(arr){
       const L = p.left;
       const R = p.right;
 
+      const card = document.createElement("div");
+            card.className = "match-card";
+            card.dataset.matchId = match.id;
+            
+            // ✅ Add these:
+            card.setAttribute("data-team-a", L.name || "");
+            card.setAttribute("data-team-b", R.name || "");
+
+
       const winner = state.winners[match.id];
       const info = INFO_BY_MATCH[match.id];
 
@@ -3569,9 +3578,19 @@ function updateAllMatchHighlights(root = document) {
   root.querySelectorAll(".match-card").forEach(applyMatchHighlight);
 }
 
-const bracketEl = document.getElementById("knockoutBracket"); // use your real container id
-const obs = new MutationObserver(() => updateAllMatchHighlights());
-obs.observe(bracketEl, { childList: true, subtree: true, characterData: true });
+function safeUpdateHighlights(){
+  try { updateAllMatchHighlights(document); } catch(e) {}
+}
+
+// ✅ Call after every render (most reliable)
+const _renderAllKo = renderAllKo;
+renderAllKo = function(){
+  _renderAllKo();
+  safeUpdateHighlights();
+};
+
+// ✅ Also call once on initial load
+safeUpdateHighlights();
 
 
 
@@ -4233,32 +4252,33 @@ function drawSummaryBox(pos, title, teamName, accent){
   const thirdWinner = state.winners?.[103]?.name ?? "";
   const runnerUp    = getRunnerUpName(finalId);
 
-if(posById[SUMMARY_CHAMP_ID]){
-  drawChampionSummaryBox(
-    posById[SUMMARY_CHAMP_ID],
-    "2026 FIFA WC CHAMPIONS",
-    finalWinner
-  );
-}
+  // Draw summaries (Champion / Runner-up / 3rd)
+  if(posById[SUMMARY_CHAMP_ID]){
+    drawChampionSummaryBox(
+      posById[SUMMARY_CHAMP_ID],
+      "2026 FIFA WC CHAMPIONS",
+      finalWinner || "TBD"
+    );
+  }
 
 
-if(posById[SUMMARY_RUNNER_ID]){
-  drawSummaryBox(
-    posById[SUMMARY_RUNNER_ID],
-    "RUNNERS-UP",
-    runnerUp,
-    "rgba(122,162,255,0.65)"
-  );
-}
+  if(posById[SUMMARY_RUNNER_ID]){
+    drawSummaryBox(
+      posById[SUMMARY_RUNNER_ID],
+      "RUNNER-UP",
+      runnerUp || "TBD",
+      "rgba(122,162,255,0.65)"
+    );
+  }
 
-if(posById[SUMMARY_THIRD_ID]){
-  drawSummaryBox(
-    posById[SUMMARY_THIRD_ID],
-    "3RD PLACE WINNER",
-    thirdWinner,
-    "rgba(255,107,122,0.70)"
-  );
-}
+ if(posById[SUMMARY_THIRD_ID]){
+    drawSummaryBox(
+      posById[SUMMARY_THIRD_ID],
+      "3RD PLACE",
+      thirdWinner || "TBD",
+      "rgba(255,107,122,0.65)"
+    );
+  }
 
 
 
@@ -4299,6 +4319,13 @@ if(posById[SUMMARY_THIRD_ID]){
   ctx.fillText(ts, W - rightPad, H - 12);
 
   ctx.textAlign = "start";
+
+   // Footer (optional but nice)
+  ctx.fillStyle = "rgba(255,255,255,0.45)";
+  ctx.font = "700 10.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  const url = getSiteUrlForImage();
+  ctx.fillText(SITE_SOURCE_NAME, 32, H - 26);
+  if(url) ctx.fillText(url, 32, H - 12);
 
   return canvas;
 }
