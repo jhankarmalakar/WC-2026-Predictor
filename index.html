@@ -890,6 +890,9 @@
     const SLOT_IDS = new Set(PATHS.map(p => p.id)); // e.g. "UEFA Path D", "FIFA IC Path 1"
 
 function resolveSlotTeam(labelOrId) {
+  // Only resolve placeholders/paths while editing Groups
+  if (editMode !== "groups") return labelOrId;
+
   if (!labelOrId) return labelOrId;
 
   const pathId = SLOT_IDS.has(labelOrId) ? labelOrId : PATH_ID_BY_LABEL[labelOrId];
@@ -901,6 +904,7 @@ function resolveSlotTeam(labelOrId) {
   // If reset cleared selections, chosenName is empty -> show placeholder
   return chosenName || PATH_BY_ID[pathId]?.label || labelOrId;
 }
+
 
 function getResolvedGroupFixtures(groupKey) {
   return (GROUP_FIXTURES[groupKey] || []).map(f => ({
