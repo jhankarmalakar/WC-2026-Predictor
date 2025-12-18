@@ -1049,8 +1049,6 @@ function parseTwelveHourTime(str){
   const minute = parseInt(m[2], 10);
   const ampm = m[3].toLowerCase();
 
-  let __wiredOnce = false;
-
   const isPM = ampm.startsWith("p");
   if(hour === 12){
     hour = isPM ? 12 : 0;
@@ -2388,18 +2386,16 @@ function nameWithFlagHTML(name){
       return null;
     }
 
-const ALL_MATCHES_FLAT = Object.freeze([
-  ...R32_MATCHES,
-  ...R16_MATCHES,
-  ...QF_MATCHES,
-  ...SF_MATCHES,
-  ...THIRD_MATCH,
-  ...FINAL_MATCH
-]);
-
-function getAllMatchesFlat(){
-  return ALL_MATCHES_FLAT;
-}
+    function getAllMatchesFlat(){
+      return [
+        ...R32_MATCHES,
+        ...R16_MATCHES,
+        ...QF_MATCHES,
+        ...SF_MATCHES,
+        ...THIRD_MATCH,
+        ...FINAL_MATCH
+      ];
+    }
 
     function getR32ThirdDependentMatchIds(){
       return R32_MATCHES
@@ -2496,26 +2492,26 @@ function getAllMatchesFlat(){
       });
     }
 
-     function setWinner(matchId, side, name){
+    function setWinner(matchId, side, name){
       const match = findMatchById(matchId);
-      if(!match) return false;
-    
+      if(!match) return;
+
       const p = resolveParticipants(match);
-      if(p.left.placeholder || p.right.placeholder) return false;
-    
+      if(p.left.placeholder || p.right.placeholder) return;
+
+      const ab = teamAbbrev(name);
+
       state.winners[matchId] = {
         side,
         name,
-        abbrev: teamAbbrev(name),
+        abbrev: ab,
         leftAtPick: p.left.name,
         rightAtPick: p.right.name
       };
-    
+
       validateAllWinners();
       render();
-      return true;
-      }
-
+    }
 
     /* ==============================
        13) Edit rules
@@ -3739,13 +3735,49 @@ async function buildResultsCanvas(){
   [...R16_MATCHES, ...QF_MATCHES, ...SF_MATCHES, ...THIRD_MATCH, ...FINAL_MATCH]
     .forEach(m => matchById[m.id] = m);
 
+  function drawBoxFrame(x,y,w,h, accentColor){
+    roundRectPath(ctx, x,y,w,h,rad);
 
+    const g = ctx.createLinearGradient(x, y, x+w, y+h);
+    g.addColorStop(0, "rgba(255,255,255,0.07)");
+    g.addColorStop(1, "rgba(255,255,255,0.02)");
+    ctx.fillStyle = g;
+    ctx.fill();
 
-  
+    ctx.strokeStyle = "rgba(255,255,255,0.14)";
+    ctx.lineWidth = 1.1;
+    ctx.stroke();
 
+    if(accentColor){
+      ctx.fillStyle = accentColor;
+      ctx.fillRect(x + w - 7, y + 8, 3, h - 16);
+    }
+  }
 
+  function drawConnector(fromPos, toPos){
+    const a = centerOf(fromPos);
+    const b = centerOf(toPos);
+    const midX = (a.cx + b.cx) / 2;
 
+    ctx.strokeStyle = "rgba(122,162,255,0.22)";
+    ctx.lineWidth = 2;
 
+    ctx.beginPath();
+    ctx.moveTo(a.cx + fromPos.w/2 - 6, a.cy);
+    ctx.lineTo(midX, a.cy);
+    ctx.lineTo(midX, b.cy);
+    ctx.lineTo(b.cx - toPos.w/2 + 6, b.cy);
+    ctx.stroke();
+  }
+
+  function winnerAccentForRound(label){
+    if(label === "R16") return "rgba(94,230,255,0.45)";
+    if(label === "QF")  return "rgba(122,162,255,0.50)";
+    if(label === "SF")  return "rgba(255,184,107,0.55)";
+    if(label === "FINAL") return "rgba(122,255,187,0.65)";
+    if(label === "3RD PLACE") return "rgba(255,107,122,0.55)";
+    return "rgba(94,230,168,0.45)";
+  }
 
 
   function drawWinnerMarker(ctx, x, y){
@@ -3770,8 +3802,7 @@ async function buildResultsCanvas(){
         const winner = state.winners?.[matchId]?.name ?? null;
       
         const accent = winner ? winnerAccentForRound(labelPrefix) : null;
-        drawBoxFrame(ctx, pos.x, pos.y, pos.w, pos.h, rad, accent);
-
+        drawBoxFrame(pos.x, pos.y, pos.w, pos.h, accent);
       
         // Header: round + match + date/local time
         const info = INFO_BY_MATCH?.[matchId];
@@ -3949,8 +3980,7 @@ posById[SUMMARY_RUNNER_ID] = {
 
   
 function drawSummaryBox(pos, title, teamName, accent){
- drawBoxFrame(ctx, pos.x, pos.y, pos.w, pos.h, rad, accent);
-
+  drawBoxFrame(pos.x, pos.y, pos.w, pos.h, accent);
 
   // Title
   ctx.fillStyle = "rgba(255,255,255,0.80)";
@@ -4270,9 +4300,6 @@ function renderGroupSchedule(groupKey){
        28) Wire Buttons
     ============================== */
     function wireButtons(){
-      if(__wiredOnce) return;
-          __wiredOnce = true;
-      
       const resetBtn = document.getElementById("resetBtn");
       const clearMovedBtn = document.getElementById("clearMovedBtn");
 
@@ -4334,7 +4361,7 @@ function renderGroupSchedule(groupKey){
 
           buildBoard();
           render();
-       
+          wireButtons();
         });
       }
 
@@ -4394,13 +4421,13 @@ function renderGroupSchedule(groupKey){
 
 
             /* Group expand buttons on Group columns */
-          document.addEventListener("click", (e) => {
-            const btn = e.target.closest(".group-expand-btn");
-            if(!btn) return;
-            const g = btn.getAttribute("data-group");
-            if(!g) return;
-            openGroupScheduleModal(g);
-          });
+      document.querySelectorAll(".group-expand-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const g = btn.getAttribute("data-group");
+          if(!g) return;
+          openGroupScheduleModal(g);
+        });
+      });
 
       /* Group schedule modal controls */
       if(closeGroupScheduleBtn){
