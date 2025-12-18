@@ -1073,13 +1073,43 @@
       opacity: 0.9;
     }
 
-    .match-team.winning{
-      background: var(--win-bg);
-      border-color: var(--win-br);
-      box-shadow:
-        0 0 0 1px var(--win-glow) inset,
-        0 0 14px rgba(122,255,187,0.12);
-    }
+/* ==============================
+   WINNER HIGHLIGHT = Brighter Green
+   (applies to .match-team.winning)
+============================== */
+
+.match-team.winning{
+  /* stronger fill */
+  background: linear-gradient(
+    135deg,
+    rgba(60, 255, 140, 0.30),
+    rgba(20, 180, 90, 0.16)
+  ) !important;
+
+  /* brighter edge + glow */
+  border-color: rgba(80, 255, 160, 0.95) !important;
+  box-shadow:
+    0 0 0 2px rgba(80, 255, 160, 0.25),
+    0 0 18px rgba(80, 255, 160, 0.22),
+    0 10px 26px rgba(0,0,0,0.28) !important;
+
+  /* increase perceived brightness */
+  filter: saturate(1.6) brightness(1.18) contrast(1.06);
+}
+
+/* Optional: make the flag/name pop slightly when winning */
+.match-team.winning img,
+.match-team.winning .flag,
+.match-team.winning .team-name,
+.match-team.winning span{
+  filter: saturate(1.15) brightness(1.10);
+}
+
+/* Optional: stronger hover if you have hover styles */
+.match-team.winning:hover{
+  filter: saturate(1.75) brightness(1.22) contrast(1.08);
+}
+
 
     .match-mid{
       min-width: 56px;
