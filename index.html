@@ -615,6 +615,54 @@
       overflow: hidden;
     }
 
+    /* ==============================
+   MATCH HIGHLIGHT CLASSES
+============================== */
+
+.match-card.match--first-base{
+  border-color: rgba(94,230,255,0.34);
+  box-shadow: 0 0 0 2px rgba(94,230,255,0.10);
+}
+.match-card.match--second-base{
+  border-color: rgba(122,162,255,0.40);
+  box-shadow: 0 0 0 2px rgba(122,162,255,0.12);
+}
+.match-card.match--third-base{
+  border-color: rgba(255,184,107,0.44);
+  box-shadow: 0 0 0 2px rgba(255,184,107,0.13);
+}
+.match-card.match--home-run{
+  border-color: rgba(255,107,122,0.54);
+  box-shadow: 0 0 0 2px rgba(255,107,122,0.14);
+}
+.match-card.match--grand-slam{
+  border-color: rgba(255,214,102,0.78);
+  box-shadow: 0 0 0 3px rgba(255,214,102,0.18);
+}
+
+/* Match tag tone per category */
+.match-card.match--first-base .match-tag{
+  background: rgba(94,230,255,0.12);
+  border-color: rgba(94,230,255,0.28);
+}
+.match-card.match--second-base .match-tag{
+  background: rgba(122,162,255,0.14);
+  border-color: rgba(122,162,255,0.30);
+}
+.match-card.match--third-base .match-tag{
+  background: rgba(255,184,107,0.14);
+  border-color: rgba(255,184,107,0.32);
+}
+.match-card.match--home-run .match-tag{
+  background: rgba(255,107,122,0.14);
+  border-color: rgba(255,107,122,0.34);
+}
+.match-card.match--grand-slam .match-tag{
+  background: rgba(255,214,102,0.14);
+  border-color: rgba(255,214,102,0.46);
+}
+
+
     /* Match index top-left */
     .match-index{
       position:absolute;
@@ -2450,6 +2498,73 @@ function nameWithFlagHTML(name){
       return { left:L, right:R };
     }
 
+
+    /* ==============================
+   MATCH HIGHLIGHT ENGINE (v1)
+   Priority: Grand Slam > Home Run > 3B > 2B > 1B
+============================== */
+
+function canonTeamName(name){
+  return String(name || "").trim().toLowerCase();
+}
+
+const BIG7 = new Set([
+  "argentina","england","portugal","brazil","spain","france","germany"
+].map(canonTeamName));
+
+const MID4 = new Set([
+  "netherlands","belgium","croatia","italy"
+].map(canonTeamName));
+
+const MATCH_TAGS = {
+  "grand-slam": { label: "Grand Slam", short: "GS" },
+  "home-run":   { label: "Home Run",   short: "HR" },
+  "third-base": { label: "Third Base", short: "3B" },
+  "second-base":{ label: "Second Base",short: "2B" },
+  "first-base": { label: "First Base", short: "1B" }
+};
+
+// Single source of truth for category selection (returns null if not valid)
+function getMatchHighlightByNames(leftName, rightName, leftIsPlaceholder, rightIsPlaceholder){
+  // "valid" = both sides resolved to real teams
+  if(leftIsPlaceholder || rightIsPlaceholder) return null;
+
+  const a = canonTeamName(leftName);
+  const b = canonTeamName(rightName);
+  if(!a || !b) return null;
+
+  const isPair = (x, y) => (a === x && b === y) || (a === y && b === x);
+
+  // Priority 1: Grand Slam
+  if(isPair("argentina", "portugal")) return { key: "grand-slam", ...MATCH_TAGS["grand-slam"] };
+
+  // Priority 2: Home Run
+  if(isPair("brazil", "argentina"))   return { key: "home-run",   ...MATCH_TAGS["home-run"] };
+
+  const aBig = BIG7.has(a);
+  const bBig = BIG7.has(b);
+  const aMid = MID4.has(a);
+  const bMid = MID4.has(b);
+
+  // Priority 3: Third Base (BIG7 vs BIG7)
+  if(aBig && bBig) return { key: "third-base", ...MATCH_TAGS["third-base"] };
+
+  // Priority 4: Second Base (BIG7 vs MID4)
+  if((aBig && bMid) || (bBig && aMid)) return { key: "second-base", ...MATCH_TAGS["second-base"] };
+
+  // Priority 5: First Base (any match involving BIG7)
+  if(aBig || bBig) return { key: "first-base", ...MATCH_TAGS["first-base"] };
+
+  return null;
+}
+
+// Convenience wrapper for your resolved participant objects
+function getMatchHighlightFromParticipants(L, R){
+  return getMatchHighlightByNames(L?.name, R?.name, !!L?.placeholder, !!R?.placeholder);
+}
+
+    
+
     /* ==============================
        12) Winner validation (cascade)
     ============================== */
@@ -3287,6 +3402,18 @@ function reorderRespectingUserMoved(arr){
       const p = resolveParticipants(match);
       const L = p.left;
       const R = p.right;
+
+      // === Match highlighting (dynamic) ===
+      const hi = getMatchHighlightFromParticipants(L, R);
+      if(hi){
+        card.classList.add(`match--${hi.key}`);
+      
+        const tag = document.createElement("span");
+        tag.className = "match-tag";
+        tag.textContent = hi.label; // "Grand Slam", "Home Run", etc.
+        card.appendChild(tag);
+        }
+
 
       const winner = state.winners[match.id];
       const info = INFO_BY_MATCH[match.id];
