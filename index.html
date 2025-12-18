@@ -614,7 +614,8 @@
       position: relative;
       overflow: hidden;
     }
-
+    
+ /* Third Base = full-card premium silver */
     .match-card.match--third-base{
   /* keep your base styling, but tint the whole card */
   background: linear-gradient(
@@ -633,6 +634,48 @@
   border-color: rgba(255, 214, 102, 0.70);
   color: rgba(255,255,255,0.95);
 }
+
+    /* Second Base = full-card premium silver */
+.match-card.match--second-base{
+ background: linear-gradient(
+  135deg,
+  rgba(255,255,255,0.30),
+  rgba(190,200,210,0.14)
+);
+  border-color: rgba(235, 240, 245, 0.85);
+  box-shadow:
+    0 0 0 2px rgba(235, 240, 245, 0.14),
+    0 10px 28px rgba(0,0,0,0.28);
+}
+
+/* Optional: badge styling on silver */
+.match-card.match--second-base .match-tag{
+  background: rgba(235, 240, 245, 0.20);
+  border-color: rgba(235, 240, 245, 0.45);
+  color: rgba(255,255,255,0.92);
+}
+
+    /* First Base = full-card premium bronze */
+.match-card.match--first-base{
+  background: linear-gradient(
+    135deg,
+    rgba(205, 127, 50, 0.22),
+    rgba(120, 70, 25, 0.10)
+  );
+  border-color: rgba(205, 127, 50, 0.70);
+  box-shadow:
+    0 0 0 2px rgba(205, 127, 50, 0.10),
+    0 10px 26px rgba(0,0,0,0.28);
+}
+
+/* Optional: badge styling on bronze */
+.match-card.match--first-base .match-tag{
+  background: rgba(205, 127, 50, 0.18);
+  border-color: rgba(205, 127, 50, 0.40);
+  color: rgba(255,255,255,0.92);
+}
+
+
 
 .match-card .match-tag {
   position: absolute;
