@@ -3393,6 +3393,9 @@ function reorderRespectingUserMoved(arr){
       card.className = "match-card";
       card.dataset.matchId = match.id;
 
+      card.setAttribute("data-team-a", L.name || "");
+      card.setAttribute("data-team-b", R.name || "");
+
       const idx = document.createElement("div");
       idx.className = "match-index";
       idx.textContent = `Match ${match.id}`;
@@ -3496,7 +3499,65 @@ function reorderRespectingUserMoved(arr){
       renderKoRound("sf");
       renderKoRound("third");
       renderKoRound("final");
+      updateAllMatchHighlights(document);
     }
+
+
+    const MATCH_CLASSES = [
+  "match--first-base",
+  "match--second-base",
+  "match--third-base",
+  "match--home-run",
+  "match--grand-slam",
+];
+
+function ensureTagBadge(matchEl) {
+  let badge = matchEl.querySelector(".match-tag");
+  if (!badge) {
+    badge = document.createElement("div");
+    badge.className = "match-tag";
+    matchEl.prepend(badge);
+  }
+  return badge;
+}
+
+function readTeamsFromMatch(matchEl) {
+  const a1 = matchEl.getAttribute("data-team-a");
+  const b1 = matchEl.getAttribute("data-team-b");
+  if (a1 || b1) return { teamA: a1 || "", teamB: b1 || "" };
+
+  const aEl = matchEl.querySelector(".team-a");
+  const bEl = matchEl.querySelector(".team-b");
+  return {
+    teamA: aEl ? aEl.textContent : "",
+    teamB: bEl ? bEl.textContent : "",
+  };
+}
+
+function applyMatchHighlight(matchEl) {
+  // Clear prior
+  matchEl.classList.remove(...MATCH_CLASSES);
+  matchEl.removeAttribute("data-match-tag");
+
+  const badge = ensureTagBadge(matchEl);
+  badge.textContent = "";
+  badge.style.display = "none";
+
+  const { teamA, teamB } = readTeamsFromMatch(matchEl);
+  const cat = getMatchCategory(teamA, teamB);
+  if (!cat) return;
+
+  matchEl.classList.add(cat.cls);
+  matchEl.setAttribute("data-match-tag", cat.tag);
+
+  badge.textContent = cat.tag; // "Grand Slam", "Home Run", etc.
+  badge.style.display = "";
+}
+
+function updateAllMatchHighlights(root = document) {
+  root.querySelectorAll(".match-card").forEach(applyMatchHighlight);
+}
+
 
     /* ==============================
        25) R32 badge updater
