@@ -615,6 +615,25 @@
       overflow: hidden;
     }
 
+    .match-card.match--third-base{
+  /* keep your base styling, but tint the whole card */
+  background: linear-gradient(
+  135deg,
+  rgba(255, 214, 102, 0.28),
+  rgba(255, 214, 102, 0.14)
+);              /* gold fill */
+  border-color: rgba(255, 214, 102, 0.95);
+  box-shadow:
+    0 0 0 2px rgba(255, 214, 102, 0.22),
+    0 10px 28px rgba(0,0,0,0.28);
+}
+
+    .match-card.match--third-base .match-tag{
+  background: rgba(255, 214, 102, 0.28);
+  border-color: rgba(255, 214, 102, 0.70);
+  color: rgba(255,255,255,0.95);
+}
+
 .match-card .match-tag {
   position: absolute;
   top: 10px;
@@ -628,6 +647,8 @@
   letter-spacing: 0.2px;
   user-select: none;
 }
+
+    
 
 .match--first-base  { border-color: rgba(255,255,255,0.30); box-shadow: 0 0 0 2px rgba(255,255,255,0.06); }
 .match--second-base { border-color: rgba(255,255,255,0.45); box-shadow: 0 0 0 2px rgba(255,255,255,0.10); }
