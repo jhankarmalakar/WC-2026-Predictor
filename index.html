@@ -856,18 +856,14 @@
 
 
 /* ==============================
-   GRAND SLAM = Full-card Supernova / Nebula (match the reference image)
-   - Narrow “disc” ellipse (very elongated)
-   - NO rectangular artifact (masked ellipse)
-   - Slow rotation + gentle expand/shrink pulse (kept)
-   - Palette: deep red + magenta + violet + cobalt + cyan/teal (no candy-pink)
+   GRAND SLAM = Full-card Supernova / Nebula (bloody red + blue/cyan)
+   - Removes pink → pushes all magenta/pink stops into deep/bloody reds
 ============================== */
 
 .match-card.match--grand-slam{
   position: relative;
   overflow: hidden;
   border-radius: 12px;
-
   background: rgba(255,255,255,0.04);
   border-color: rgba(255,255,255,1);
   box-shadow:
@@ -880,7 +876,6 @@
   content: "";
   position: absolute;
 
-  /* Make a long, narrow disc */
   width: 220%;
   height: 120%;
   left: 50%;
@@ -889,39 +884,37 @@
   z-index: 0;
   pointer-events: none;
 
-  /* The “nebula” look: conic swirl + soft interior bloom + cyan edges */
   background:
-    /* interior bloom / cloudy body */
+    /* interior bloom / cloudy body (now bloody red instead of pink) */
     radial-gradient(ellipse at 55% 60%,
-      rgba(208, 74, 133, 0.55) 0%,   /* #d04a85 (magenta body) */
-      rgba(175, 18, 104, 0.42) 26%,  /* #af1268 (deep magenta) */
-      rgba(90, 24, 103, 0.28) 52%,   /* #5a1867 (violet shadow) */
-      rgba(20, 38, 85, 0.00) 78%     /* deep blue fade */
+      rgba(215, 30, 45, 0.58) 0%,   /* BLOODY RED */
+      rgba(170, 10, 20, 0.46) 26%,  /* DEEP BLOOD */
+      rgba(70,  0,  8,  0.30) 52%,  /* near-black red shadow */
+      rgba(20, 38, 85, 0.00) 78%    /* deep blue fade */
     ),
-    /* cyan/teal “rim” glow like the image edges */
+    /* cyan/teal “rim” glow */
     radial-gradient(ellipse at 18% 55%,
-      rgba(82, 179, 222, 0.55) 0%,   /* #52b3de */
-      rgba(80, 147, 207, 0.30) 34%,  /* #5093cf */
+      rgba(82, 179, 222, 0.55) 0%,
+      rgba(80, 147, 207, 0.30) 34%,
       rgba(0, 0, 0, 0) 62%
     ),
     radial-gradient(ellipse at 84% 55%,
-      rgba(98, 188, 244, 0.40) 0%,   /* #62bcf4 */
-      rgba(87, 151, 211, 0.22) 36%,  /* #5797d3 */
+      rgba(98, 188, 244, 0.40) 0%,
+      rgba(87, 151, 211, 0.22) 36%,
       rgba(0, 0, 0, 0) 64%
     ),
-    /* swirling spectral mix (keeps the “rotating nebula” feel) */
+    /* spectral swirl (recolored: magenta/violet -> deep reds) */
     conic-gradient(
       from 0deg,
       rgba(98, 188, 244, 0.75),  /* cyan */
-      rgba(25, 61, 102, 0.85),   /* deep blue #193d66 */
-      rgba(90, 24, 103, 0.88),   /* violet #5a1867 */
-      rgba(175, 18, 104, 0.92),  /* deep magenta #af1268 */
-      rgba(214, 69, 96, 0.90),   /* red-magenta #d64560 */
-      rgba(20, 38, 85, 0.88),    /* deep blue #142655 */
+      rgba(25, 61, 102, 0.85),   /* deep blue */
+      rgba(70,  0,  8,  0.82),   /* dark blood shadow */
+      rgba(170, 10, 20, 0.92),   /* deep blood */
+      rgba(235, 20, 40, 0.92),   /* bloody red */
+      rgba(20, 38, 85, 0.88),    /* deep blue */
       rgba(82, 179, 222, 0.75)   /* cyan */
     );
 
-  /* Elliptical fade-out so blur never shows a “sheet” rectangle */
   -webkit-mask-image: radial-gradient(ellipse at center,
     rgba(0,0,0,1) 52%,
     rgba(0,0,0,0.78) 64%,
@@ -933,19 +926,15 @@
     rgba(0,0,0,0) 82%
   );
 
-  /* Nebula glow tuning */
   filter: blur(10px) saturate(3.6) contrast(1.25) brightness(1.45);
   opacity: 1;
 
-  /* Start transform state (includes extra narrowness via scaleY) */
   transform: translate(-50%, -50%) scaleX(1.00) scaleY(0.42) rotate(0deg);
-
-  /* Rotation 3x slower than your original 2.6s => ~7.8s, plus pulse */
   animation: grandSlamNebulaSpin 7.8s linear infinite;
   will-change: transform;
 }
 
-/* Inward “supernova burn” tongues (red/blue only; no candy-pink) */
+/* Inward “burn” tongues (blue-white + bloody red only) */
 .match-card.match--grand-slam .grand-slam-flames{
   pointer-events: none;
   position: absolute;
@@ -957,59 +946,49 @@
 
   background:
     radial-gradient(34px 24px at 12% 12%, rgba(220,245,255,0.38), rgba(98,188,244,0.22) 46%, rgba(0,0,0,0) 74%),
-    radial-gradient(42px 28px at 28% 7%,  rgba(255,230,230,0.40), rgba(214,69,96,0.30) 50%, rgba(0,0,0,0) 78%),
+    radial-gradient(42px 28px at 28% 7%,  rgba(255,230,230,0.40), rgba(235,20,40,0.34) 50%, rgba(0,0,0,0) 78%),
     radial-gradient(34px 24px at 50% 8%,  rgba(220,245,255,0.34), rgba(98,188,244,0.20) 46%, rgba(0,0,0,0) 76%),
-    radial-gradient(44px 30px at 72% 7%,  rgba(255,230,230,0.40), rgba(214,69,96,0.28) 52%, rgba(0,0,0,0) 80%),
+    radial-gradient(44px 30px at 72% 7%,  rgba(255,230,230,0.40), rgba(235,20,40,0.32) 52%, rgba(0,0,0,0) 80%),
     radial-gradient(34px 24px at 90% 14%, rgba(220,245,255,0.32), rgba(82,179,222,0.20) 48%, rgba(0,0,0,0) 78%),
 
-    radial-gradient(40px 28px at 95% 40%, rgba(255,230,230,0.34), rgba(214,69,96,0.24) 54%, rgba(0,0,0,0) 82%),
+    radial-gradient(40px 28px at 95% 40%, rgba(255,230,230,0.34), rgba(235,20,40,0.26) 54%, rgba(0,0,0,0) 82%),
     radial-gradient(34px 26px at 94% 60%, rgba(220,245,255,0.28), rgba(98,188,244,0.18) 54%, rgba(0,0,0,0) 82%),
-    radial-gradient(40px 28px at 92% 82%, rgba(255,230,230,0.32), rgba(214,69,96,0.22) 54%, rgba(0,0,0,0) 82%),
+    radial-gradient(40px 28px at 92% 82%, rgba(255,230,230,0.32), rgba(235,20,40,0.24) 54%, rgba(0,0,0,0) 82%),
 
     radial-gradient(34px 26px at 70% 94%, rgba(220,245,255,0.26), rgba(98,188,244,0.16) 54%, rgba(0,0,0,0) 82%),
-    radial-gradient(46px 32px at 50% 96%, rgba(255,230,230,0.30), rgba(214,69,96,0.22) 56%, rgba(0,0,0,0) 84%),
+    radial-gradient(46px 32px at 50% 96%, rgba(255,230,230,0.30), rgba(235,20,40,0.24) 56%, rgba(0,0,0,0) 84%),
     radial-gradient(34px 26px at 30% 94%, rgba(220,245,255,0.24), rgba(82,179,222,0.16) 54%, rgba(0,0,0,0) 82%),
 
-    radial-gradient(40px 28px at 8% 82%,  rgba(255,230,230,0.30), rgba(214,69,96,0.22) 56%, rgba(0,0,0,0) 84%),
+    radial-gradient(40px 28px at 8% 82%,  rgba(255,230,230,0.30), rgba(235,20,40,0.24) 56%, rgba(0,0,0,0) 84%),
     radial-gradient(34px 26px at 6% 60%,  rgba(220,245,255,0.24), rgba(98,188,244,0.16) 56%, rgba(0,0,0,0) 84%),
-    radial-gradient(40px 28px at 6% 40%,  rgba(255,230,230,0.30), rgba(214,69,96,0.22) 56%, rgba(0,0,0,0) 84%);
+    radial-gradient(40px 28px at 6% 40%,  rgba(255,230,230,0.30), rgba(235,20,40,0.24) 56%, rgba(0,0,0,0) 84%);
 
   filter: blur(2.6px) saturate(2.9) contrast(1.20) brightness(1.35);
   animation: grandSlamFlare 1.25s ease-in-out infinite alternate;
 }
 
-/* Keep normal content above effects */
 .match-card.match--grand-slam > *{
   position: relative;
   z-index: 2;
 }
 
 .match-card.match--grand-slam .match-tag{
-  background: rgba(214, 69, 96, 0.18);
+  background: rgba(235, 20, 40, 0.18);
   border-color: rgba(98, 188, 244, 0.40);
   color: rgba(255,255,255,0.97);
   font-weight: 800;
 }
 
-/* Spin + pulse (kept), with a very narrow disc (scaleY) */
 @keyframes grandSlamNebulaSpin{
-  0% {
-    transform: translate(-50%, -50%) scaleX(0.98) scaleY(0.40) rotate(0deg);
-  }
-  50%{
-    transform: translate(-50%, -50%) scaleX(1.06) scaleY(0.44) rotate(180deg);
-  }
-  100%{
-    transform: translate(-50%, -50%) scaleX(0.98) scaleY(0.40) rotate(360deg);
-  }
+  0%   { transform: translate(-50%, -50%) scaleX(0.98) scaleY(0.40) rotate(0deg); }
+  50%  { transform: translate(-50%, -50%) scaleX(1.06) scaleY(0.44) rotate(180deg); }
+  100% { transform: translate(-50%, -50%) scaleX(0.98) scaleY(0.40) rotate(360deg); }
 }
 
-/* Flames “breathing” */
 @keyframes grandSlamFlare{
   0%   { transform: scale(1.00); opacity: 0.88; }
   100% { transform: scale(1.07); opacity: 1; }
 }
-
 
 
 
