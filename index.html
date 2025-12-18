@@ -856,10 +856,11 @@
 
 
 /* ==============================
-   GRAND SLAM = Full-card Supernova/Nebula (JWST-style)
-   - Elliptical rotating nebula disc (no rectangular artifact)
-   - 3x slower rotation
-   - Strong red “burn” + inward flames
+   GRAND SLAM = Full-card Supernova/Nebula (Red + Blue + Sky)
+   - Narrow elliptical rotating disc (a >> b)
+   - Slow rotation
+   - Background disc "breathes" (expands/shrinks)
+   - Strong red inward flames (no pink)
 ============================== */
 
 .match-card.match--grand-slam{
@@ -867,7 +868,6 @@
   overflow: hidden;
   border-radius: 12px;
 
-  /* keep your base card feel but slightly deeper */
   background: rgba(255,255,255,0.04);
   border-color: rgba(255,255,255,1);
   box-shadow:
@@ -875,119 +875,126 @@
     0 14px 40px rgba(0,0,0,0.42);
 }
 
-/* 1) ROTATING NEBULA DISC (ELLIPTICAL, JWST-ish palette, 3x slower) */
+/* 1) ROTATING NARROW NEBULA DISC (no pink) */
 .match-card.match--grand-slam::before{
   content: "";
   position: absolute;
 
-  /* Oversized ellipse so it fills card while remaining oval */
-  width: 190%;
-  height: 135%;
+  /* Narrower ellipse: a >> b */
+  width: 200%;
+  height: 24%;
   left: 50%;
   top: 50%;
-  transform: translate(-50%, -50%) rotate(0deg);
 
-  border-radius: 999px; /* ellipse */
+  transform: translate(-50%, -50%) rotate(0deg) scale(1);
+  border-radius: 999px;
   z-index: 0;
   pointer-events: none;
 
   background:
     conic-gradient(
       from 0deg,
-      rgba(40, 210, 255, 0.95),   /* cyan */
-      rgba(60, 120, 255, 0.95),   /* electric blue */
-      rgba(150, 80, 255, 0.92),   /* violet */
-      rgba(255, 40, 170, 0.92),   /* magenta */
-      rgba(255, 40, 80, 0.92),    /* hot red */
-      rgba(255, 150, 40, 0.88),   /* orange/gold */
-      rgba(255, 60, 200, 0.92),   /* magenta */
-      rgba(80, 150, 255, 0.95),   /* blue */
-      rgba(40, 210, 255, 0.95)    /* cyan */
+      rgba(60, 220, 255, 0.95),   /* sky/cyan */
+      rgba(70, 160, 255, 0.95),   /* bright blue */
+      rgba(30, 90, 255, 0.92),    /* deep blue */
+      rgba(10, 40, 120, 0.90),    /* navy */
+      rgba(255, 90, 70, 0.94),    /* hot red */
+      rgba(255, 50, 50, 0.96),    /* stronger red */
+      rgba(255, 160, 70, 0.88),   /* orange edge (heat) */
+      rgba(40, 130, 255, 0.95),   /* back to blue */
+      rgba(60, 220, 255, 0.95)    /* sky/cyan */
     );
 
-  /* Elliptical fade-out so blur never shows a rectangular sheet */
+  /* Elliptical fade-out so no rectangular sheet appears */
   -webkit-mask-image: radial-gradient(ellipse at center,
-    rgba(0,0,0,1) 58%,
-    rgba(0,0,0,0.85) 68%,
+    rgba(0,0,0,1) 50%,
+    rgba(0,0,0,0.70) 66%,
     rgba(0,0,0,0) 82%
   );
   mask-image: radial-gradient(ellipse at center,
-    rgba(0,0,0,1) 58%,
-    rgba(0,0,0,0.85) 68%,
+    rgba(0,0,0,1) 50%,
+    rgba(0,0,0,0.70) 66%,
     rgba(0,0,0,0) 82%
   );
 
-  /* More nebula-like glow */
-  filter: blur(10px) saturate(3.8) contrast(1.35) brightness(1.55);
+  filter: blur(10px) saturate(3.2) contrast(1.35) brightness(1.45);
   opacity: 1;
 
-  /* 3x slower than 2.6s => 7.8s */
-  animation: grandSlamBurn 7.8s linear infinite;
+  /* slow rotation + breathing scale (retain your expanding/shrinking vibe) */
+  animation:
+    grandSlamBurn 7.8s linear infinite,
+    grandSlamDiscPulse 2.2s ease-in-out infinite alternate;
 }
 
-/* 2) REMOVE BORDER MASK (you said you want whole card animating) */
+/* no border mask; full-card animates */
 .match-card.match--grand-slam::after{
   content: none;
 }
 
-/* 3) INWARD FLAMES (strong red burn tongues into the card) */
+/* 2) INWARD FLAMES (strong red burn, no pink) */
 .match-card.match--grand-slam .grand-slam-flames{
   pointer-events: none;
   position: absolute;
   inset: 0;
-  z-index: 1;              /* above nebula, below content */
+  z-index: 1;
   border-radius: inherit;
   opacity: 1;
   mix-blend-mode: screen;
 
   background:
-    radial-gradient(30px 22px at 10% 12%, rgba(255,255,255,0.55), rgba(255,70,70,0.38) 45%, rgba(255,0,60,0) 72%),
-    radial-gradient(38px 26px at 28% 6%,  rgba(255,190,120,0.60), rgba(255,60,60,0.34) 48%, rgba(255,0,60,0) 74%),
-    radial-gradient(30px 22px at 50% 8%,  rgba(255,255,255,0.52), rgba(255,70,70,0.36) 46%, rgba(255,0,60,0) 74%),
-    radial-gradient(40px 28px at 72% 7%,  rgba(255,180,110,0.60), rgba(255,50,50,0.34) 50%, rgba(255,0,60,0) 76%),
-    radial-gradient(30px 22px at 90% 14%, rgba(255,255,255,0.52), rgba(255,70,70,0.34) 46%, rgba(255,0,60,0) 74%),
+    radial-gradient(30px 22px at 10% 12%, rgba(255,255,255,0.55), rgba(255,70,70,0.42) 46%, rgba(255,0,60,0) 74%),
+    radial-gradient(38px 26px at 28% 6%,  rgba(255,200,130,0.62), rgba(255,60,60,0.36) 48%, rgba(255,0,60,0) 76%),
+    radial-gradient(30px 22px at 50% 8%,  rgba(255,255,255,0.52), rgba(255,70,70,0.40) 46%, rgba(255,0,60,0) 76%),
+    radial-gradient(40px 28px at 72% 7%,  rgba(255,190,120,0.62), rgba(255,55,55,0.36) 50%, rgba(255,0,60,0) 78%),
+    radial-gradient(30px 22px at 90% 14%, rgba(255,255,255,0.52), rgba(255,70,70,0.36) 46%, rgba(255,0,60,0) 76%),
 
-    radial-gradient(34px 26px at 96% 40%, rgba(255,190,120,0.56), rgba(255,55,55,0.32) 50%, rgba(255,0,60,0) 78%),
-    radial-gradient(30px 24px at 95% 60%, rgba(255,255,255,0.48), rgba(255,70,70,0.30) 48%, rgba(255,0,60,0) 78%),
-    radial-gradient(34px 26px at 92% 82%, rgba(255,180,110,0.56), rgba(255,55,55,0.32) 50%, rgba(255,0,60,0) 78%),
+    radial-gradient(34px 26px at 96% 40%, rgba(255,200,130,0.58), rgba(255,55,55,0.34) 50%, rgba(255,0,60,0) 80%),
+    radial-gradient(30px 24px at 95% 60%, rgba(255,255,255,0.48), rgba(255,70,70,0.32) 48%, rgba(255,0,60,0) 80%),
+    radial-gradient(34px 26px at 92% 82%, rgba(255,190,120,0.58), rgba(255,55,55,0.34) 50%, rgba(255,0,60,0) 80%),
 
-    radial-gradient(30px 24px at 70% 94%, rgba(255,255,255,0.46), rgba(255,70,70,0.30) 48%, rgba(255,0,60,0) 78%),
-    radial-gradient(40px 30px at 50% 96%, rgba(255,200,130,0.58), rgba(255,55,55,0.32) 52%, rgba(255,0,60,0) 80%),
-    radial-gradient(30px 24px at 30% 94%, rgba(255,255,255,0.44), rgba(255,70,70,0.28) 48%, rgba(255,0,60,0) 78%),
+    radial-gradient(30px 24px at 70% 94%, rgba(255,255,255,0.46), rgba(255,70,70,0.32) 48%, rgba(255,0,60,0) 80%),
+    radial-gradient(40px 30px at 50% 96%, rgba(255,210,140,0.60), rgba(255,55,55,0.34) 52%, rgba(255,0,60,0) 82%),
+    radial-gradient(30px 24px at 30% 94%, rgba(255,255,255,0.44), rgba(255,70,70,0.30) 48%, rgba(255,0,60,0) 80%),
 
-    radial-gradient(34px 26px at 8% 82%,  rgba(255,180,110,0.56), rgba(255,55,55,0.30) 52%, rgba(255,0,60,0) 80%),
-    radial-gradient(30px 24px at 5% 60%,  rgba(255,255,255,0.44), rgba(255,70,70,0.28) 50%, rgba(255,0,60,0) 80%),
-    radial-gradient(34px 26px at 6% 40%,  rgba(255,190,120,0.56), rgba(255,55,55,0.30) 52%, rgba(255,0,60,0) 80%);
+    radial-gradient(34px 26px at 8% 82%,  rgba(255,190,120,0.58), rgba(255,55,55,0.32) 52%, rgba(255,0,60,0) 82%),
+    radial-gradient(30px 24px at 5% 60%,  rgba(255,255,255,0.44), rgba(255,70,70,0.30) 50%, rgba(255,0,60,0) 82%),
+    radial-gradient(34px 26px at 6% 40%,  rgba(255,200,130,0.58), rgba(255,55,55,0.32) 52%, rgba(255,0,60,0) 82%);
 
-  filter: blur(2.8px) saturate(3.0) contrast(1.25) brightness(1.40);
+  filter: blur(2.8px) saturate(2.8) contrast(1.25) brightness(1.35);
   animation: grandSlamFlare 1.25s ease-in-out infinite alternate;
 }
 
-/* Keep all normal content above effects */
+/* keep normal content above effects */
 .match-card.match--grand-slam > *{
   position: relative;
   z-index: 2;
 }
 
-/* Badge vibe */
 .match-card.match--grand-slam .match-tag{
   background: rgba(255,70,70,0.18);
-  border-color: rgba(255,165,90,0.50);
+  border-color: rgba(255,160,70,0.55);
   color: rgba(255,255,255,0.97);
   font-weight: 800;
 }
 
-/* Rotation (transform must include translate to keep ellipse centered) */
+/* Rotation */
 @keyframes grandSlamBurn{
-  0%   { transform: translate(-50%, -50%) rotate(0deg); }
-  100% { transform: translate(-50%, -50%) rotate(360deg); }
+  0%   { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+  100% { transform: translate(-50%, -50%) rotate(360deg) scale(1); }
 }
 
-/* Flames “breathing” */
+/* Background "breathing" — retains expand/shrink effect */
+@keyframes grandSlamDiscPulse{
+  0%   { filter: blur(10px) saturate(3.0) contrast(1.32) brightness(1.38); }
+  100% { filter: blur(12px) saturate(3.4) contrast(1.40) brightness(1.55); }
+}
+
+/* Flames breathing */
 @keyframes grandSlamFlare{
   0%   { transform: scale(1.00); opacity: 0.88; }
   100% { transform: scale(1.07); opacity: 1; }
 }
+
 
 
 .match-card .match-tag {
