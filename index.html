@@ -602,14 +602,18 @@
       width: min(760px, 100%);
     }
 
-    .match-card {
-  position: relative;
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 12px;
-  padding: 10px 12px;
-  background: rgba(255,255,255,0.04);
-  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
-}
+    .match-card{
+      background: rgba(255,255,255,0.035);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 12px 10px 12px;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 10px 10px;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
 
 .match-card .match-tag {
   position: absolute;
