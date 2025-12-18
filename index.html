@@ -884,64 +884,57 @@
   z-index: 4;
 }
 
-/* -------- VFX LAYER 0: Starfield that “breathes” -------- */
-/* -------- VFX LAYER 0: Blue starfield that “breathes” (denser + 3–5x bigger) -------- */
+/* -------- VFX LAYER 0: Static white starfield (smaller, no breathing) -------- */
 .match-card.match--grand-slam .grand-slam-stars{
   position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
   border-radius: inherit;
-  opacity: 0.95;
+  opacity: 0.90;
   mix-blend-mode: screen;
 
-  /* Larger stars + more of them (blue/ice-blue) */
+  /* White stars (about 1/2 the size of the previous set) */
   background:
-    /* brighter “hero” stars */
-    radial-gradient(circle at 8% 16%,   rgba(170,225,255,0.95) 0 3px, rgba(30,120,255,0) 9px),
-    radial-gradient(circle at 18% 52%,  rgba(140,205,255,0.85) 0 2.6px, rgba(30,120,255,0) 8px),
-    radial-gradient(circle at 26% 78%,  rgba(210,245,255,0.90) 0 3.2px, rgba(30,120,255,0) 10px),
-    radial-gradient(circle at 36% 18%,  rgba(120,195,255,0.88) 0 2.4px, rgba(30,120,255,0) 8px),
-    radial-gradient(circle at 46% 34%,  rgba(190,235,255,0.85) 0 2.8px, rgba(30,120,255,0) 9px),
-    radial-gradient(circle at 58% 14%,  rgba(160,225,255,0.92) 0 3px, rgba(30,120,255,0) 10px),
-    radial-gradient(circle at 64% 84%,  rgba(120,205,255,0.82) 0 2.5px, rgba(30,120,255,0) 9px),
-    radial-gradient(circle at 74% 26%,  rgba(175,230,255,0.86) 0 2.8px, rgba(30,120,255,0) 9px),
-    radial-gradient(circle at 86% 64%,  rgba(210,245,255,0.88) 0 3.1px, rgba(30,120,255,0) 10px),
-    radial-gradient(circle at 92% 40%,  rgba(150,215,255,0.80) 0 2.6px, rgba(30,120,255,0) 9px),
+    /* hero stars */
+    radial-gradient(circle at 8% 16%,   rgba(255,255,255,0.95) 0 1.5px, rgba(255,255,255,0) 4.5px),
+    radial-gradient(circle at 18% 52%,  rgba(255,255,255,0.85) 0 1.3px, rgba(255,255,255,0) 4px),
+    radial-gradient(circle at 26% 78%,  rgba(255,255,255,0.90) 0 1.6px, rgba(255,255,255,0) 5px),
+    radial-gradient(circle at 36% 18%,  rgba(255,255,255,0.88) 0 1.2px, rgba(255,255,255,0) 4px),
+    radial-gradient(circle at 46% 34%,  rgba(255,255,255,0.85) 0 1.4px, rgba(255,255,255,0) 4.5px),
+    radial-gradient(circle at 58% 14%,  rgba(255,255,255,0.92) 0 1.5px, rgba(255,255,255,0) 5px),
+    radial-gradient(circle at 64% 84%,  rgba(255,255,255,0.82) 0 1.25px, rgba(255,255,255,0) 4.5px),
+    radial-gradient(circle at 74% 26%,  rgba(255,255,255,0.86) 0 1.4px, rgba(255,255,255,0) 4.5px),
+    radial-gradient(circle at 86% 64%,  rgba(255,255,255,0.88) 0 1.55px, rgba(255,255,255,0) 5px),
+    radial-gradient(circle at 92% 40%,  rgba(255,255,255,0.80) 0 1.3px, rgba(255,255,255,0) 4.5px),
 
     /* medium stars */
-    radial-gradient(circle at 12% 28%,  rgba(120,190,255,0.55) 0 2.0px, rgba(30,120,255,0) 7px),
-    radial-gradient(circle at 22% 40%,  rgba(150,210,255,0.50) 0 1.8px, rgba(30,120,255,0) 7px),
-    radial-gradient(circle at 30% 66%,  rgba(120,190,255,0.48) 0 1.9px, rgba(30,120,255,0) 7px),
-    radial-gradient(circle at 40% 86%,  rgba(150,210,255,0.48) 0 1.8px, rgba(30,120,255,0) 7px),
-    radial-gradient(circle at 52% 22%,  rgba(120,190,255,0.52) 0 2.0px, rgba(30,120,255,0) 7px),
-    radial-gradient(circle at 60% 58%,  rgba(150,210,255,0.46) 0 1.8px, rgba(30,120,255,0) 7px),
-    radial-gradient(circle at 70% 72%,  rgba(120,190,255,0.46) 0 1.9px, rgba(30,120,255,0) 7px),
-    radial-gradient(circle at 80% 18%,  rgba(150,210,255,0.46) 0 1.8px, rgba(30,120,255,0) 7px),
-    radial-gradient(circle at 88% 82%,  rgba(120,190,255,0.44) 0 1.9px, rgba(30,120,255,0) 7px),
+    radial-gradient(circle at 12% 28%,  rgba(255,255,255,0.55) 0 1.0px, rgba(255,255,255,0) 3.5px),
+    radial-gradient(circle at 22% 40%,  rgba(255,255,255,0.50) 0 0.9px, rgba(255,255,255,0) 3.5px),
+    radial-gradient(circle at 30% 66%,  rgba(255,255,255,0.48) 0 0.95px, rgba(255,255,255,0) 3.5px),
+    radial-gradient(circle at 40% 86%,  rgba(255,255,255,0.48) 0 0.9px, rgba(255,255,255,0) 3.5px),
+    radial-gradient(circle at 52% 22%,  rgba(255,255,255,0.52) 0 1.0px, rgba(255,255,255,0) 3.5px),
+    radial-gradient(circle at 60% 58%,  rgba(255,255,255,0.46) 0 0.9px, rgba(255,255,255,0) 3.5px),
+    radial-gradient(circle at 70% 72%,  rgba(255,255,255,0.46) 0 0.95px, rgba(255,255,255,0) 3.5px),
+    radial-gradient(circle at 80% 18%,  rgba(255,255,255,0.46) 0 0.9px, rgba(255,255,255,0) 3.5px),
+    radial-gradient(circle at 88% 82%,  rgba(255,255,255,0.44) 0 0.95px, rgba(255,255,255,0) 3.5px),
 
-    /* faint background “dust” stars */
-    radial-gradient(circle at 16% 70%,  rgba(120,190,255,0.22) 0 1.3px, rgba(30,120,255,0) 6px),
-    radial-gradient(circle at 28% 12%,  rgba(150,210,255,0.20) 0 1.2px, rgba(30,120,255,0) 6px),
-    radial-gradient(circle at 44% 50%,  rgba(120,190,255,0.18) 0 1.2px, rgba(30,120,255,0) 6px),
-    radial-gradient(circle at 56% 78%,  rgba(150,210,255,0.18) 0 1.2px, rgba(30,120,255,0) 6px),
-    radial-gradient(circle at 68% 40%,  rgba(120,190,255,0.18) 0 1.2px, rgba(30,120,255,0) 6px),
-    radial-gradient(circle at 78% 56%,  rgba(150,210,255,0.18) 0 1.2px, rgba(30,120,255,0) 6px),
-    radial-gradient(circle at 90% 12%,  rgba(120,190,255,0.16) 0 1.1px, rgba(30,120,255,0) 6px);
+    /* faint dust */
+    radial-gradient(circle at 16% 70%,  rgba(255,255,255,0.22) 0 0.65px, rgba(255,255,255,0) 3px),
+    radial-gradient(circle at 28% 12%,  rgba(255,255,255,0.20) 0 0.6px,  rgba(255,255,255,0) 3px),
+    radial-gradient(circle at 44% 50%,  rgba(255,255,255,0.18) 0 0.6px,  rgba(255,255,255,0) 3px),
+    radial-gradient(circle at 56% 78%,  rgba(255,255,255,0.18) 0 0.6px,  rgba(255,255,255,0) 3px),
+    radial-gradient(circle at 68% 40%,  rgba(255,255,255,0.18) 0 0.6px,  rgba(255,255,255,0) 3px),
+    radial-gradient(circle at 78% 56%,  rgba(255,255,255,0.18) 0 0.6px,  rgba(255,255,255,0) 3px),
+    radial-gradient(circle at 90% 12%,  rgba(255,255,255,0.16) 0 0.55px, rgba(255,255,255,0) 3px);
 
-  /* Strong blue glow without touching disc/blackhole layers */
-  filter:
-    blur(0.35px)
-    saturate(2.8)
-    contrast(1.10)
-    brightness(1.30)
-    drop-shadow(0 0 10px rgba(70,170,255,0.40))
-    drop-shadow(0 0 22px rgba(60,140,255,0.28));
-
-  transform-origin: 50% 50%;
-  animation: grandSlamStarBreath 1.35s ease-in-out infinite alternate;
-  will-change: transform, opacity;
+  /* crisp + minimal glow */
+  filter: blur(0.18px) brightness(1.10);
+  transform: none;
+  animation: none;
+  will-change: auto;
 }
+
 
 
 /* -------- VFX LAYER 1: Rotating accretion disc (ellipse) -------- */
