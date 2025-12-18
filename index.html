@@ -780,7 +780,7 @@
 .match-card.match--grand-slam::after{
   content: "";
   position: absolute;
-  inset: 10px;                  /* <-- THICKNESS: higher = thicker border */
+  inset: 100px;                  /* <-- THICKNESS: higher = thicker border */
   border-radius: inherit;
   z-index: 0;
   background: rgba(12,12,14,0.92);
@@ -3629,6 +3629,12 @@ function reorderRespectingUserMoved(arr){
 
       const card = document.createElement("div");
       card.className = "match-card";
+      // Grand Slam flame layer (harmless for other cards; CSS only shows it on .match--grand-slam)
+      const flameLayer = document.createElement("div");
+      flameLayer.className = "grand-slam-flames";
+      card.appendChild(flameLayer);
+
+      
       card.dataset.matchId = match.id;
 
       card.setAttribute("data-team-a", L.name || "");
