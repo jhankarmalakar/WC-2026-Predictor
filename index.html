@@ -856,10 +856,8 @@
 
 
 /* ==============================
-   GRAND SLAM = Spinning Black Hole + Accretion Disc (clean slate)
-   - Full-card effect
-   - Rotating luminous disc + subtle lensing ring
-   - No dependency on prior grand-slam CSS
+   GRAND SLAM = Spinning Black Hole + Accretion Disc
+   + Background stars “breathing” (expand/shrink)
 ============================== */
 
 .match-card.match--grand-slam{
@@ -880,10 +878,39 @@
     0 16px 46px rgba(0,0,0,0.55);
 }
 
-/* Ensure content is above VFX */
+/* Keep content above VFX */
 .match-card.match--grand-slam > *{
   position: relative;
-  z-index: 3;
+  z-index: 4;
+}
+
+/* -------- VFX LAYER 0: Starfield that “breathes” -------- */
+.match-card.match--grand-slam .grand-slam-stars{
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.95;
+  mix-blend-mode: screen;
+
+  /* a few bright + many faint stars */
+  background:
+    radial-gradient(circle at 12% 22%, rgba(255,255,255,0.30) 0 1px, rgba(0,0,0,0) 2px),
+    radial-gradient(circle at 24% 78%, rgba(255,255,255,0.22) 0 1px, rgba(0,0,0,0) 2px),
+    radial-gradient(circle at 46% 34%, rgba(255,255,255,0.18) 0 1px, rgba(0,0,0,0) 2px),
+    radial-gradient(circle at 58% 18%, rgba(255,255,255,0.26) 0 1px, rgba(0,0,0,0) 2px),
+    radial-gradient(circle at 74% 26%, rgba(255,255,255,0.20) 0 1px, rgba(0,0,0,0) 2px),
+    radial-gradient(circle at 86% 64%, rgba(255,255,255,0.24) 0 1px, rgba(0,0,0,0) 2px),
+    radial-gradient(circle at 18% 52%, rgba(255,255,255,0.14) 0 1px, rgba(0,0,0,0) 2px),
+    radial-gradient(circle at 92% 40%, rgba(255,255,255,0.12) 0 1px, rgba(0,0,0,0) 2px),
+    radial-gradient(circle at 64% 84%, rgba(255,255,255,0.14) 0 1px, rgba(0,0,0,0) 2px),
+    radial-gradient(circle at 36% 16%, rgba(255,255,255,0.10) 0 1px, rgba(0,0,0,0) 2px);
+
+  filter: blur(0.15px) saturate(1.1);
+  transform-origin: 50% 50%;
+  animation: grandSlamStarBreath 1.35s ease-in-out infinite alternate;
+  will-change: transform, opacity;
 }
 
 /* -------- VFX LAYER 1: Rotating accretion disc (ellipse) -------- */
@@ -893,18 +920,15 @@
   left: 50%;
   top: 54%;
 
-  /* disc footprint: wide + thin */
   width: 240%;
   height: 105%;
   border-radius: 999px;
   transform: translate(-50%, -50%) rotate(0deg);
 
-  z-index: 0;
+  z-index: 1;
   pointer-events: none;
 
-  /* accretion disc: hot core + cooler outer bands */
   background:
-    /* hot inner ring */
     radial-gradient(ellipse at 50% 50%,
       rgba(255,255,255,0.80) 0%,
       rgba(255,210,140,0.55) 18%,
@@ -913,7 +937,6 @@
       rgba(70,130,255,0.20) 70%,
       rgba(0,0,0,0) 84%
     ),
-    /* azimuthal swirl/texture */
     conic-gradient(
       from 0deg,
       rgba(255,255,255,0.18),
@@ -926,26 +949,23 @@
       rgba(255,255,255,0.18)
     );
 
-  /* make it a thin disc */
   filter: blur(10px) saturate(3.1) contrast(1.28) brightness(1.35);
   opacity: 0.95;
 
-  /* elliptical shape (thin disc) */
   transform-origin: 50% 50%;
   animation: bhDiscSpin 9.6s linear infinite;
   will-change: transform;
 }
 
-/* -------- VFX LAYER 2: Black hole core + lensing ring + jets hint -------- */
+/* -------- VFX LAYER 2: Black hole core + lensing ring + subtle jets -------- */
 .match-card.match--grand-slam::after{
   content: "";
   position: absolute;
   inset: 0;
-  z-index: 1;
+  z-index: 2;
   pointer-events: none;
 
   background:
-    /* polar jets hint (very subtle) */
     radial-gradient(20% 45% at 50% 14%,
       rgba(110,170,255,0.14),
       rgba(0,0,0,0) 70%
@@ -954,32 +974,21 @@
       rgba(255,120,110,0.12),
       rgba(0,0,0,0) 70%
     ),
-
-    /* gravitational lensing photon ring */
     radial-gradient(circle at 50% 54%,
       rgba(255,255,255,0.55) 0%,
       rgba(255,220,160,0.32) 10%,
       rgba(255,120,70,0.20) 18%,
       rgba(0,0,0,0) 26%
     ),
-
-    /* event horizon / black hole shadow (cuts through disc) */
     radial-gradient(circle at 50% 54%,
       rgba(0,0,0,1) 0%,
       rgba(0,0,0,1) 18%,
       rgba(0,0,0,0.92) 24%,
       rgba(0,0,0,0) 34%
-    ),
-
-    /* starfield specks */
-    radial-gradient(circle at 18% 22%, rgba(255,255,255,0.10) 0 1px, rgba(0,0,0,0) 2px),
-    radial-gradient(circle at 74% 18%, rgba(255,255,255,0.12) 0 1px, rgba(0,0,0,0) 2px),
-    radial-gradient(circle at 88% 62%, rgba(255,255,255,0.10) 0 1px, rgba(0,0,0,0) 2px),
-    radial-gradient(circle at 26% 76%, rgba(255,255,255,0.08) 0 1px, rgba(0,0,0,0) 2px),
-    radial-gradient(circle at 52% 30%, rgba(255,255,255,0.10) 0 1px, rgba(0,0,0,0) 2px);
+    );
 }
 
-/* Optional: make tag match the theme */
+/* Tag styling */
 .match-card.match--grand-slam .match-tag{
   background: rgba(0,0,0,0.28);
   border-color: rgba(255,255,255,0.28);
@@ -988,7 +997,7 @@
   backdrop-filter: blur(6px);
 }
 
-/* Spin + slight “breathing” so it feels alive */
+/* Spin + subtle breathing */
 @keyframes bhDiscSpin{
   0%{
     transform: translate(-50%, -50%) scaleX(1.05) scaleY(0.32) rotate(0deg);
@@ -999,6 +1008,12 @@
   100%{
     transform: translate(-50%, -50%) scaleX(1.05) scaleY(0.32) rotate(360deg);
   }
+}
+
+/* Starfield breathing (expand/shrink + slight fade) */
+@keyframes grandSlamStarBreath{
+  0%   { transform: scale(1.00); opacity: 0.78; }
+  100% { transform: scale(1.08); opacity: 1.00; }
 }
 
 
@@ -3805,6 +3820,11 @@ function reorderRespectingUserMoved(arr){
 
     /* ==============================
        24) Render KO rounds
+
+         // Grand Slam flame layer (harmless for other cards; CSS only shows it on .match--grand-slam)
+      const flameLayer = document.createElement("div");
+      flameLayer.className = "grand-slam-flames";
+      card.appendChild(flameLayer);
     ============================== */
     function buildMatchCard(match){
       const p = resolveParticipants(match);
@@ -3816,16 +3836,27 @@ function reorderRespectingUserMoved(arr){
 
       const card = document.createElement("div");
       card.className = "match-card";
-      // Grand Slam flame layer (harmless for other cards; CSS only shows it on .match--grand-slam)
-      const flameLayer = document.createElement("div");
-      flameLayer.className = "grand-slam-flames";
-      card.appendChild(flameLayer);
-
-      
       card.dataset.matchId = match.id;
 
-      card.setAttribute("data-team-a", L.name || "");
-      card.setAttribute("data-team-b", R.name || "");
+    // store teams so highlight code can read them
+card.setAttribute("data-team-a", L.name || "");
+card.setAttribute("data-team-b", R.name || "");
+
+// Category (compute once)
+const cat = getMatchCategory(L.name, R.name);
+if (cat) card.classList.add(cat.cls);
+
+// Grand Slam VFX layers (ONLY for grand slam)
+if (cat?.cls === "match--grand-slam") {
+  const stars = document.createElement("div");
+  stars.className = "grand-slam-stars";
+  card.prepend(stars);
+
+  const flameLayer = document.createElement("div");
+  flameLayer.className = "grand-slam-flames";
+  card.prepend(flameLayer);
+} // ✅ IMPORTANT: close the if block
+
 
       const idx = document.createElement("div");
       idx.className = "match-index";
