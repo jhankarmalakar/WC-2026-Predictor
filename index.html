@@ -3456,136 +3456,123 @@ function reorderRespectingUserMoved(arr){
       /* ==============================
        25) Match Highlight
     ============================== */
-// ---------- TEAM SETS ----------
-const TIER_1 = new Set([
-  "argentina", "england", "portugal", "brazil", "spain", "france", "germany",
-]);
+(() => {
+  // Prevent double-initialization if script is pasted twice or loaded twice
+  if (window.__wc26_match_highlight_init) return;
+  window.__wc26_match_highlight_init = true;
 
-const TIER_2 = new Set([
-  "netherlands", "belgium", "croatia", "italy",
-]);
+  // ---------- TEAM SETS ----------
+  const TIER_1 = new Set(["argentina","england","portugal","brazil","spain","france","germany"]);
+  const TIER_2 = new Set(["netherlands","belgium","croatia","italy"]);
 
-// ---------- NORMALIZATION ----------
-function normTeamName(name) {
-  if (!name) return "";
-  const s = String(name).trim().toLowerCase();
-
-  // Optional synonyms (add as your data requires)
-  const aliases = {
-    "brésil": "brazil",
-    "deutschland": "germany",
-    "españa": "spain",
-    "holland": "netherlands",
-  };
-
-  return aliases[s] || s;
-}
-
-// ---------- CATEGORY DETECTOR (WITH PRIORITY) ----------
-function getMatchCategory(teamA, teamB) {
-  const a = normTeamName(teamA);
-  const b = normTeamName(teamB);
-
-  // If placeholders / TBD, do not tag
-  const invalid = new Set(["", "tbd", "to be decided", "-", "—", "winner", "runner-up"]);
-  if (invalid.has(a) || invalid.has(b)) return null;
-
-  // Helpers
-  const isTier1A = TIER_1.has(a);
-  const isTier1B = TIER_1.has(b);
-  const isTier2A = TIER_2.has(a);
-  const isTier2B = TIER_2.has(b);
-
-  const isArgentinaPortugal =
-    (a === "argentina" && b === "portugal") || (a === "portugal" && b === "argentina");
-
-  const isBrazilArgentina =
-    (a === "brazil" && b === "argentina") || (a === "argentina" && b === "brazil");
-
-  // Priority order:
-  if (isArgentinaPortugal) return { tag: "Grand Slam", cls: "match--grand-slam" };
-  if (isBrazilArgentina)   return { tag: "Home Run",   cls: "match--home-run" };
-  if (isTier1A && isTier1B) return { tag: "Third Base", cls: "match--third-base" };
-
-  // Second Base: one from Tier 1 vs one from Tier 2
-  if ((isTier1A && isTier2B) || (isTier2A && isTier1B)) {
-    return { tag: "Second Base", cls: "match--second-base" };
+  function normTeamName(name) {
+    if (!name) return "";
+    const s = String(name).trim().toLowerCase();
+    const aliases = {
+      "brésil": "brazil",
+      "deutschland": "germany",
+      "españa": "spain",
+      "holland": "netherlands",
+    };
+    return aliases[s] || s;
   }
 
-  // First Base: any match involving a Tier 1 team
-  if (isTier1A || isTier1B) return { tag: "First Base", cls: "match--first-base" };
+  function getMatchCategory(teamA, teamB) {
+    const a = normTeamName(teamA);
+    const b = normTeamName(teamB);
 
-  return null;
-}
+    // Treat placeholders as invalid (covers "Winner 73", "Runner-up A", etc.)
+    if (!a || !b) return null;
+    if (a.startsWith("winner") || b.startsWith("winner")) return null;
+    if (a.startsWith("runner") || b.startsWith("runner")) return null;
+    if (a.includes("tbd") || b.includes("tbd")) return null;
 
-    const MATCH_CLASSES = [
-  "match--first-base",
-  "match--second-base",
-  "match--third-base",
-  "match--home-run",
-  "match--grand-slam",
-];
+    const isTier1A = TIER_1.has(a);
+    const isTier1B = TIER_1.has(b);
+    const isTier2A = TIER_2.has(a);
+    const isTier2B = TIER_2.has(b);
 
-function ensureTagBadge(matchEl) {
-  let badge = matchEl.querySelector(".match-tag");
-  if (!badge) {
-    badge = document.createElement("div");
-    badge.className = "match-tag";
-    matchEl.prepend(badge);
+    const isArgentinaPortugal =
+      (a === "argentina" && b === "portugal") || (a === "portugal" && b === "argentina");
+    const isBrazilArgentina =
+      (a === "brazil" && b === "argentina") || (a === "argentina" && b === "brazil");
+
+    if (isArgentinaPortugal) return { tag: "Grand Slam", cls: "match--grand-slam" };
+    if (isBrazilArgentina)   return { tag: "Home Run",   cls: "match--home-run" };
+    if (isTier1A && isTier1B) return { tag: "Third Base", cls: "match--third-base" };
+    if ((isTier1A && isTier2B) || (isTier2A && isTier1B)) return { tag: "Second Base", cls: "match--second-base" };
+    if (isTier1A || isTier1B) return { tag: "First Base", cls: "match--first-base" };
+
+    return null;
   }
-  return badge;
-}
 
-function readTeamsFromMatch(matchEl) {
-  const a1 = matchEl.getAttribute("data-team-a");
-  const b1 = matchEl.getAttribute("data-team-b");
-  if (a1 || b1) return { teamA: a1 || "", teamB: b1 || "" };
+  const MATCH_CLASSES = [
+    "match--first-base",
+    "match--second-base",
+    "match--third-base",
+    "match--home-run",
+    "match--grand-slam",
+  ];
 
-  const aEl = matchEl.querySelector(".team-a");
-  const bEl = matchEl.querySelector(".team-b");
-  return {
-    teamA: aEl ? aEl.textContent : "",
-    teamB: bEl ? bEl.textContent : "",
-  };
-}
+  function ensureTagBadge(matchEl) {
+    let badge = matchEl.querySelector(".match-tag");
+    if (!badge) {
+      badge = document.createElement("div");
+      badge.className = "match-tag";
+      matchEl.prepend(badge);
+    }
+    return badge;
+  }
 
-function applyMatchHighlight(matchEl) {
-  // Clear prior
-  matchEl.classList.remove(...MATCH_CLASSES);
-  matchEl.removeAttribute("data-match-tag");
+  function readTeamsFromMatch(matchEl) {
+    const a1 = matchEl.getAttribute("data-team-a") || "";
+    const b1 = matchEl.getAttribute("data-team-b") || "";
+    if (a1 || b1) return { teamA: a1, teamB: b1 };
 
-  const badge = ensureTagBadge(matchEl);
-  badge.textContent = "";
-  badge.style.display = "none";
+    const aEl = matchEl.querySelector(".team-a");
+    const bEl = matchEl.querySelector(".team-b");
+    return { teamA: aEl ? aEl.textContent : "", teamB: bEl ? bEl.textContent : "" };
+  }
 
-  const { teamA, teamB } = readTeamsFromMatch(matchEl);
-  const cat = getMatchCategory(teamA, teamB);
-  if (!cat) return;
+  function applyMatchHighlight(matchEl) {
+    matchEl.classList.remove(...MATCH_CLASSES);
+    matchEl.removeAttribute("data-match-tag");
 
-  matchEl.classList.add(cat.cls);
-  matchEl.setAttribute("data-match-tag", cat.tag);
+    const badge = ensureTagBadge(matchEl);
+    badge.textContent = "";
+    badge.style.display = "none";
 
-  badge.textContent = cat.tag; // "Grand Slam", "Home Run", etc.
-  badge.style.display = "";
-}
+    const { teamA, teamB } = readTeamsFromMatch(matchEl);
+    const cat = getMatchCategory(teamA, teamB);
+    if (!cat) return;
 
-function updateAllMatchHighlights(root = document) {
-  root.querySelectorAll(".match-card").forEach(applyMatchHighlight);
-}
+    matchEl.classList.add(cat.cls);
+    matchEl.setAttribute("data-match-tag", cat.tag);
+    badge.textContent = cat.tag;
+    badge.style.display = "";
+  }
 
-function safeUpdateHighlights(){
-  try { updateAllMatchHighlights(document); } catch(e) {}
-}
+  function updateAllMatchHighlights(root = document) {
+    root.querySelectorAll(".match-card").forEach(applyMatchHighlight);
+  }
 
-// ✅ Call after every render (most reliable)
-const _renderAllKo = renderAllKo;
-renderAllKo = function(){
-  _renderAllKo();
-  safeUpdateHighlights();
-};
+  function safeUpdateHighlights() {
+    try { updateAllMatchHighlights(document); } catch(e) {}
+  }
 
-// ✅ Also call once on initial load
-safeUpdateHighlights();
+  // Wrap renderAllKo safely (only if it exists)
+  if (typeof renderAllKo === "function") {
+    const _renderAllKo = renderAllKo;
+    renderAllKo = function () {
+      _renderAllKo();
+      safeUpdateHighlights();
+    };
+  }
+
+  // Run once after DOM paints (safe even if cards aren’t there yet)
+  requestAnimationFrame(safeUpdateHighlights);
+})();
+
 
 
 
