@@ -676,7 +676,8 @@
 
 
 /* ==============================
-   HOME RUN = Neutron Star Merger / Kilonova (full-card, animated)
+   HOME RUN = Neutron Star Merger (visible twin stars + kilonova ejecta)
+   Replace your entire Home Run section with this.
 ============================== */
 
 .match-card.match--home-run{
@@ -684,47 +685,68 @@
   overflow: hidden;
   border-radius: 12px;
 
-  /* Deep space + hot blue core + warm ejecta */
+  /* Base “kilonova” wash: blue-white core + magenta shock + warm ejecta */
   background:
-    radial-gradient(120px 90px at 42% 38%, rgba(210,240,255,0.55), rgba(90,190,255,0.22) 42%, rgba(0,0,0,0) 72%),
-    radial-gradient(220px 160px at 58% 48%, rgba(95,120,255,0.22), rgba(140,60,255,0.14) 46%, rgba(0,0,0,0) 76%),
-    radial-gradient(260px 190px at 72% 64%, rgba(255,175,85,0.18), rgba(255,90,60,0.10) 48%, rgba(0,0,0,0) 78%),
-    radial-gradient(420px 320px at 50% 55%, rgba(20,26,45,0.92), rgba(10,10,14,0.92) 62%, rgba(0,0,0,0.98) 100%);
+    radial-gradient(260px 180px at 48% 46%,
+      rgba(210,245,255,0.22),
+      rgba(90,190,255,0.10) 55%,
+      rgba(0,0,0,0) 78%
+    ),
+    radial-gradient(360px 260px at 58% 56%,
+      rgba(190,70,255,0.14),
+      rgba(255,90,170,0.08) 60%,
+      rgba(0,0,0,0) 82%
+    ),
+    radial-gradient(520px 380px at 74% 70%,
+      rgba(255,190,110,0.14),
+      rgba(255,90,60,0.06) 60%,
+      rgba(0,0,0,0) 86%
+    ),
+    rgba(255,255,255,0.04);
 
-  border-color: rgba(210,240,255,0.85);
+  border-color: rgba(210,245,255,0.60);
   box-shadow:
-    0 0 0 2px rgba(160,210,255,0.18),
-    0 14px 34px rgba(0,0,0,0.40);
+    0 0 0 2px rgba(210,245,255,0.14),
+    0 14px 34px rgba(0,0,0,0.34);
 }
 
-/* Rotating “energy / shock” field (elliptical, not rectangular) */
+/* Badge styling for Home Run */
+.match-card.match--home-run .match-tag{
+  background: rgba(120,210,255,0.14);
+  border-color: rgba(210,245,255,0.40);
+  color: rgba(255,255,255,0.96);
+  font-weight: 800;
+}
+
+/* 1) Subtle rotating “flow field” halo */
 .match-card.match--home-run::before{
   content: "";
   position: absolute;
-  inset: -70px;                 /* bigger than card; crop makes it feel like a halo */
-  border-radius: 50%;           /* ellipse because width != height */
+  inset: -22px;
+  border-radius: 999px;           /* force ellipse (avoid rectangular look) */
   z-index: 0;
+  pointer-events: none;
 
   background: conic-gradient(
     from 0deg,
-    rgba(120,210,255,0.00),
-    rgba(120,210,255,0.55),
-    rgba(90,140,255,0.55),
-    rgba(170,70,255,0.52),
-    rgba(255,90,170,0.48),
-    rgba(255,170,90,0.45),
-    rgba(255,235,180,0.35),
-    rgba(120,210,255,0.55),
-    rgba(120,210,255,0.00)
+    rgba(255,255,255,0.35),
+    rgba(90,190,255,0.24),
+    rgba(190,70,255,0.22),
+    rgba(255,90,170,0.18),
+    rgba(255,190,110,0.16),
+    rgba(90,190,255,0.22),
+    rgba(255,255,255,0.35)
   );
 
-  filter: blur(18px) saturate(2.4) contrast(1.15) brightness(1.25);
-  opacity: 0.95;
+  filter: blur(10px) saturate(2.4) contrast(1.15) brightness(1.25);
+  opacity: 0.90;
 
-  animation: homeRunKilonovaSpin 9.5s linear infinite; /* slow + premium */
+  /* gentle rotation; not too fast */
+  animation: homeRunFlow 6.5s linear infinite;
+  transform-origin: 50% 50%;
 }
 
-/* Collision lobes + faint “jet” impression + ejecta shimmer */
+/* 2) Collision lobes + visible neutron stars + faint “jet” + ejecta shimmer */
 .match-card.match--home-run::after{
   content: "";
   position: absolute;
@@ -734,58 +756,102 @@
   pointer-events: none;
 
   background:
-    /* twin bright lobes (collision region) */
-    radial-gradient(110px 85px at 44% 46%, rgba(210,240,255,0.44), rgba(90,190,255,0.18) 55%, rgba(0,0,0,0) 78%),
-    radial-gradient(110px 85px at 56% 54%, rgba(210,240,255,0.40), rgba(120,130,255,0.16) 55%, rgba(0,0,0,0) 78%),
+    /* === TWO NEUTRON STARS (small, sharp, blue-white) === */
+    radial-gradient(8px 8px at 48% 50%,
+      rgba(255,255,255,1),
+      rgba(200,245,255,0.90) 28%,
+      rgba(90,190,255,0.52) 55%,
+      rgba(0,0,0,0) 78%
+    ),
+    radial-gradient(8px 8px at 52% 52%,
+      rgba(255,255,255,1),
+      rgba(200,245,255,0.88) 28%,
+      rgba(140,150,255,0.50) 55%,
+      rgba(0,0,0,0) 78%
+    ),
+
+    /* hot rims around each star (slightly larger) */
+    radial-gradient(26px 22px at 48% 50%,
+      rgba(255,255,255,0.40),
+      rgba(120,210,255,0.24) 45%,
+      rgba(0,0,0,0) 78%
+    ),
+    radial-gradient(26px 22px at 52% 52%,
+      rgba(255,255,255,0.38),
+      rgba(190,70,255,0.22) 45%,
+      rgba(0,0,0,0) 78%
+    ),
+
+    /* === CONTACT / COLLISION REGION (bright bridge) === */
+    radial-gradient(90px 70px at 50% 51%,
+      rgba(220,250,255,0.48),
+      rgba(90,190,255,0.18) 55%,
+      rgba(0,0,0,0) 78%
+    ),
+
+    /* twin broader lobes */
+    radial-gradient(120px 90px at 44% 46%,
+      rgba(210,240,255,0.30),
+      rgba(90,190,255,0.12) 58%,
+      rgba(0,0,0,0) 80%
+    ),
+    radial-gradient(120px 90px at 56% 54%,
+      rgba(210,240,255,0.28),
+      rgba(140,150,255,0.11) 58%,
+      rgba(0,0,0,0) 80%
+    ),
 
     /* magenta/purple shock */
-    radial-gradient(260px 190px at 52% 52%, rgba(190,70,255,0.18), rgba(255,90,170,0.10) 58%, rgba(0,0,0,0) 80%),
+    radial-gradient(260px 190px at 52% 52%,
+      rgba(190,70,255,0.22),
+      rgba(255,90,170,0.12) 60%,
+      rgba(0,0,0,0) 82%
+    ),
 
     /* warm ejecta sweep */
-    radial-gradient(360px 260px at 74% 70%, rgba(255,190,110,0.16), rgba(255,90,60,0.08) 55%, rgba(0,0,0,0) 82%),
+    radial-gradient(380px 280px at 74% 70%,
+      rgba(255,190,110,0.20),
+      rgba(255,90,60,0.10) 58%,
+      rgba(0,0,0,0) 84%
+    ),
 
     /* subtle “jet” streaks */
-    linear-gradient(115deg, rgba(0,0,0,0) 0%, rgba(120,210,255,0.14) 46%, rgba(0,0,0,0) 62%),
-    linear-gradient(295deg, rgba(0,0,0,0) 0%, rgba(170,70,255,0.12) 46%, rgba(0,0,0,0) 62%);
+    linear-gradient(115deg,
+      rgba(0,0,0,0) 0%,
+      rgba(120,210,255,0.16) 46%,
+      rgba(0,0,0,0) 62%
+    ),
+    linear-gradient(295deg,
+      rgba(0,0,0,0) 0%,
+      rgba(190,70,255,0.14) 46%,
+      rgba(0,0,0,0) 62%
+    );
 
   mix-blend-mode: screen;
-  opacity: 0.95;
+  opacity: 0.98;
+
+  filter: saturate(1.35) contrast(1.12) brightness(1.10);
 
   animation: homeRunKilonovaPulse 1.55s ease-in-out infinite alternate;
 }
 
-/* Keep your normal content above the effects */
+/* Keep card content above the effects */
 .match-card.match--home-run > *{
   position: relative;
   z-index: 2;
 }
 
-/* Badge styling */
-.match-card.match--home-run .match-tag{
-  background: rgba(90,190,255,0.14);
-  border-color: rgba(210,240,255,0.45);
-  color: rgba(255,255,255,0.96);
-  font-weight: 800;
-}
-
 /* Animations */
-@keyframes homeRunKilonovaSpin{
-  0%   { transform: rotate(0deg) scale(1.02); }
-  100% { transform: rotate(360deg) scale(1.02); }
+@keyframes homeRunFlow{
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 @keyframes homeRunKilonovaPulse{
-  0%   { transform: scale(1.00); opacity: 0.80; filter: blur(0px) saturate(1.05); }
-  100% { transform: scale(1.035); opacity: 1.00; filter: blur(0.5px) saturate(1.18); }
+  0%   { transform: scale(1.00); opacity: 0.86; }
+  100% { transform: scale(1.05); opacity: 1; }
 }
 
-/* Respect reduced motion */
-@media (prefers-reduced-motion: reduce){
-  .match-card.match--home-run::before,
-  .match-card.match--home-run::after{
-    animation: none !important;
-  }
-}
 
 
 
