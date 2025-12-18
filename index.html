@@ -1458,7 +1458,7 @@ function nameWithFlagHTML(name){
         const letter = p.id.replace("uefapath-","");
         const map = { a: 1, b: 2, c: 3, d: 4 };
         const n = map[letter] ?? letter.toUpperCase();
-        return `UEFA Path ${letter.toUpperCase()}`;
+        return `UEFA Path ${n}`;
       }
       if(p.id.startsWith("fifaicpath-")){
         const n = p.id.replace("fifaicpath-","");
@@ -3317,94 +3317,90 @@ function reorderRespectingUserMoved(arr){
     /* ==============================
        24) Render KO rounds
     ============================== */
-   function buildMatchCard(match){
-  const p = resolveParticipants(match);
-  const L = p.left;
-  const R = p.right;
+    function buildMatchCard(match){
+      const p = resolveParticipants(match);
+      const L = p.left;
+      const R = p.right;
 
-  const winner = state.winners[match.id];
-  const info = INFO_BY_MATCH[match.id];
+      const winner = state.winners[match.id];
+      const info = INFO_BY_MATCH[match.id];
 
-  const card = document.createElement("div");
-  card.className = "match-card";
-  card.dataset.matchId = match.id;
+      const card = document.createElement("div");
+      card.className = "match-card";
+      card.dataset.matchId = match.id;
 
-  // ✅ for match highlighting
-  card.setAttribute("data-team-a", L.name || "");
-  card.setAttribute("data-team-b", R.name || "");
+      const idx = document.createElement("div");
+      idx.className = "match-index";
+      idx.textContent = `Match ${match.id}`;
+      card.appendChild(idx);
 
-  const idx = document.createElement("div");
-  idx.className = "match-index";
-  idx.textContent = `Match ${match.id}`;
-  card.appendChild(idx);
+      const vs = document.createElement("div");
+      vs.className = "match-vs";
+      vs.textContent = `${L.label} vs ${R.label}`;
+      card.appendChild(vs);
 
-  const vs = document.createElement("div");
-  vs.className = "match-vs";
-  vs.textContent = `${L.label} vs ${R.label}`;
-  card.appendChild(vs);
+      const leftBtn = document.createElement("div");
+      leftBtn.className = "match-team";
+      leftBtn.innerHTML = nameWithFlagHTML(L.name);
 
-  const leftBtn = document.createElement("div");
-  leftBtn.className = "match-team team-a";
-  leftBtn.innerHTML = nameWithFlagHTML(L.name);
+      const mid = document.createElement("div");
+      mid.className = "match-mid";
 
-  const mid = document.createElement("div");
-  mid.className = "match-mid";
+      const rightBtn = document.createElement("div");
+      rightBtn.className = "match-team";
+      rightBtn.innerHTML = nameWithFlagHTML(R.name);
 
-  const rightBtn = document.createElement("div");
-  rightBtn.className = "match-team team-b";
-  rightBtn.innerHTML = nameWithFlagHTML(R.name);
+      const inR32Range = (match.id >= 73 && match.id <= 88);
 
-  const inR32Range = (match.id >= 73 && match.id <= 88);
-  const canPick =
-    (!inR32Range || state.r32Generated) &&
-    !L.placeholder && !R.placeholder;
+      const canPick =
+        (!inR32Range || state.r32Generated) &&
+        !L.placeholder && !R.placeholder;
 
-  if(!canPick){
-    leftBtn.classList.add("locked");
-    rightBtn.classList.add("locked");
-    mid.textContent = "---";
-  } else {
-    leftBtn.addEventListener("click", () => setWinner(match.id, "L", L.name));
-    rightBtn.addEventListener("click", () => setWinner(match.id, "R", R.name));
-    mid.textContent = winner ? winner.abbrev : "---";
-  }
+      if(!canPick){
+        leftBtn.classList.add("locked");
+        rightBtn.classList.add("locked");
+        mid.textContent = "---";
+      } else {
+        leftBtn.addEventListener("click", () => setWinner(match.id, "L", L.name));
+        rightBtn.addEventListener("click", () => setWinner(match.id, "R", R.name));
+        mid.textContent = winner ? winner.abbrev : "---";
+      }
 
-  if(winner && canPick){
-    if(winner.name === L.name) leftBtn.classList.add("winning");
-    if(winner.name === R.name) rightBtn.classList.add("winning");
-  }
+      if(winner && canPick){
+        if(winner.name === L.name) leftBtn.classList.add("winning");
+        if(winner.name === R.name) rightBtn.classList.add("winning");
+      }
 
-  card.appendChild(leftBtn);
-  card.appendChild(mid);
-  card.appendChild(rightBtn);
+      card.appendChild(leftBtn);
+      card.appendChild(mid);
+      card.appendChild(rightBtn);
 
-  const bottom = document.createElement("div");
-  bottom.className = "match-bottom";
+      const bottom = document.createElement("div");
+      bottom.className = "match-bottom";
 
-  const leftMeta = document.createElement("span");
-  const rightMeta = document.createElement("span");
+      const leftMeta = document.createElement("span");
+      const rightMeta = document.createElement("span");
 
-  if(info){
-    leftMeta.innerHTML = `
-      <span class="chip">${info.date}</span>
-      <span class="chip">Local time: ${formatLocalKickoff(info)}</span>
-    `;
-    rightMeta.innerHTML = `
-      <span class="chip">${info.stadium}</span>
-      <span class="chip">${info.city}</span>
-    `;
-  } else {
-    leftMeta.innerHTML = `<span class="chip">Date/Time TBD</span>`;
-    rightMeta.innerHTML = `<span class="chip">Venue TBD</span>`;
-  }
+      if(info){
+        leftMeta.innerHTML = `
+          <span class="chip">${info.date}</span>
+          <span class="chip">Local time: ${formatLocalKickoff(info)}</span>
+        `;
+        rightMeta.innerHTML = `
+          <span class="chip">${info.stadium}</span>
+          <span class="chip">${info.city}</span>
+        `;
+      } else {
+        leftMeta.innerHTML = `<span class="chip">Date/Time TBD</span>`;
+        rightMeta.innerHTML = `<span class="chip">Venue TBD</span>`;
+      }
 
-  bottom.appendChild(leftMeta);
-  bottom.appendChild(rightMeta);
-  card.appendChild(bottom);
+      bottom.appendChild(leftMeta);
+      bottom.appendChild(rightMeta);
+      card.appendChild(bottom);
 
-  return card;
-}
-
+      return card;
+    }
 
     function renderKoRound(roundKey){
       const grid = document.querySelector(`.ko-grid[data-ko-round="${roundKey}"]`);
@@ -3456,123 +3452,141 @@ function reorderRespectingUserMoved(arr){
       /* ==============================
        25) Match Highlight
     ============================== */
-(() => {
-  // Prevent double-initialization if script is pasted twice or loaded twice
-  if (window.__wc26_match_highlight_init) return;
-  window.__wc26_match_highlight_init = true;
+// ---------- TEAM SETS ----------
+const TIER_1 = new Set([
+  "argentina", "england", "portugal", "brazil", "spain", "france", "germany",
+]);
 
-  // ---------- TEAM SETS ----------
-  const TIER_1 = new Set(["argentina","england","portugal","brazil","spain","france","germany"]);
-  const TIER_2 = new Set(["netherlands","belgium","croatia","italy"]);
+const TIER_2 = new Set([
+  "netherlands", "belgium", "croatia", "italy",
+]);
 
-  function normTeamName(name) {
-    if (!name) return "";
-    const s = String(name).trim().toLowerCase();
-    const aliases = {
-      "brésil": "brazil",
-      "deutschland": "germany",
-      "españa": "spain",
-      "holland": "netherlands",
-    };
-    return aliases[s] || s;
+// ---------- NORMALIZATION ----------
+function normTeamName(name) {
+  if (!name) return "";
+  const s = String(name).trim().toLowerCase();
+
+  // Optional synonyms (add as your data requires)
+  const aliases = {
+    "brésil": "brazil",
+    "deutschland": "germany",
+    "españa": "spain",
+    "holland": "netherlands",
+  };
+
+  return aliases[s] || s;
+}
+
+// ---------- CATEGORY DETECTOR (WITH PRIORITY) ----------
+function getMatchCategory(teamA, teamB) {
+  const a = normTeamName(teamA);
+  const b = normTeamName(teamB);
+
+  // If placeholders / TBD, do not tag
+  const invalid = new Set(["", "tbd", "to be decided", "-", "—", "winner", "runner-up"]);
+  if (invalid.has(a) || invalid.has(b)) return null;
+
+  // Helpers
+  const isTier1A = TIER_1.has(a);
+  const isTier1B = TIER_1.has(b);
+  const isTier2A = TIER_2.has(a);
+  const isTier2B = TIER_2.has(b);
+
+  const isArgentinaPortugal =
+    (a === "argentina" && b === "portugal") || (a === "portugal" && b === "argentina");
+
+  const isBrazilArgentina =
+    (a === "brazil" && b === "argentina") || (a === "argentina" && b === "brazil");
+
+  // Priority order:
+  if (isArgentinaPortugal) return { tag: "Grand Slam", cls: "match--grand-slam" };
+  if (isBrazilArgentina)   return { tag: "Home Run",   cls: "match--home-run" };
+  if (isTier1A && isTier1B) return { tag: "Third Base", cls: "match--third-base" };
+
+  // Second Base: one from Tier 1 vs one from Tier 2
+  if ((isTier1A && isTier2B) || (isTier2A && isTier1B)) {
+    return { tag: "Second Base", cls: "match--second-base" };
   }
 
-  function getMatchCategory(teamA, teamB) {
-    const a = normTeamName(teamA);
-    const b = normTeamName(teamB);
+  // First Base: any match involving a Tier 1 team
+  if (isTier1A || isTier1B) return { tag: "First Base", cls: "match--first-base" };
 
-    // Treat placeholders as invalid (covers "Winner 73", "Runner-up A", etc.)
-    if (!a || !b) return null;
-    if (a.startsWith("winner") || b.startsWith("winner")) return null;
-    if (a.startsWith("runner") || b.startsWith("runner")) return null;
-    if (a.includes("tbd") || b.includes("tbd")) return null;
+  return null;
+}
 
-    const isTier1A = TIER_1.has(a);
-    const isTier1B = TIER_1.has(b);
-    const isTier2A = TIER_2.has(a);
-    const isTier2B = TIER_2.has(b);
+    const MATCH_CLASSES = [
+  "match--first-base",
+  "match--second-base",
+  "match--third-base",
+  "match--home-run",
+  "match--grand-slam",
+];
 
-    const isArgentinaPortugal =
-      (a === "argentina" && b === "portugal") || (a === "portugal" && b === "argentina");
-    const isBrazilArgentina =
-      (a === "brazil" && b === "argentina") || (a === "argentina" && b === "brazil");
+function ensureTagBadge(matchEl) {
+  let badge = matchEl.querySelector(".match-tag");
+  if (!badge) {
+    badge = document.createElement("div");
+    badge.className = "match-tag";
+    matchEl.prepend(badge);
+  }
+  return badge;
+}
 
-    if (isArgentinaPortugal) return { tag: "Grand Slam", cls: "match--grand-slam" };
-    if (isBrazilArgentina)   return { tag: "Home Run",   cls: "match--home-run" };
-    if (isTier1A && isTier1B) return { tag: "Third Base", cls: "match--third-base" };
-    if ((isTier1A && isTier2B) || (isTier2A && isTier1B)) return { tag: "Second Base", cls: "match--second-base" };
-    if (isTier1A || isTier1B) return { tag: "First Base", cls: "match--first-base" };
+function readTeamsFromMatch(matchEl) {
+  const a1 = matchEl.getAttribute("data-team-a");
+  const b1 = matchEl.getAttribute("data-team-b");
+  if (a1 || b1) return { teamA: a1 || "", teamB: b1 || "" };
 
-    return null;
+  const aEl = matchEl.querySelector(".team-a");
+  const bEl = matchEl.querySelector(".team-b");
+  return {
+    teamA: aEl ? aEl.textContent : "",
+    teamB: bEl ? bEl.textContent : "",
+  };
+}
+
+function applyMatchHighlight(matchEl) {
+  // Clear prior
+  matchEl.classList.remove(...MATCH_CLASSES);
+  matchEl.removeAttribute("data-match-tag");
+
+  const badge = ensureTagBadge(matchEl);
+  badge.textContent = "";
+  badge.style.display = "none";
+
+  const { teamA, teamB } = readTeamsFromMatch(matchEl);
+  const cat = getMatchCategory(teamA, teamB);
+  if (!cat) return;
+
+  matchEl.classList.add(cat.cls);
+  matchEl.setAttribute("data-match-tag", cat.tag);
+
+  badge.textContent = cat.tag; // "Grand Slam", "Home Run", etc.
+  badge.style.display = "";
+}
+
+function updateAllMatchHighlights(root = document) {
+  root.querySelectorAll(".match-card").forEach(applyMatchHighlight);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const bracketEl = document.getElementById("knockoutBracket");
+  if (!bracketEl) {
+    // fallback: observe the whole board or just run once
+    updateAllMatchHighlights(document);
+    return;
   }
 
-  const MATCH_CLASSES = [
-    "match--first-base",
-    "match--second-base",
-    "match--third-base",
-    "match--home-run",
-    "match--grand-slam",
-  ];
+  updateAllMatchHighlights(bracketEl);
 
-  function ensureTagBadge(matchEl) {
-    let badge = matchEl.querySelector(".match-tag");
-    if (!badge) {
-      badge = document.createElement("div");
-      badge.className = "match-tag";
-      matchEl.prepend(badge);
-    }
-    return badge;
-  }
+  const obs = new MutationObserver(() => updateAllMatchHighlights(bracketEl));
+  obs.observe(bracketEl, { childList: true, subtree: true, characterData: true });
+});
+    
 
-  function readTeamsFromMatch(matchEl) {
-    const a1 = matchEl.getAttribute("data-team-a") || "";
-    const b1 = matchEl.getAttribute("data-team-b") || "";
-    if (a1 || b1) return { teamA: a1, teamB: b1 };
-
-    const aEl = matchEl.querySelector(".team-a");
-    const bEl = matchEl.querySelector(".team-b");
-    return { teamA: aEl ? aEl.textContent : "", teamB: bEl ? bEl.textContent : "" };
-  }
-
-  function applyMatchHighlight(matchEl) {
-    matchEl.classList.remove(...MATCH_CLASSES);
-    matchEl.removeAttribute("data-match-tag");
-
-    const badge = ensureTagBadge(matchEl);
-    badge.textContent = "";
-    badge.style.display = "none";
-
-    const { teamA, teamB } = readTeamsFromMatch(matchEl);
-    const cat = getMatchCategory(teamA, teamB);
-    if (!cat) return;
-
-    matchEl.classList.add(cat.cls);
-    matchEl.setAttribute("data-match-tag", cat.tag);
-    badge.textContent = cat.tag;
-    badge.style.display = "";
-  }
-
-  function updateAllMatchHighlights(root = document) {
-    root.querySelectorAll(".match-card").forEach(applyMatchHighlight);
-  }
-
-  function safeUpdateHighlights() {
-    try { updateAllMatchHighlights(document); } catch(e) {}
-  }
-
-  // Wrap renderAllKo safely (only if it exists)
-  if (typeof renderAllKo === "function") {
-    const _renderAllKo = renderAllKo;
-    renderAllKo = function () {
-      _renderAllKo();
-      safeUpdateHighlights();
-    };
-  }
-
-  // Run once after DOM paints (safe even if cards aren’t there yet)
-  requestAnimationFrame(safeUpdateHighlights);
-})();
-
+const bracketEl = document.getElementById("knockoutBracket"); // use your real container id
+const obs = new MutationObserver(() => updateAllMatchHighlights());
+obs.observe(bracketEl, { childList: true, subtree: true, characterData: true });
 
 
 
@@ -4234,33 +4248,32 @@ function drawSummaryBox(pos, title, teamName, accent){
   const thirdWinner = state.winners?.[103]?.name ?? "";
   const runnerUp    = getRunnerUpName(finalId);
 
-  // Draw summaries (Champion / Runner-up / 3rd)
-  if(posById[SUMMARY_CHAMP_ID]){
-    drawChampionSummaryBox(
-      posById[SUMMARY_CHAMP_ID],
-      "2026 FIFA WC CHAMPIONS",
-      finalWinner || "TBD"
-    );
-  }
+if(posById[SUMMARY_CHAMP_ID]){
+  drawChampionSummaryBox(
+    posById[SUMMARY_CHAMP_ID],
+    "2026 FIFA WC CHAMPIONS",
+    finalWinner
+  );
+}
 
 
-  if(posById[SUMMARY_RUNNER_ID]){
-    drawSummaryBox(
-      posById[SUMMARY_RUNNER_ID],
-      "RUNNER-UP",
-      runnerUp || "TBD",
-      "rgba(122,162,255,0.65)"
-    );
-  }
+if(posById[SUMMARY_RUNNER_ID]){
+  drawSummaryBox(
+    posById[SUMMARY_RUNNER_ID],
+    "RUNNERS-UP",
+    runnerUp,
+    "rgba(122,162,255,0.65)"
+  );
+}
 
- if(posById[SUMMARY_THIRD_ID]){
-    drawSummaryBox(
-      posById[SUMMARY_THIRD_ID],
-      "3RD PLACE",
-      thirdWinner || "TBD",
-      "rgba(255,107,122,0.65)"
-    );
-  }
+if(posById[SUMMARY_THIRD_ID]){
+  drawSummaryBox(
+    posById[SUMMARY_THIRD_ID],
+    "3RD PLACE WINNER",
+    thirdWinner,
+    "rgba(255,107,122,0.70)"
+  );
+}
 
 
 
@@ -4301,13 +4314,6 @@ function drawSummaryBox(pos, title, teamName, accent){
   ctx.fillText(ts, W - rightPad, H - 12);
 
   ctx.textAlign = "start";
-
-   // Footer (optional but nice)
-  ctx.fillStyle = "rgba(255,255,255,0.45)";
-  ctx.font = "700 10.5px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  const url = getSiteUrlForImage();
-  ctx.fillText(SITE_SOURCE_NAME, 32, H - 26);
-  if(url) ctx.fillText(url, 32, H - 12);
 
   return canvas;
 }
@@ -4468,8 +4474,6 @@ function renderGroupSchedule(groupKey){
     /* ==============================
        28) Wire Buttons
     ============================== */
-    let _globalKeydownWired = false;
-    
     function wireButtons(){
       const resetBtn = document.getElementById("resetBtn");
       const clearMovedBtn = document.getElementById("clearMovedBtn");
@@ -4580,14 +4584,8 @@ function renderGroupSchedule(groupKey){
 
       // ESC
           // ESC closes any open modal (print or group schedule)
-if(!_globalKeydownWired){
-  document.addEventListener("keydown", (e) => {
-    if(e.key !== "Escape") return;
-    // close modals...
-  });
-  _globalKeydownWired = true;
-}
-
+      document.addEventListener("keydown", (e) => {
+        if(e.key !== "Escape") return;
 
         const isPrintOpen = backdrop?.classList.contains("show");
         if(isPrintOpen) closePrintModal();
